@@ -29,8 +29,6 @@ module PxRealtimeBluetooth
         e.backtrace.each do |x|
           PxRealtimeBluetooth.logger.error("#{x}")
         end
-      ensure
-        stop
       end
     end
 
@@ -48,7 +46,7 @@ module PxRealtimeBluetooth
 
     def start_pty_thread
       PxRealtimeBluetooth.logger.info("PTY thread starting")
-      pty_thread = Thread.new do
+      self.pty_thread = Thread.new do
         begin
           spawner = PxRealtimeBluetooth::PtySpawner.new(
             self.command,
@@ -65,7 +63,7 @@ module PxRealtimeBluetooth
 
     def start_chunker_thread
       PxRealtimeBluetooth.logger.info("Chunker thread starting")
-      chunker_thread = Thread.new do
+      self.chunker_thread = Thread.new do
         begin
           chunker = PxRealtimeBluetooth::Chunker.new(
             self.raw_queue,
@@ -83,7 +81,7 @@ module PxRealtimeBluetooth
 
     def start_parser_thread
       PxRealtimeBluetooth.logger.info("Parser thread starting")
-      parser_thread = Thread.new do
+      self.parser_thread = Thread.new do
         begin
           while chunk = chunk_queue.pop do
             p = PxRealtimeBluetooth::Parser.new(chunk)
@@ -102,7 +100,7 @@ module PxRealtimeBluetooth
 
     def start_result_thread
       PxRealtimeBluetooth.logger.info("Result thread starting")
-      result_thread = Thread.new do
+      self.result_thread = Thread.new do
         begin
           while result = result_q.pop do
             PxRealtimeBluetooth.logger.info("Result thread got result")
@@ -145,7 +143,7 @@ module PxRealtimeBluetooth
           end
         end
       end
-
     end
+
   end
 end
