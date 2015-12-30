@@ -127,7 +127,7 @@ module PxRealtimeBluetooth
                 if base[key]
                   base[key] = (base[key] + values).uniq
                 else
-                  base[key] = values
+                  base[key] = values.uniq
                 end
               end
 
