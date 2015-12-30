@@ -11,6 +11,7 @@ module PxRealtimeBluetooth
                   :result_thread
 
 
+    # NOTE must also be running /usr/share/doc/bluez-test-scripts/examples/test-discovery
     def start(command="btmon -T")
       begin
         PxRealtimeBluetooth.logger.info("Runner starting with '#{command}' ...")
@@ -102,7 +103,7 @@ module PxRealtimeBluetooth
       PxRealtimeBluetooth.logger.info("Result thread starting")
       self.result_thread = Thread.new do
         begin
-          while result = result_q.pop do
+          while result = result_queue.pop do
             PxRealtimeBluetooth.logger.info("Result thread got result")
             if result[:address]
               address = result[:address].first
