@@ -1,5 +1,29 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
-$:.unshift(File.dirname(File.expand_path('../../lib/pwnscan.rb',__FILE__)))
+$:.unshift(File.dirname(File.expand_path('../../lib/px_realtime_bluetooth.rb',__FILE__)))
 
-require 'btmon'
+require 'px_realtime_bluetooth'
+
+# This file is used by the service scan to kill the process and should be
+# cleaned up when this crashes or is killed via the service scan. 
+PID_FILE = '/var/run/px_realtime_bluetooth.pid'
+File.write(PID_FILE, Process.pid)
+
+begin
+  # Start the main workers...
+  runner = PxRealtimeBluetooth::Runner.new
+  runner.start
+
+  # This blocking loop keeps the scanner alive in its threads. Refer to the
+  # PxRealtimeBluetooth::Runner to understand the main work threads.
+  loop do 
+    sleep 1
+  end
+rescue SignalException, Interrupt => e
+  PxRealtimeBluetooth.logger.info("PxRealtimeBluetooth Killed! Exiting... #{e.to_s}")
+rescue => e
+  PxRealtimeBluetooth.logger.error("Generic Error: #{e.to_s} #{e.backtrace}")
+ensure
+  runner.stop
+  File.unlink(PID_FILE)
+end

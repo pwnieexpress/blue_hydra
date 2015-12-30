@@ -29,10 +29,8 @@ module PxRealtimeBluetooth
         e.backtrace.each do |x|
           PxRealtimeBluetooth.logger.error("#{x}")
         end
-
       ensure
         stop
-
       end
     end
 
