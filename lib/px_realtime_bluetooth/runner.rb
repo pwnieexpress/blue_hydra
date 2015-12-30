@@ -1,4 +1,4 @@
-module BtMon
+module PxRealtimeBluetooth
   class Runner
 
     attr_accessor :command,
@@ -13,7 +13,7 @@ module BtMon
 
     def start(command="btmon -T")
       begin
-        BtMon.logger.info("Runner starting with '#{command}' ...")
+        PxRealtimeBluetooth.logger.info("Runner starting with '#{command}' ...")
         self.command      = command
         self.raw_queue    = Queue.new
         self.chunk_queue  = Queue.new
@@ -25,9 +25,9 @@ module BtMon
         start_result_thread
 
       rescue => e
-        BtMon.logger.error("Runner master thread: #{e.message}")
+        PxRealtimeBluetooth.logger.error("Runner master thread: #{e.message}")
         e.backtrace.each do |x|
-          BtMon.logger.error("#{x}")
+          PxRealtimeBluetooth.logger.error("#{x}")
         end
 
       ensure
@@ -37,7 +37,7 @@ module BtMon
     end
 
     def stop
-      BtMon.logger.info("Runner exiting...")
+      PxRealtimeBluetooth.logger.info("Runner exiting...")
       self.raw_queue    = nil
       self.chunk_queue  = nil
       self.result_queue = nil
@@ -49,65 +49,65 @@ module BtMon
     end
 
     def start_pty_thread
-      BtMon.logger.info("PTY thread starting")
+      PxRealtimeBluetooth.logger.info("PTY thread starting")
       pty_thread = Thread.new do
         begin
-          spawner = BtMon::PtySpawner.new(
+          spawner = PxRealtimeBluetooth::PtySpawner.new(
             self.command,
             self.raw_queue
           )
         rescue => e
-          BtMon.logger.error("PTY thread #{e.message}")
+          PxRealtimeBluetooth.logger.error("PTY thread #{e.message}")
           e.backtrace.each do |x|
-            BtMon.logger.error("#{x}")
+            PxRealtimeBluetooth.logger.error("#{x}")
           end
         end
       end
     end
 
     def start_chunker_thread
-      BtMon.logger.info("Chunker thread starting")
+      PxRealtimeBluetooth.logger.info("Chunker thread starting")
       chunker_thread = Thread.new do
         begin
-          chunker = BtMon::Chunker.new(
+          chunker = PxRealtimeBluetooth::Chunker.new(
             self.raw_queue,
             self.chunk_queue
           )
           chunker.chunk_it_up
         rescue => e
-          BtMon.logger.error("Chunker thread #{e.message}")
+          PxRealtimeBluetooth.logger.error("Chunker thread #{e.message}")
           e.backtrace.each do |x|
-            BtMon.logger.error("#{x}")
+            PxRealtimeBluetooth.logger.error("#{x}")
           end
         end
       end
     end
 
     def start_parser_thread
-      BtMon.logger.info("Parser thread starting")
+      PxRealtimeBluetooth.logger.info("Parser thread starting")
       parser_thread = Thread.new do
         begin
           while chunk = chunk_queue.pop do
-            p = BtMon::Parser.new(chunk)
+            p = PxRealtimeBluetooth::Parser.new(chunk)
             p.parse
-            BtMon.logger.info("Parser thread pushing results")
+            PxRealtimeBluetooth.logger.info("Parser thread pushing results")
             result_queue.push(p.attributes)
           end
         rescue => e
-          BtMon.logger.error("Parser thread #{e.message}")
+          PxRealtimeBluetooth.logger.error("Parser thread #{e.message}")
           e.backtrace.each do |x|
-            BtMon.logger.error("#{x}")
+            PxRealtimeBluetooth.logger.error("#{x}")
           end
         end
       end
     end
 
     def start_result_thread
-      BtMon.logger.info("Result thread starting")
+      PxRealtimeBluetooth.logger.info("Result thread starting")
       result_thread = Thread.new do
         begin
           while result = result_q.pop do
-            BtMon.logger.info("Result thread got result")
+            PxRealtimeBluetooth.logger.info("Result thread got result")
             if result[:address]
               address = result[:address].first
 
@@ -115,7 +115,7 @@ module BtMon
                 "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
               )
 
-              BtMon.logger.info("Result thread preparing for #{file_path}")
+              PxRealtimeBluetooth.logger.info("Result thread preparing for #{file_path}")
 
               base = if File.exists?(file_path)
                        JSON.parse(
@@ -134,16 +134,16 @@ module BtMon
                 end
               end
 
-              BtMon.logger.info("Result thread writing to #{file_path}")
+              PxRealtimeBluetooth.logger.info("Result thread writing to #{file_path}")
               File.write(file_path, JSON.pretty_generate(base))
             else
-              BtMon.logger.warn("Device without address #{JSON.generate(result)}")
+              PxRealtimeBluetooth.logger.warn("Device without address #{JSON.generate(result)}")
             end
           end
         rescue => e
-          BtMon.logger.error("Result thread #{e.message}")
+          PxRealtimeBluetooth.logger.error("Result thread #{e.message}")
           e.backtrace.each do |x|
-            BtMon.logger.error("#{x}")
+            PxRealtimeBluetooth.logger.error("#{x}")
           end
         end
       end

@@ -1,4 +1,4 @@
-module BtMon
+module PxRealtimeBluetooth
   class Chunker
     def initialize(incoming_q, outgoing_q)
       @incoming_q = incoming_q

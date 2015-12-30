@@ -1,4 +1,4 @@
-module BtMon
+module PxRealtimeBluetooth
   class Parser
     attr_accessor :attributes
 

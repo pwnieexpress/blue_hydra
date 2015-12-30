@@ -1,4 +1,4 @@
-module BtMon
+module PxRealtimeBluetooth
   class PtySpawner
     def initialize(command, parse_queue)
       @command = command
