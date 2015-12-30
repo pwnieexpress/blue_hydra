@@ -14,9 +14,6 @@ begin
   runner = PxRealtimeBluetooth::Runner.new
   runner.start
 
-  require 'pry'
-  binding.pry
-
   # This blocking loop keeps the scanner alive in its threads. Refer to the
   # PxRealtimeBluetooth::Runner to understand the main work threads.
   loop do 

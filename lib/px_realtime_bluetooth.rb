@@ -6,7 +6,12 @@ $:.unshift(File.dirname(__FILE__))
 
 module PxRealtimeBluetooth
   VERSION = '0.0.1'
-  LOGFILE = File.expand_path('../../px_realtime_bluetooth.log', __FILE__)
+
+  LOGFILE = if Dir.exists?('/var/log/pwnix')
+              File.expand_path('/var/log/pwnix/px_realtime_bluetooth.log', __FILE__)
+            else
+              File.expand_path('../../px_realtime_bluetooth.log', __FILE__)
+            end
 
   @@logger = Logger.new(LOGFILE)
   @@logger.level = Logger::DEBUG
