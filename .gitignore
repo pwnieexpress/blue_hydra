@@ -35,3 +35,4 @@ build/
 .rvmrc
 
 *.log
+devices/*.json
