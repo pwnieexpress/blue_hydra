@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe BtMon::Parser do
+describe PxRealtimeBluetooth::Parser do
 
   it "can calculate the indentation of a given line" do
-    p = BtMon::Parser.new
+    p = PxRealtimeBluetooth::Parser.new
 
     lines = [
       'test line',
@@ -20,7 +20,7 @@ describe BtMon::Parser do
   end
 
   it "groups arrays of strings by whitespace depth" do
-    p = BtMon::Parser.new
+    p = PxRealtimeBluetooth::Parser.new
     x, y, z = "x", " y", "  z"
 
     a = [ x, x ]
@@ -41,8 +41,8 @@ describe BtMon::Parser do
     command = "cat #{filepath} && sleep 1"
     queue1  = Queue.new
     queue2  = Queue.new
-    spawner = BtMon::PtySpawner.new(command, queue1)
-    chunker = BtMon::Chunker.new(queue1, queue2)
+    spawner = PxRealtimeBluetooth::PtySpawner.new(command, queue1)
+    chunker = PxRealtimeBluetooth::Chunker.new(queue1, queue2)
 
 
     t = Thread.new do
@@ -58,7 +58,7 @@ describe BtMon::Parser do
     end
 
     parsers = chunks.map do |c|
-      p = BtMon::Parser.new(c)
+      p = PxRealtimeBluetooth::Parser.new(c)
       p.parse
       p
     end

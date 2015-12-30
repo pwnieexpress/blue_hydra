@@ -3,9 +3,9 @@ require 'rubygems'
 require 'rspec'
 require 'pry'
 
-$:.unshift(File.dirname(File.expand_path('../../lib/btmon.rb',__FILE__)))
+$:.unshift(File.dirname(File.expand_path('../../lib/px_realtime_bluetooth.rb',__FILE__)))
 
-require 'btmon'
+require 'px_realtime_bluetooth'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|
