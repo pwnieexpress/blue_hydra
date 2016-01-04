@@ -141,7 +141,7 @@ module PxRealtimeBluetooth
       when line =~ /^Address:/
         addr, *oui = line.split(': ')[1].split(" ")
         set_attr("address".to_sym, addr)
-        set_attr("oui".to_sym, oui)
+        set_attr("oui".to_sym, oui.join(' '))
 
       when line =~ /^Encryption:/
         set_attr("#{bt_mode}_encryption".to_sym, line.split(': ')[1])
