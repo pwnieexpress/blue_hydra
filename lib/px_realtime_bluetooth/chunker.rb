@@ -21,7 +21,7 @@ module PxRealtimeBluetooth
     def starting_chunk?(chunk=[])
       key_line = chunk.first
 
-      if key_line =~ /Connect Complete|Role Change|Extended Inqu|LE Meta Event/
+      if key_line =~ /Connect Complete|Role Change|Extended Inqu|LE Meta Event|Inquiry Result/
         true
       else
         false
