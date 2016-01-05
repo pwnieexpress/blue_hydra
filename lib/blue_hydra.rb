@@ -1,8 +1,30 @@
+# Core Libs
 require 'pty'
 require 'logger'
 require 'json'
 
+# Gems
+require 'data_mapper'
+require 'dm-timestamps'
+require 'dm-validations'
+require 'louis'
+
 $:.unshift(File.dirname(__FILE__))
+
+# set all String properties to have a default length of 255.. we learned this
+# less from PwnScan
+DataMapper::Property::String.length(255)
+
+# The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
+# which the Pwnie chef scripts have been run. Otherwise it will attempt to
+# create a sqlite db whereever the run was initiated.
+DataMapper.setup(
+  :default,
+  Dir.exist?('/opt/pwnix/') ?
+   "sqlite:/opt/pwnix/blue_hydra.db" :
+   "sqlite://blue_hydra.db"
+)
+
 
 module BlueHydra
   VERSION = '0.0.1'
@@ -28,3 +50,5 @@ require 'blue_hydra/parser'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 
+DataMapper.auto_upgrade!
+DataMapper.finalize
