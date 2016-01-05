@@ -1,4 +1,4 @@
-module PxRealtimeBluetooth
+module BlueHydra
   class Parser
     attr_accessor :attributes
 

@@ -1,4 +1,4 @@
-module PxRealtimeBluetooth
+module BlueHydra
   class Chunker
     def initialize(incoming_q, outgoing_q)
       @incoming_q = incoming_q

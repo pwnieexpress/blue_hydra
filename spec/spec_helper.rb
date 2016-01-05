@@ -3,9 +3,9 @@ require 'rubygems'
 require 'rspec'
 require 'pry'
 
-$:.unshift(File.dirname(File.expand_path('../../lib/px_realtime_bluetooth.rb',__FILE__)))
+$:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 
-require 'px_realtime_bluetooth'
+require 'blue_hydra'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|

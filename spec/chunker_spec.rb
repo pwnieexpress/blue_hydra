@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe PxRealtimeBluetooth::Chunker do
+describe BlueHydra::Chunker do
   it "can determine if a message indicates a new host" do
     yep1 = ["> HCI Event: Connect Complete (0x03) plen 11         2015-12-10 11:30:24.387882\r\n",
             "        Status: Page Timeout (0x04)\r\n",
@@ -32,7 +32,7 @@ describe PxRealtimeBluetooth::Chunker do
 
     q1 = Queue.new
     q2 = Queue.new
-    chunker = PxRealtimeBluetooth::Chunker.new(q1, q2)
+    chunker = BlueHydra::Chunker.new(q1, q2)
     expect(chunker.starting_chunk?(yep1)).to eq(true)
     expect(chunker.starting_chunk?(yep2)).to eq(true)
 
@@ -47,8 +47,8 @@ describe PxRealtimeBluetooth::Chunker do
     command = "cat #{filepath} && sleep 1"
     queue1 = Queue.new
     queue2 = Queue.new
-    spawner = PxRealtimeBluetooth::PtySpawner.new(command, queue1)
-    chunker = PxRealtimeBluetooth::Chunker.new(queue1, queue2)
+    spawner = BlueHydra::PtySpawner.new(command, queue1)
+    chunker = BlueHydra::Chunker.new(queue1, queue2)
 
     t = Thread.new do
       chunker.chunk_it_up

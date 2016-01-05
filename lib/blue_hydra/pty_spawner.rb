@@ -1,4 +1,4 @@
-module PxRealtimeBluetooth
+module BlueHydra
   class PtySpawner
     def initialize(command, parse_queue)
       @command = command

@@ -1,4 +1,4 @@
-module PxRealtimeBluetooth
+module BlueHydra
   class Runner
 
     attr_accessor :command,
@@ -14,7 +14,7 @@ module PxRealtimeBluetooth
     # NOTE must also be running /usr/share/doc/bluez-test-scripts/examples/test-discovery
     def start(command="btmon -T")
       begin
-        PxRealtimeBluetooth.logger.info("Runner starting with '#{command}' ...")
+        BlueHydra.logger.info("Runner starting with '#{command}' ...")
         self.command      = command
         self.raw_queue    = Queue.new
         self.chunk_queue  = Queue.new
@@ -26,15 +26,15 @@ module PxRealtimeBluetooth
         start_result_thread
 
       rescue => e
-        PxRealtimeBluetooth.logger.error("Runner master thread: #{e.message}")
+        BlueHydra.logger.error("Runner master thread: #{e.message}")
         e.backtrace.each do |x|
-          PxRealtimeBluetooth.logger.error("#{x}")
+          BlueHydra.logger.error("#{x}")
         end
       end
     end
 
     def stop
-      PxRealtimeBluetooth.logger.info("Runner exiting...")
+      BlueHydra.logger.info("Runner exiting...")
       self.raw_queue    = nil
       self.chunk_queue  = nil
       self.result_queue = nil
@@ -46,65 +46,65 @@ module PxRealtimeBluetooth
     end
 
     def start_pty_thread
-      PxRealtimeBluetooth.logger.info("PTY thread starting")
+      BlueHydra.logger.info("PTY thread starting")
       self.pty_thread = Thread.new do
         begin
-          spawner = PxRealtimeBluetooth::PtySpawner.new(
+          spawner = BlueHydra::PtySpawner.new(
             self.command,
             self.raw_queue
           )
         rescue => e
-          PxRealtimeBluetooth.logger.error("PTY thread #{e.message}")
+          BlueHydra.logger.error("PTY thread #{e.message}")
           e.backtrace.each do |x|
-            PxRealtimeBluetooth.logger.error("#{x}")
+            BlueHydra.logger.error("#{x}")
           end
         end
       end
     end
 
     def start_chunker_thread
-      PxRealtimeBluetooth.logger.info("Chunker thread starting")
+      BlueHydra.logger.info("Chunker thread starting")
       self.chunker_thread = Thread.new do
         begin
-          chunker = PxRealtimeBluetooth::Chunker.new(
+          chunker = BlueHydra::Chunker.new(
             self.raw_queue,
             self.chunk_queue
           )
           chunker.chunk_it_up
         rescue => e
-          PxRealtimeBluetooth.logger.error("Chunker thread #{e.message}")
+          BlueHydra.logger.error("Chunker thread #{e.message}")
           e.backtrace.each do |x|
-            PxRealtimeBluetooth.logger.error("#{x}")
+            BlueHydra.logger.error("#{x}")
           end
         end
       end
     end
 
     def start_parser_thread
-      PxRealtimeBluetooth.logger.info("Parser thread starting")
+      BlueHydra.logger.info("Parser thread starting")
       self.parser_thread = Thread.new do
         begin
           while chunk = chunk_queue.pop do
-            p = PxRealtimeBluetooth::Parser.new(chunk)
+            p = BlueHydra::Parser.new(chunk)
             p.parse
-            PxRealtimeBluetooth.logger.info("Parser thread pushing results")
+            BlueHydra.logger.info("Parser thread pushing results")
             result_queue.push(p.attributes)
           end
         rescue => e
-          PxRealtimeBluetooth.logger.error("Parser thread #{e.message}")
+          BlueHydra.logger.error("Parser thread #{e.message}")
           e.backtrace.each do |x|
-            PxRealtimeBluetooth.logger.error("#{x}")
+            BlueHydra.logger.error("#{x}")
           end
         end
       end
     end
 
     def start_result_thread
-      PxRealtimeBluetooth.logger.info("Result thread starting")
+      BlueHydra.logger.info("Result thread starting")
       self.result_thread = Thread.new do
         begin
           while result = result_queue.pop do
-            PxRealtimeBluetooth.logger.info("Result thread got result")
+            BlueHydra.logger.info("Result thread got result")
             if result[:address]
               address = result[:address].first
 
@@ -112,7 +112,7 @@ module PxRealtimeBluetooth
                 "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
               )
 
-              PxRealtimeBluetooth.logger.info("Result thread preparing for #{file_path}")
+              BlueHydra.logger.info("Result thread preparing for #{file_path}")
 
               base = if File.exists?(file_path)
                        JSON.parse(
@@ -131,16 +131,16 @@ module PxRealtimeBluetooth
                 end
               end
 
-              PxRealtimeBluetooth.logger.info("Result thread writing to #{file_path}")
+              BlueHydra.logger.info("Result thread writing to #{file_path}")
               File.write(file_path, JSON.pretty_generate(base))
             else
-              PxRealtimeBluetooth.logger.warn("Device without address #{JSON.generate(result)}")
+              BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
             end
           end
         rescue => e
-          PxRealtimeBluetooth.logger.error("Result thread #{e.message}")
+          BlueHydra.logger.error("Result thread #{e.message}")
           e.backtrace.each do |x|
-            PxRealtimeBluetooth.logger.error("#{x}")
+            BlueHydra.logger.error("#{x}")
           end
         end
       end

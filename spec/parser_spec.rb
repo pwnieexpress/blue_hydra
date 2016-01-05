@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe PxRealtimeBluetooth::Parser do
+describe BlueHydra::Parser do
 
   it "can calculate the indentation of a given line" do
-    p = PxRealtimeBluetooth::Parser.new
+    p = BlueHydra::Parser.new
 
     lines = [
       'test line',
@@ -20,7 +20,7 @@ describe PxRealtimeBluetooth::Parser do
   end
 
   it "groups arrays of strings by whitespace depth" do
-    p = PxRealtimeBluetooth::Parser.new
+    p = BlueHydra::Parser.new
     x, y, z = "x", " y", "  z"
 
     a = [ x, x ]
@@ -41,8 +41,8 @@ describe PxRealtimeBluetooth::Parser do
     command = "cat #{filepath} && sleep 1"
     queue1  = Queue.new
     queue2  = Queue.new
-    spawner = PxRealtimeBluetooth::PtySpawner.new(command, queue1)
-    chunker = PxRealtimeBluetooth::Chunker.new(queue1, queue2)
+    spawner = BlueHydra::PtySpawner.new(command, queue1)
+    chunker = BlueHydra::Chunker.new(queue1, queue2)
 
 
     t = Thread.new do
@@ -58,7 +58,7 @@ describe PxRealtimeBluetooth::Parser do
     end
 
     parsers = chunks.map do |c|
-      p = PxRealtimeBluetooth::Parser.new(c)
+      p = BlueHydra::Parser.new(c)
       p.parse
       p
     end
