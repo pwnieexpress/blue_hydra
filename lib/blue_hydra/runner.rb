@@ -106,6 +106,13 @@ module BlueHydra
           while result = result_queue.pop do
             BlueHydra.logger.info("Result thread got result")
             if result[:address]
+              BlueHydra::Device.update_or_create_from_result(result)
+
+
+
+              # TODO: REMOVE THIS -- START
+              # TODO: REMOVE THIS -- START
+              # TODO: REMOVE THIS -- START
               address = result[:address].first
 
               file_path = File.expand_path(
@@ -133,6 +140,12 @@ module BlueHydra
 
               BlueHydra.logger.info("Result thread writing to #{file_path}")
               File.write(file_path, JSON.pretty_generate(base))
+              # TODO: REMOVE THIS -- END
+              # TODO: REMOVE THIS -- END
+              # TODO: REMOVE THIS -- END
+
+
+
             else
               BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
             end
