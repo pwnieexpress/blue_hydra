@@ -6,12 +6,12 @@ module BlueHydra
                   :chunk_queue,
                   :result_queue,
                   :pty_thread,
+                  :discovery_thread,
                   :chunker_thread,
                   :parser_thread,
                   :result_thread
 
 
-    # NOTE must also be running /usr/share/doc/bluez-test-scripts/examples/test-discovery
     def start(command="btmon -T")
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
@@ -21,6 +21,7 @@ module BlueHydra
         self.result_queue = Queue.new
 
         start_pty_thread
+        start_discovery_thread
         start_chunker_thread
         start_parser_thread
         start_result_thread
@@ -40,6 +41,7 @@ module BlueHydra
       self.result_queue = nil
 
       self.pty_thread.kill
+      self.discovery_thrad.kill
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
@@ -55,6 +57,27 @@ module BlueHydra
           )
         rescue => e
           BlueHydra.logger.error("PTY thread #{e.message}")
+          e.backtrace.each do |x|
+            BlueHydra.logger.error("#{x}")
+          end
+        end
+      end
+    end
+
+    def start_discovery_thread
+      BlueHydra.logger.info("Discovery thread starting")
+      self.discovery_thread = Thread.new do
+        begin
+          # TODO THIS IS A PLACEHOLDER REALLY...
+          command = '/usr/share/doc/bluez-test-scripts/examples/test-discovery'
+          # TODO prolly want open3 not pty
+          PTY.spawn(command) do |_, _, _|
+            loop do
+              1
+            end
+          end
+        rescue => e
+          BlueHydra.logger.error("Discovery thread #{e.message}")
           e.backtrace.each do |x|
             BlueHydra.logger.error("#{x}")
           end
