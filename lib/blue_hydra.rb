@@ -20,9 +20,7 @@ DataMapper::Property::String.length(255)
 # create a sqlite db whereever the run was initiated.
 DataMapper.setup(
   :default,
-  Dir.exist?('/opt/pwnix/') ?
-   "sqlite:/opt/pwnix/blue_hydra.db" :
-   "sqlite://blue_hydra.db"
+  Dir.exist?('/opt/pwnix/') ?  "sqlite:/opt/pwnix/blue_hydra.db" : "sqlite:blue_hydra.db"
 )
 
 module BlueHydra
@@ -48,6 +46,7 @@ require 'blue_hydra/pty_spawner'
 require 'blue_hydra/parser'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
+require 'blue_hydra/device'
 
 DataMapper.auto_upgrade!
 DataMapper.finalize
