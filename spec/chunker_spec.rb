@@ -12,9 +12,7 @@ describe BlueHydra::Chunker do
             "        Status: Success (0x00)\r\n",
             "        Address: 8C:2D:AA:7F:58:8C (Apple)\r\n",
             "        Role: Slave (0x01)\r\n"]
-    nope1 = ["Bluetooth monitor ver 5.35\r\n"]
-    nope2 = ["= New Index: 5C:C5:D4:11:33:79 (BR/EDR,USB,hci1)     2015-12-10 11:29:46.064195\r\n"]
-    nope3 = ["> HCI Event: LE Meta Event (0x3e) plen 19            2015-12-10 11:30:58.880870\r\n",
+    yep3 = ["> HCI Event: LE Meta Event (0x3e) plen 19            2015-12-10 11:30:58.880870\r\n",
              "      LE Connection Complete (0x01)\r\n",
              "        Status: Success (0x00)\r\n",
              "        Handle: 3585\r\n",
@@ -25,7 +23,10 @@ describe BlueHydra::Chunker do
              "        Connection latency: 0.00 msec (0x0000)\r\n",
              "        Supervision timeout: 32000 msec (0x0c80)\r\n",
              "        Master clock accuracy: 0x00\r\n"]
-    nope4 = ["> HCI Event: Disconnect Complete (0x05) plen 4       2015-12-10 11:30:58.970878\r\n",
+
+    nope1 = ["Bluetooth monitor ver 5.35\r\n"]
+    nope2 = ["= New Index: 5C:C5:D4:11:33:79 (BR/EDR,USB,hci1)     2015-12-10 11:29:46.064195\r\n"]
+    nope3 = ["> HCI Event: Disconnect Complete (0x05) plen 4       2015-12-10 11:30:58.970878\r\n",
              "        Status: Success (0x00)\r\n",
              "        Handle: 3585\r\n",
              "        Reason: Connection Terminated By Local Host (0x16)\r\n"]
@@ -35,11 +36,11 @@ describe BlueHydra::Chunker do
     chunker = BlueHydra::Chunker.new(q1, q2)
     expect(chunker.starting_chunk?(yep1)).to eq(true)
     expect(chunker.starting_chunk?(yep2)).to eq(true)
+    expect(chunker.starting_chunk?(yep3)).to eq(true)
 
     expect(chunker.starting_chunk?(nope1)).to eq(false)
     expect(chunker.starting_chunk?(nope2)).to eq(false)
     expect(chunker.starting_chunk?(nope3)).to eq(false)
-    expect(chunker.starting_chunk?(nope4)).to eq(false)
   end
 
   it "can chunk up a queue of message blocks" do

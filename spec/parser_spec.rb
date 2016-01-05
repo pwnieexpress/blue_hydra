@@ -89,7 +89,7 @@ describe BlueHydra::Parser do
 
     addrs = parsers.map do |p|
       p.attributes[:address]
-    end
+    end.reject{|x| x == nil }
 
     addrs_per_device = addrs.map(&:uniq).map(&:count).uniq
     expect(addrs_per_device).to eq([1]) # 1 addr per device :)
