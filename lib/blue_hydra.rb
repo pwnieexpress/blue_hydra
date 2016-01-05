@@ -25,7 +25,6 @@ DataMapper.setup(
    "sqlite://blue_hydra.db"
 )
 
-
 module BlueHydra
   VERSION = '0.0.1'
 
