@@ -13,6 +13,7 @@ class BlueHydra::Device
   property :lmp_version,        String
   property :manufacturer,       String
   property :features,           String
+  property :firmware,           String
   property :uuid,               String
   property :channels,           String
   property :name,               String

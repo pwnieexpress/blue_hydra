@@ -19,6 +19,7 @@ describe BlueHydra::Device do
       uuid
       channels
       name
+      firmware
     }.each do |attr|
       expect(device.respond_to?(attr)).to eq(true)
     end
