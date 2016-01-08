@@ -25,10 +25,13 @@ class BlueHydra::Device
 
   def self.update_or_create_from_result(result)
 
-#     File.write("/opt/pwnix/BLUE_HYDRA_#{Time.now.to_i}.json", [
-#       result.inspect,
-#       JSON.pretty_generate(result)
-#     ].join("\n\n\n"))
+    # TODO this will be dead code but keeping it around for now to easily
+    # inspect raw results to look for missing keys
+    #
+    # File.write("/opt/pwnix/BLUE_HYDRA_#{Time.now.to_i}.json", [
+    #   result.inspect,
+    #   JSON.pretty_generate(result)
+    # ].join("\n\n\n"))
 
     result = result.dup
 
@@ -54,17 +57,14 @@ class BlueHydra::Device
     }.map(&:to_sym)
 
     if result[:le_16_bit_service_uuids]
-      BlueHydra.logger.debug( "#{address} SHOULD HAVE LE 16 BIT SERVICE UUIDS")
       record.le_16_bit_service_uuids = result[:le_16_bit_service_uuids]
     end
 
     if result[:classic_16_bit_service_uuids]
-      BlueHydra.logger.debug( "#{address} SHOULD HAVE CLASSIC 16 BIT SERVICE UUIDS")
       record.classic_16_bit_service_uuids = result[:classic_16_bit_service_uuids]
     end
 
     if result[:classic_class]
-      BlueHydra.logger.debug( "#{address} SHOULD HAVE CLASSIC CLASS")
       record.classic_class = result[:classic_class]
     end
 
