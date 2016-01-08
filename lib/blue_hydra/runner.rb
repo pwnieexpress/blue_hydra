@@ -41,7 +41,7 @@ module BlueHydra
       self.result_queue = nil
 
       self.pty_thread.kill
-      self.discovery_thrad.kill
+      self.discovery_thread.kill
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
@@ -68,14 +68,17 @@ module BlueHydra
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
         begin
+
           # TODO THIS IS A PLACEHOLDER REALLY...
           command = '/usr/share/doc/bluez-test-scripts/examples/test-discovery'
+
           # TODO prolly want open3 not pty
           PTY.spawn(command) do |_, _, _|
             loop do
               1
             end
           end
+
         rescue => e
           BlueHydra.logger.error("Discovery thread #{e.message}")
           e.backtrace.each do |x|
@@ -131,8 +134,6 @@ module BlueHydra
             if result[:address]
               BlueHydra::Device.update_or_create_from_result(result)
 
-
-
               # TODO: REMOVE THIS -- START
               # TODO: REMOVE THIS -- START
               # TODO: REMOVE THIS -- START
@@ -166,8 +167,6 @@ module BlueHydra
               # TODO: REMOVE THIS -- END
               # TODO: REMOVE THIS -- END
               # TODO: REMOVE THIS -- END
-
-
 
             else
               BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
