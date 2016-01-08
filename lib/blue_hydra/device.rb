@@ -6,7 +6,7 @@ class BlueHydra::Device
 
   property :id,                       Serial
   property :address,                  String
-  property :oui,                      String
+  property :oui,                      Text
   property :peer_address,             String
   property :peer_address_type,        String
   property :peer_address_oui,         String
@@ -17,19 +17,18 @@ class BlueHydra::Device
   property :manufacturer,             String
   property :features,                 String
   property :firmware,                 String
-  property :uuid,                     String
   property :channels,                 String
   property :name,                     String
-  property :classic_16_bit_service_uuids,     String
-  property :le_16_bit_service_uuids,  String
-  property :classic_class,            String
+  property :classic_16_bit_service_uuids, Text
+  property :le_16_bit_service_uuids,  Text
+  property :classic_class,            Text
 
   def self.update_or_create_from_result(result)
 
-    File.write("/opt/pwnix/BLUE_HYDRA_#{Time.now.to_i}.json", [
-      result.inspect,
-      JSON.pretty_generate(result)
-    ].join("\n\n\n"))
+#     File.write("/opt/pwnix/BLUE_HYDRA_#{Time.now.to_i}.json", [
+#       result.inspect,
+#       JSON.pretty_generate(result)
+#     ].join("\n\n\n"))
 
     result = result.dup
 
@@ -48,7 +47,6 @@ class BlueHydra::Device
       manufacturer
       features
       firmware
-      uuid
       channels
       name
       classic_major_class
@@ -56,14 +54,17 @@ class BlueHydra::Device
     }.map(&:to_sym)
 
     if result[:le_16_bit_service_uuids]
+      BlueHydra.logger.debug( "#{address} SHOULD HAVE LE 16 BIT SERVICE UUIDS")
       record.le_16_bit_service_uuids = result[:le_16_bit_service_uuids]
     end
 
     if result[:classic_16_bit_service_uuids]
+      BlueHydra.logger.debug( "#{address} SHOULD HAVE CLASSIC 16 BIT SERVICE UUIDS")
       record.classic_16_bit_service_uuids = result[:classic_16_bit_service_uuids]
     end
 
     if result[:classic_class]
+      BlueHydra.logger.debug( "#{address} SHOULD HAVE CLASSIC CLASS")
       record.classic_class = result[:classic_class]
     end
 
@@ -103,35 +104,38 @@ class BlueHydra::Device
     end
   end
 
+  # NOTE: returns raw json...
   def classic_class
-    JSON.parse(self[:classic_class] || '[]')
+    self[:classic_class] || '[]'
   end
 
   def classic_class=(new_classes)
      new = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
-     current = self.classic_class
+     current = JSON.parse(self.classic_class)
      self[:classic_class] = JSON.generate((new + current).uniq)
   end
 
+  # NOTE: returns raw json...
   def classic_16_bit_service_uuids
-    JSON.parse(self[:classic_16_bit_service_uuids] || '[]')
+    self[:classic_16_bit_service_uuids] || '[]'
   end
 
   def classic_16_bit_service_uuids=(new_uuids)
      new = new_uuids.reject{|x| x =~ /^0x/}
      new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-     current = self.classic_16_bit_service_uuids || []
+     current = JSON.parse(self.classic_16_bit_service_uuids)
      self[:classic_16_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 
+  # NOTE: returns raw json...
   def le_16_bit_service_uuids
-    JSON.parse(self[:le_16_bit_service_uuids] || '[]')
+    self[:le_16_bit_service_uuids] || '[]'
   end
 
   def le_16_bit_service_uuids=(new_uuids)
      new = new_uuids.reject{|x| x =~ /^0x/}
      new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-     current = self.le_16_bit_service_uuids || []
+     current = JSON.parse(self.le_16_bit_service_uuids)
      self[:le_16_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 end
