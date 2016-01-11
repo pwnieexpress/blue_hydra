@@ -112,6 +112,7 @@ class BlueHydra::Device
         end
       end
     end
+    record
   end
 
   # NOTE: returns raw json...

@@ -89,8 +89,7 @@ describe BlueHydra::Device do
       ]
     }
 
-    BlueHydra::Device.update_or_create_from_result(raw)
-    device = BlueHydra::Device.last
+    device = BlueHydra::Device.update_or_create_from_result(raw)
 
     expect(device.address).to eq("00:00:00:00:00:00")
     expect(device.oui).to eq("(Apple)")
