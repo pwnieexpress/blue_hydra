@@ -11,7 +11,6 @@ module BlueHydra
                   :parser_thread,
                   :result_thread
 
-
     def start(command="btmon -T")
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")

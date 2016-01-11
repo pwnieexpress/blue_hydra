@@ -4,31 +4,35 @@ class BlueHydra::Device
 
   include DataMapper::Resource
 
-  property :id,                       Serial
-  property :address,                  String
-  property :oui,                      Text
-  property :peer_address,             String
-  property :peer_address_type,        String
-  property :peer_address_oui,         String
-  property :classic_major_class,      String
-  property :classic_minor_class,      String
-  property :role,                     String
-  property :lmp_version,              String
-  property :manufacturer,             String
-  property :features,                 String
-  property :firmware,                 String
-  property :channels,                 String
-  property :name,                     String
+  property :id,                           Serial
+
+  property :name,                         String
+  property :address,                      String
+  property :oui,                          Text
+
+  # TODO confirm these
+  property :peer_address,                 String
+  property :peer_address_type,            String
+  property :peer_address_oui,             String
+
+  property :classic_role,                 String
+  property :classic_lmp_version,          String
+  property :classic_manufacturer,         String
+  property :classic_features,             Text
+  property :classic_firmware,             String
+  property :classic_channels,             String
+  property :classic_major_class,          String
+  property :classic_minor_class,          String
   property :classic_16_bit_service_uuids, Text
-  property :le_16_bit_service_uuids,  Text
-  property :classic_class,            Text
+  property :classic_class,                Text
+
+  property :le_16_bit_service_uuids,      Text
 
   def self.update_or_create_from_result(result)
 
-    # TODO this will be dead code but keeping it around for now to easily
-    # inspect raw results to look for missing keys
-    #
-    # File.write("/opt/pwnix/BLUE_HYDRA_#{Time.now.to_i}.json", [
+    # # TODO this will be dead code but keeping it around for now to easily
+    # # inspect raw results to look for missing keys
+    # File.write("./BLUE_HYDRA_#{Time.now.to_i}.json", [
     #   result.inspect,
     #   JSON.pretty_generate(result)
     # ].join("\n\n\n"))
@@ -41,20 +45,26 @@ class BlueHydra::Device
 
     attrs = %w{
       address
+      name
       oui
       peer_address
       peer_address_type
       peer_address_oui
-      role
-      lmp_version
-      manufacturer
-      features
-      firmware
-      channels
-      name
+      classic_role
+      classic_manufacturer
+      classic_lmp_version
+      classic_firmware
       classic_major_class
       classic_minor_class
     }.map(&:to_sym)
+
+    if result[:classic_features]
+      record.classic_features = result[:classic_features]
+    end
+
+    if result[:classic_channels]
+      record.classic_channels = result[:classic_channels]
+    end
 
     if result[:le_16_bit_service_uuids]
       record.le_16_bit_service_uuids = result[:le_16_bit_service_uuids]
@@ -105,6 +115,17 @@ class BlueHydra::Device
   end
 
   # NOTE: returns raw json...
+  def classic_channels
+    self[:classic_channels] || '[]'
+  end
+
+  def classic_channels=(channels)
+     new = channels.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+     current = JSON.parse(self.classic_class)
+     self[:classic_channels] = JSON.generate((new + current).uniq)
+  end
+
+  # NOTE: returns raw json...
   def classic_class
     self[:classic_class] || '[]'
   end
@@ -113,6 +134,17 @@ class BlueHydra::Device
      new = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
      current = JSON.parse(self.classic_class)
      self[:classic_class] = JSON.generate((new + current).uniq)
+  end
+
+  # NOTE: returns raw json...
+  def classic_features
+    self[:classic_features] || '[]'
+  end
+
+  def classic_features=(features)
+     new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+     current = JSON.parse(self.classic_features)
+     self[:classic_features] = JSON.generate((new + current).uniq)
   end
 
   # NOTE: returns raw json...
