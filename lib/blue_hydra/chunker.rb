@@ -14,7 +14,9 @@ module BlueHydra
             working_set = []
         end
 
-        current_msg << "last_seen: #{Time.now.to_i}"
+        ts = Time.parse(current_message.first.split(/\[hci[0-9]\] /)[-1]).to_i
+
+        current_msg << "last_seen: #{ts}"
         working_set << current_msg
       end
     end
