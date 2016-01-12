@@ -39,12 +39,6 @@ class BlueHydra::Device
   before :save, :set_mode_flags
 
   def self.update_or_create_from_result(result)
-    # # TODO this will be dead code but keeping it around for now to easily
-    # # inspect raw results to look for missing keys
-    # File.write("./BLUE_HYDRA_#{Time.now.to_i}.json", [
-    #   result.inspect,
-    #   JSON.pretty_generate(result)
-    # ].join("\n\n\n"))
 
     result = result.dup
 
@@ -109,15 +103,6 @@ class BlueHydra::Device
 
         unless new_val == current_val
           record[attr] = result.delete(attr).uniq.first
-          BlueHydra.logger.debug(
-            "#{address} updating #{attr} from #{current_val.inspect} to #{new_val}"
-          )
-        end
-
-        unless result.empty?
-          BlueHydra.logger.debug(
-            "#{address} updated. unused values: #{result.inspect}"
-          )
         end
 
         if record.valid?

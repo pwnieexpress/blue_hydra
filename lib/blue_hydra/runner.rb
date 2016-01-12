@@ -81,7 +81,10 @@ module BlueHydra
               discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
 
               if discovery_errors
-                raise discovery_errors
+                BlueHydra.logger.error("Error with test-discovery script..")
+                discovery_errors.split("\n").each do |ln|
+                  BlueHydra.logger.error(ln)
+                end
               end
 
               # clear queue
@@ -145,7 +148,6 @@ module BlueHydra
           while chunk = chunk_queue.pop do
             p = BlueHydra::Parser.new(chunk)
             p.parse
-            BlueHydra.logger.info("Parser thread pushing results")
             result_queue.push(p.attributes)
           end
         rescue => e
@@ -163,9 +165,9 @@ module BlueHydra
         begin
           query_history = {}
           loop do
+
             # if their last_seen value is > 15 minutes ago and not > 1 hour ago
             #   l2ping them :  "l2ping -c 3 result[:address]"
-
             BlueHydra::Device.all.select{|x|
               x.last_seen < (60 * 15) && x.last_seen > (60*60)
             }.each{|x|
@@ -178,7 +180,6 @@ module BlueHydra
             until result_queue.empty?
               result = result_queue.pop
               if result[:address]
-                BlueHydra.logger.debug("Result thread got result")
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
                 query_history[device.address] ||= {}
@@ -187,7 +188,7 @@ module BlueHydra
                   #   if true, add to active_queue to "hcitool leinfo result[:address]"
                   if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
                     discovery_command_queue.push({command: :leinfo, address: device.address})
-                    query_history[device.address][:le_mode] = Time.now.to_i
+                    query_history[device.address][:le] = Time.now.to_i
                   end
                 end
 

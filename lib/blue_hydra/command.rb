@@ -7,8 +7,14 @@ module BlueHydra::Command
 
     Open3.popen3(command) do |stdin, stdout, stderr, thread|
       stdin.close
-      output[:stdout]    = stdout.read.chomp
-      output[:stderr]    = stderr.read.chomp
+      if (out = stdout.read.chomp) != ""
+        output[:stdout]    = out
+      end
+
+      if (err = stderr.read.chomp) != ""
+        output[:stderr]    = err
+      end
+
       output[:exit_code] = thread.value.exitstatus
     end
 
