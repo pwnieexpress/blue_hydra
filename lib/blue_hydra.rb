@@ -25,7 +25,9 @@ DataMapper.setup(
 )
 
 module BlueHydra
-  VERSION = '0.0.1'
+  # 0.0.1 first stable verison
+  # 0.0.2 timestamps, feedback loop for info scans, l2ping
+  VERSION = '0.0.2'
 
   CONFIG_FILE = if Dir.exists?('/var/log/pwnix/pwnix-config')
               File.expand_path('/var/log/pwnix/pwnix-config/blue_hydra.json', __FILE__)
