@@ -24,6 +24,7 @@ DataMapper.setup(
 )
 
 module BlueHydra
+  # 0.0.1 -- initial build out using
   VERSION = '0.0.1'
 
   LOGFILE = if Dir.exists?('/var/log/pwnix')
