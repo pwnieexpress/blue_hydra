@@ -57,35 +57,12 @@ describe BlueHydra::Parser do
       chunks << queue2.pop
     end
 
+
     parsers = chunks.map do |c|
       p = BlueHydra::Parser.new(c)
       p.parse
       p
     end
-
-    # # LOGIC TO PRINT THIS SHIT OUT
-    # # LOGIC TO PRINT THIS SHIT OUT
-    # # LOGIC TO PRINT THIS SHIT OUT
-    # require 'json'
-    # attrs = parsers.map(&:attributes)
-    # devices = attrs.each_with_object({}) do |attrs, devices|
-    #   address = attrs[:address].first
-    #   devices[address] ||= {}
-    #   attrs.each do |key, vals|
-    #     devices[address][key] ||= []
-    #     devices[address][key] += vals
-    #     devices[address][key] = devices[address][key].uniq
-    #   end
-    # end
-
-    # devices.each do |mac, attrs|
-    #   File.write(
-    #     "./devices/#{mac.gsub(':', '-')}_device_info.json", JSON.pretty_generate(attrs)
-    #   )
-    # end
-    # # END SHITTY PRINT LOGIC
-    # # END SHITTY PRINT LOGIC
-    # # END SHITTY PRINT LOGIC
 
     addrs = parsers.map do |p|
       p.attributes[:address]

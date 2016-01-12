@@ -9,6 +9,9 @@ describe BlueHydra::Device do
       id
       address
       oui
+      created_at
+      updated_at
+      last_seen
     }.each do |attr|
       expect(device.respond_to?(attr)).to eq(true)
     end

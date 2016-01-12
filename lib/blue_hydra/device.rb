@@ -1,5 +1,4 @@
 class BlueHydra::Device
-
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
 
   include DataMapper::Resource
@@ -28,8 +27,13 @@ class BlueHydra::Device
 
   property :le_16_bit_service_uuids,      Text
 
-  def self.update_or_create_from_result(result)
+  property :created_at,                   DateTime
+  property :updated_at,                   DateTime
+  property :last_seen,                    Integer
 
+  validates_format_of :address, with: MAC_REGEX
+
+  def self.update_or_create_from_result(result)
     # # TODO this will be dead code but keeping it around for now to easily
     # # inspect raw results to look for missing keys
     # File.write("./BLUE_HYDRA_#{Time.now.to_i}.json", [
@@ -76,6 +80,14 @@ class BlueHydra::Device
 
     if result[:classic_class]
       record.classic_class = result[:classic_class]
+    end
+
+    if result[:last_seen] &&
+       result[:last_seen].class == Array &&
+       !result[:last_seen].empty?
+      record.last_seen = result[:last_seen].sort.last
+    else
+      record.last_seen = Time.now.to_i
     end
 
     attrs.each do |attr|

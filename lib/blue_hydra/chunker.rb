@@ -14,6 +14,7 @@ module BlueHydra
             working_set = []
         end
 
+        current_msg << "last_seen: #{Time.now.to_i}"
         working_set << current_msg
       end
     end
