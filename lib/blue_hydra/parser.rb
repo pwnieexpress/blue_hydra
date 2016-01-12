@@ -244,6 +244,9 @@ module BlueHydra
       when line =~ /^RSSI:/
         set_attr("#{bt_mode}_rssi".to_sym, line.split(': ')[1])
 
+      when line =~ /^last_seen:/
+        set_attr(:last_seen, line.split(': ')[1].to_i)
+
       when line =~ /^(Attribute (data length|group list)|Reason|Result):/
         # do nothing
 
