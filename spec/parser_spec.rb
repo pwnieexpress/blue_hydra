@@ -41,7 +41,7 @@ describe BlueHydra::Parser do
     command = "cat #{filepath} && sleep 1"
     queue1  = Queue.new
     queue2  = Queue.new
-    spawner = BlueHydra::PtySpawner.new(command, queue1)
+    handler = BlueHydra::BtmonHandler.new(command, queue1)
     chunker = BlueHydra::Chunker.new(queue1, queue2)
 
 

@@ -43,7 +43,7 @@ module BlueHydra
   module_function :logger
 end
 
-require 'blue_hydra/pty_spawner'
+require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'

@@ -1,5 +1,5 @@
 module BlueHydra
-  class PtySpawner
+  class BtmonHandler
     def initialize(command, parse_queue)
       @command = command
       @parse_queue = parse_queue

@@ -5,11 +5,12 @@ module BlueHydra
                   :raw_queue,
                   :chunk_queue,
                   :result_queue,
-                  :pty_thread,
+                  :btmon_thread,
                   :discovery_thread,
                   :chunker_thread,
                   :parser_thread,
                   :result_thread
+
 
     def start(command="btmon -T")
       begin
@@ -19,7 +20,7 @@ module BlueHydra
         self.chunk_queue  = Queue.new
         self.result_queue = Queue.new
 
-        start_pty_thread
+        start_btmon_thread
         start_discovery_thread
         start_chunker_thread
         start_parser_thread
@@ -39,23 +40,23 @@ module BlueHydra
       self.chunk_queue  = nil
       self.result_queue = nil
 
-      self.pty_thread.kill
+      self.btmon_thread.kill
       self.discovery_thread.kill
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
     end
 
-    def start_pty_thread
-      BlueHydra.logger.info("PTY thread starting")
-      self.pty_thread = Thread.new do
+    def start_btmon_thread
+      BlueHydra.logger.info("Btmon thread starting")
+      self.btmon_thread = Thread.new do
         begin
-          spawner = BlueHydra::PtySpawner.new(
+          spawner = BlueHydra::BtmonHandler.new(
             self.command,
             self.raw_queue
           )
         rescue => e
-          BlueHydra.logger.error("PTY thread #{e.message}")
+          BlueHydra.logger.error("Btmon thread #{e.message}")
           e.backtrace.each do |x|
             BlueHydra.logger.error("#{x}")
           end
