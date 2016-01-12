@@ -9,6 +9,7 @@ module BlueHydra
                   :discovery_thread,
                   :chunker_thread,
                   :parser_thread,
+                  :discovery_command_queue,
                   :result_thread
 
 
@@ -70,14 +71,18 @@ module BlueHydra
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
         begin
-          discovery_command = File.expand_path('../../bin/test-discovery', __FILE__)
+          discovery_command = File.expand_path('../../../bin/test-discovery', __FILE__)
           loop do
             # TODO 1. handle any output / edge cases from commands
             # TODO 2. use BlueHydra.config[:bt_device] or whatever
-
             begin
+
               # do a discovery
-              BlueHydra::Command.execute3(discovery_command)
+              discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
+
+              if discovery_errors
+                raise discovery_errors
+              end
 
               # clear queue
               until discovery_command_queue.empty?
