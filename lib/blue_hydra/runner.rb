@@ -72,17 +72,35 @@ module BlueHydra
         begin
           discovery_command = File.expand_path('../../bin/test-discovery', __FILE__)
           loop do
-            # do a discovery
-            discovery_command_output = BlueHydra::Command.execute3(discovery_command)
+            # TODO 1. handle any output / edge cases from commands
+            # TODO 2. use BlueHydra.config[:bt_device] or whatever
 
-            # check output for errors
-            if discovery_command_output[:stderr] || discovery_command_output[:exit_code] != 0
-              # TODO DO SOMETHING
-            end
+            begin
+              # do a discovery
+              BlueHydra::Command.execute3(discovery_command)
 
-            # clear command queue
-            until discovery_command_queue.empty?
-              command = discovery_command_queue
+              # clear queue
+              until discovery_command_queue.empty?
+                command = discovery_command_queue.pop
+                case command[:command]
+                when :info
+                  BlueHydra::Command.execute3("hcitool info #{command[:address]}")
+                when :leinfo
+                  BlueHydra::Command.execute3("hcitool leinfo #{command[:address]}")
+                when :l2ping
+                  BlueHydra::Command.execute3("l2ping -c 3 #{command[:address]}")
+                else
+                  BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
+                end
+              end
+
+            rescue => e
+              BlueHydra.logger.error("Discovery loop crashed: #{e.message}")
+              e.backtrace.each do |x|
+                BlueHydra.logger.error("#{x}")
+              end
+              BlueHydra.logger.error("Sleeping 20s...")
+              sleep 20
             end
 
             # sleep
@@ -138,49 +156,52 @@ module BlueHydra
       BlueHydra.logger.info("Result thread starting")
       self.result_thread = Thread.new do
         begin
-          while result = result_queue.pop do
-            BlueHydra.logger.info("Result thread got result")
-            if result[:address]
-              BlueHydra::Device.update_or_create_from_result(result)
+          query_history = {}
+          loop do
+            # if their last_seen value is > 15 minutes ago and not > 1 hour ago
+            #   l2ping them :  "l2ping -c 3 result[:address]"
 
-              # TODO: REMOVE THIS -- START
-              # TODO: REMOVE THIS -- START
-              # TODO: REMOVE THIS -- START
-              address = result[:address].first
+            BlueHydra::Device.all.select{|x|
+              x.last_seen < (60 * 15) && x.last_seen > (60*60)
+            }.each{|x|
+              discovery_command_queue.push({
+                command: :l2ping,
+                address: device.address
+              })
+            }
 
-              file_path = File.expand_path(
-                "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
-              )
+            until result_queue.empty?
+              result = result_queue.pop
+              if result[:address]
+                BlueHydra.logger.debug("Result thread got result")
+                device = BlueHydra::Device.update_or_create_from_result(result)
 
-              BlueHydra.logger.info("Result thread preparing for #{file_path}")
-
-              base = if File.exists?(file_path)
-                       JSON.parse(
-                         File.read(file_path),
-                         symbolize_names: true
-                       )
-                     else
-                       {}
-                     end
-
-              result.each do |key, values|
-                if base[key]
-                  base[key] = (base[key] + values).uniq
-                else
-                  base[key] = values.uniq
+                query_history[device.address] ||= {}
+                if device.le_mode
+                  # device.le_mode - this is a le device which has not been queried for >=15m
+                  #   if true, add to active_queue to "hcitool leinfo result[:address]"
+                  if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
+                    discovery_command_queue.push({command: :leinfo, address: device.address})
+                    query_history[device.address][:le_mode] = Time.now.to_i
+                  end
                 end
+
+                if device.classic_mode
+                  # device.classic_mode - this is a classic device which has not been queried for >=15m
+                  #   if true, add to active_queue "hcitool info result[:address]"
+                  if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
+                    discovery_command_queue.push({command: :info, address: device.address})
+                    query_history[device.address][:classic] = Time.now.to_i
+                  end
+                end
+              else
+                BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
               end
-
-              BlueHydra.logger.info("Result thread writing to #{file_path}")
-              File.write(file_path, JSON.pretty_generate(base))
-              # TODO: REMOVE THIS -- END
-              # TODO: REMOVE THIS -- END
-              # TODO: REMOVE THIS -- END
-
-            else
-              BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
             end
+
+            sleep 1
           end
+
         rescue => e
           BlueHydra.logger.error("Result thread #{e.message}")
           e.backtrace.each do |x|
@@ -188,7 +209,8 @@ module BlueHydra
           end
         end
       end
-    end
+
+    end # def
 
   end
 end

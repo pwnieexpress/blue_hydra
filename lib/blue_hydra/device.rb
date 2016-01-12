@@ -31,7 +31,12 @@ class BlueHydra::Device
   property :updated_at,                   DateTime
   property :last_seen,                    Integer
 
+  property :le_mode, Boolean
+  property :classic_mode, Boolean
+
   validates_format_of :address, with: MAC_REGEX
+
+  before :save, :set_mode_flags
 
   def self.update_or_create_from_result(result)
     # # TODO this will be dead code but keeping it around for now to easily
@@ -125,6 +130,36 @@ class BlueHydra::Device
       end
     end
     record
+  end
+
+  def set_mode_flags
+    classic = false
+    [
+      :classic_role,
+      :classic_lmp_version,
+      :classic_manufacturer,
+      :classic_features,
+      :classic_firmware,
+      :classic_channels,
+      :classic_major_class,
+      :classic_minor_class,
+      :classic_16_bit_service_uuids,
+      :classic_class
+    ].each do |classic_attr|
+      if self[classic_attr]
+        classic ||= true
+      end
+    end
+    self[:classic_mode] = classic
+
+
+    le = false
+    [ :le_16_bit_service_uuids ].each do |le_attr|
+      if self[le_attr]
+        le ||= true
+      end
+    end
+    self[:le_mode] = le
   end
 
   # NOTE: returns raw json...
