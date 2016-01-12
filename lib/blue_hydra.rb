@@ -2,6 +2,7 @@
 require 'pty'
 require 'logger'
 require 'json'
+require 'open3'
 
 # Gems
 require 'data_mapper'
@@ -84,6 +85,7 @@ require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
+require 'blue_hydra/command'
 require 'blue_hydra/device'
 
 DataMapper.auto_upgrade!

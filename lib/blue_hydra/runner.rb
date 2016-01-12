@@ -20,6 +20,8 @@ module BlueHydra
         self.chunk_queue  = Queue.new
         self.result_queue = Queue.new
 
+        self.discovery_command_queue = Queue.new
+
         start_btmon_thread
         start_discovery_thread
         start_chunker_thread
@@ -68,17 +70,24 @@ module BlueHydra
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
         begin
+          discovery_command = File.expand_path('../../bin/test-discovery', __FILE__)
+          loop do
+            # do a discovery
+            discovery_command_output = BlueHydra::Command.execute3(discovery_command)
 
-          # TODO THIS IS A PLACEHOLDER REALLY...
-          command = '/usr/share/doc/bluez-test-scripts/examples/test-discovery'
-
-          # TODO prolly want open3 not pty
-          PTY.spawn(command) do |_, _, _|
-            loop do
-              1
+            # check output for errors
+            if discovery_command_output[:stderr] || discovery_command_output[:exit_code] != 0
+              # TODO DO SOMETHING
             end
-          end
 
+            # clear command queue
+            until discovery_command_queue.empty?
+              command = discovery_command_queue
+            end
+
+            # sleep
+            sleep 1
+          end
         rescue => e
           BlueHydra.logger.error("Discovery thread #{e.message}")
           e.backtrace.each do |x|
