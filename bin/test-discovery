@@ -15,7 +15,6 @@ sys.path.append('/usr/lib64/bluez/test')
 #kali2
 sys.path.append('/usr/share/doc/bluez-test-scripts/examples')
 import bluezutils
-from IPython import embed
 import time
 
 compact = False
@@ -88,7 +87,6 @@ def skip_dev(old_dev, new_dev):
 def interfaces_added(path, interfaces):
 	properties = interfaces["org.bluez.Device1"]
 	if not properties:
-		embed()
 		return
 
 	if path in devices:
@@ -112,7 +110,6 @@ def interfaces_added(path, interfaces):
 
 def properties_changed(interface, changed, invalidated, path):
 	if interface != "org.bluez.Device1":
-		embed()
 		return
 
 	if path in devices:
