@@ -191,7 +191,7 @@ module BlueHydra
 
                 query_history[device.address] ||= {}
 
-                BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
+                #BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
 
                 if device.le_mode
                   # device.le_mode - this is a le device which has not been queried for >=15m
