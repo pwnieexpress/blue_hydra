@@ -9,11 +9,6 @@ class BlueHydra::Device
   property :address,                      String
   property :oui,                          Text
 
-  # TODO confirm these
-  property :peer_address,                 String
-  property :peer_address_type,            String
-  property :peer_address_oui,             String
-
   property :classic_role,                 String
   property :classic_lmp_version,          String
   property :classic_manufacturer,         String

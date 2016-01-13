@@ -152,13 +152,15 @@ module BlueHydra
       when line =~ /^Role:/
         set_attr("#{bt_mode}_role".to_sym, line.split(': ')[1])
 
+      #  Peer Adress is when our device connectes to this device so treat as
+      #  the device address
       when line =~ /^Peer address type:/
-        set_attr("#{bt_mode}_peer_address_type".to_sym, line.split(': ')[1])
+        set_attr("address_type".to_sym, line.split(': ')[1])
 
       when line =~ /^Peer address:/
         addr, *oui = line.split(': ')[1].split(" ")
-        set_attr("#{bt_mode}_peer_address".to_sym, addr)
-        set_attr("#{bt_mode}_peer_address_oui".to_sym, oui.join(' '))
+        set_attr("address".to_sym, addr)
+        set_attr("oui".to_sym, oui.join(' '))
 
       when line =~ /^Connection interval:/
         set_attr("#{bt_mode}_connection_interval".to_sym, line.split(': ')[1])
