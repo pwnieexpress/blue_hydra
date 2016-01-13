@@ -180,7 +180,7 @@ module BlueHydra
             until result_queue.empty?
               result = result_queue.pop
               if result[:address]
-                device = BlueHydra::Device.update_or_create_from_result(result) else
+                device = BlueHydra::Device.update_or_create_from_result(result)
 
                 BlueHydra.logger.debug("device class: #{device.class}")
 
