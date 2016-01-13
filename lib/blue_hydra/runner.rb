@@ -182,19 +182,15 @@ module BlueHydra
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
-                BlueHydra.logger.debug("device class: #{device.class}")
-
                 query_history[device.address] ||= {}
 
-                BlueHydra.logger.debug("device q hist: #{query_history[device.address]}")
-                BlueHydra.logger.debug("device le mode: #{device.le_mode.inspect}")
-                BlueHydra.logger.debug("device classic mode: #{device.classic_mode.inspect}")
+                BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
 
                 if device.le_mode
                   # device.le_mode - this is a le device which has not been queried for >=15m
                   #   if true, add to active_queue to "hcitool leinfo result[:address]"
                   if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
-                    BlueHydra.logger.debug("device le scan should happen")
+                    BlueHydra.logger.debug("device le scan triggered")
                     discovery_command_queue.push({command: :leinfo, address: device.address})
                     query_history[device.address][:le] = Time.now.to_i
                   end
@@ -204,7 +200,7 @@ module BlueHydra
                   # device.classic_mode - this is a classic device which has not been queried for >=15m
                   #   if true, add to active_queue "hcitool info result[:address]"
                   if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
-                    BlueHydra.logger.debug("device classic scan should happen")
+                    BlueHydra.logger.debug("device classic scan triggered")
                     discovery_command_queue.push({command: :info, address: device.address})
                     query_history[device.address][:classic] = Time.now.to_i
                   end
