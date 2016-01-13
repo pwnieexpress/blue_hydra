@@ -3,28 +3,32 @@ class BlueHydra::Device
 
   include DataMapper::Resource
 
-  property :id,                           Serial
+  property :id,                            Serial
 
-  property :name,                         String
-  property :address,                      String
-  property :oui,                          Text
+  property :name,                          String
+  property :address,                       String
+  property :oui,                           Text
 
-  property :classic_role,                 String
-  property :classic_lmp_version,          String
-  property :classic_manufacturer,         String
-  property :classic_features,             Text
-  property :classic_firmware,             String
-  property :classic_channels,             String
-  property :classic_major_class,          String
-  property :classic_minor_class,          String
-  property :classic_16_bit_service_uuids, Text
-  property :classic_class,                Text
+  property :classic_role,                  String
+  property :classic_lmp_version,           String
+  property :classic_manufacturer,          String
+  property :classic_features,              Text
+  property :classic_firmware,              String
+  property :classic_channels,              String
+  property :classic_major_class,           String
+  property :classic_minor_class,           String
+  property :classic_16_bit_service_uuids,  Text
+  property :classic_128_bit_service_uuids, Text
+  property :classic_class,                 Text
 
-  property :le_16_bit_service_uuids,      Text
+  property :le_128_bit_service_uuids,      Text
+  property :le_16_bit_service_uuids,       Text
+  property :le_features,                   Text
+  property :le_flags,                      Text
 
-  property :created_at,                   DateTime
-  property :updated_at,                   DateTime
-  property :last_seen,                    Integer
+  property :created_at,                    DateTime
+  property :updated_at,                    DateTime
+  property :last_seen,                     Integer
 
   property :le_mode, Boolean
   property :classic_mode, Boolean
@@ -64,8 +68,7 @@ class BlueHydra::Device
   # TODO: REMOVE THIS -- END
 
   def self.update_or_create_from_result(result)
-
-     todo_remove_this_prototype_info_gathering_method(result.dup)
+    todo_remove_this_prototype_info_gathering_method(result.dup)
 
     result = result.dup
 
@@ -92,6 +95,14 @@ class BlueHydra::Device
       record.classic_features = result[:classic_features]
     end
 
+    if result[:le_features]
+      record.le_features = result[:le_features]
+    end
+
+    if result[:le_flags]
+      record.le_flags = result[:le_flags]
+    end
+
     if result[:classic_channels]
       record.classic_channels = result[:classic_channels]
     end
@@ -102,6 +113,14 @@ class BlueHydra::Device
 
     if result[:classic_16_bit_service_uuids]
       record.classic_16_bit_service_uuids = result[:classic_16_bit_service_uuids]
+    end
+
+    if result[:le_128_bit_service_uuids]
+      record.le_128_bit_service_uuids = result[:le_128_bit_service_uuids]
+    end
+
+    if result[:classic_128_bit_service_uuids]
+      record.classic_128_bit_service_uuids = result[:classic_128_bit_service_uuids]
     end
 
     if result[:classic_class]
@@ -156,6 +175,7 @@ class BlueHydra::Device
       :classic_major_class,
       :classic_minor_class,
       :classic_16_bit_service_uuids,
+      :classic_128_bit_service_uuids,
       :classic_class
     ].each do |classic_attr|
       if self[classic_attr]
@@ -166,7 +186,12 @@ class BlueHydra::Device
 
 
     le = false
-    [ :le_16_bit_service_uuids ].each do |le_attr|
+    [
+      :le_16_bit_service_uuids,
+      :le_128_bit_service_uuids,
+      :le_flags,
+      :le_features
+    ].each do |le_attr|
       if self[le_attr]
         le ||= true
       end
@@ -208,6 +233,28 @@ class BlueHydra::Device
   end
 
   # NOTE: returns raw json...
+  def le_features
+    self[:le_features] || '[]'
+  end
+
+  def le_features=(features)
+     new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+     current = JSON.parse(self.le_features)
+     self[:le_features] = JSON.generate((new + current).uniq)
+  end
+
+  # NOTE: returns raw json...
+  def le_flags
+    self[:le_flags] || '[]'
+  end
+
+  def le_flags=(features)
+     new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+     current = JSON.parse(self.le_flags)
+     self[:le_flags] = JSON.generate((new + current).uniq)
+  end
+
+  # NOTE: returns raw json...
   def classic_16_bit_service_uuids
     self[:classic_16_bit_service_uuids] || '[]'
   end
@@ -229,5 +276,29 @@ class BlueHydra::Device
      new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
      current = JSON.parse(self.le_16_bit_service_uuids)
      self[:le_16_bit_service_uuids] = JSON.generate((new + current).uniq)
+  end
+
+  # NOTE: returns raw json...
+  def classic_128_bit_service_uuids
+    self[:classic_128_bit_service_uuids] || '[]'
+  end
+
+  def classic_128_bit_service_uuids=(new_uuids)
+     new = new_uuids.reject{|x| x =~ /^0x/}
+     new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
+     current = JSON.parse(self.classic_128_bit_service_uuids)
+     self[:classic_128_bit_service_uuids] = JSON.generate((new + current).uniq)
+  end
+
+  # NOTE: returns raw json...
+  def le_128_bit_service_uuids
+    self[:le_128_bit_service_uuids] || '[]'
+  end
+
+  def le_128_bit_service_uuids=(new_uuids)
+     new = new_uuids.reject{|x| x =~ /^0x/}
+     new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
+     current = JSON.parse(self.le_128_bit_service_uuids)
+     self[:le_128_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 end

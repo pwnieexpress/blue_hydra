@@ -39,6 +39,11 @@ module BlueHydra
               end
             end
 
+          when grp[0] =~ /^\s+Flags:/
+            grp.shift
+            vals = grp.map(&:strip)
+            set_attr("#{bt_mode}_flags".to_sym, vals.join(", "))
+
           when grp[0] =~ /^\s+Features/
             header = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
