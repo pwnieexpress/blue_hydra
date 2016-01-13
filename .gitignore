@@ -37,4 +37,4 @@ build/
 *.log
 devices/*.json
 *.db
-
+Gemfile.lock
