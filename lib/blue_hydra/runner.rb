@@ -13,7 +13,7 @@ module BlueHydra
                   :result_thread
 
 
-    def start(command="btmon -T")
+    def start(command="btmon -T -i #{BlueHydra.config[:bt_device]}")
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
         self.command      = command
@@ -71,7 +71,7 @@ module BlueHydra
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
         begin
-          discovery_command = File.expand_path('../../../bin/test-discovery', __FILE__)
+          discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
           loop do
             # TODO 1. handle any output / edge cases from commands
             # TODO 2. use BlueHydra.config[:bt_device] or whatever
@@ -93,11 +93,11 @@ module BlueHydra
                 command = discovery_command_queue.pop
                 case command[:command]
                 when :info
-                  BlueHydra::Command.execute3("hcitool info #{command[:address]}")
+                  BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
                 when :leinfo
-                  BlueHydra::Command.execute3("hcitool leinfo #{command[:address]}")
+                  BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}")
                 when :l2ping
-                  BlueHydra::Command.execute3("l2ping -c 3 #{command[:address]}")
+                  BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}")
                 else
                   BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
                 end

@@ -29,8 +29,8 @@ module BlueHydra
   # 0.0.2 timestamps, feedback loop for info scans, l2ping
   VERSION = '0.0.2'
 
-  CONFIG_FILE = if Dir.exists?('/var/log/pwnix/pwnix-config')
-              File.expand_path('/var/log/pwnix/pwnix-config/blue_hydra.json', __FILE__)
+  CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
+              File.expand_path('/opt/pwnix/pwnix-config/blue_hydra.json', __FILE__)
             else
               File.expand_path('../../blue_hydra.json', __FILE__)
             end
