@@ -147,7 +147,6 @@ module BlueHydra
       self.parser_thread = Thread.new do
         begin
           while chunk = chunk_queue.pop do
-            BlueHydra.logger.debug("Popped off chunk queue. Depth: #{ chunk_queue.length}")
             p = BlueHydra::Parser.new(chunk)
             p.parse
             result_queue.push(p.attributes)
@@ -180,7 +179,6 @@ module BlueHydra
             }
 
             until result_queue.empty?
-              BlueHydra.logger.debug("Popping off result queue. Depth: #{ result_queue.length}")
               result = result_queue.pop
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)

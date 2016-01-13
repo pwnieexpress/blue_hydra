@@ -1,4 +1,4 @@
-source 'https://gemrepo.pxinfra.net/rubygems'
+source 'http://rubygems.org'
 
 # # Gems for this project are specified and locked by pwnix_chef. Any gems that
 # # need to be added or removed should be handled there. Execution requiring
