@@ -12,7 +12,6 @@ module BlueHydra
                   :discovery_command_queue,
                   :result_thread
 
-
     def start(command="btmon -T -i #{BlueHydra.config[:bt_device]}")
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")

@@ -80,7 +80,7 @@ module BlueHydra
     @@config
   end
 
-  module_function :logger
+  module_function :logger, :config
 end
 
 require 'blue_hydra/btmon_handler'
