@@ -5,16 +5,15 @@ module BlueHydra
     def initialize(chunks=[])
       @chunks     = chunks
       @attributes = {}
+      @bt_mode = @chunks[0][1] =~ /^\s+LE/ ? "le" : "classic"
     end
 
     def parse
       @chunks.each do |chunk|
         chunk.shift # discard first line
 
-        bt_mode = chunk[0] =~ /^\s+LE/ ? "le" : "classic"
-
         grouped_chunk = group_by_depth(chunk)
-        handle_grouped_chunk(grouped_chunk, bt_mode)
+        handle_grouped_chunk(grouped_chunk, @bt_mode)
       end
     end
 
