@@ -173,10 +173,15 @@ module BlueHydra
             BlueHydra::Device.all.select{|x|
               x.last_seen < (Time.now.to_i - (60 * 15)) && x.last_seen > (Time.now.to_i - (60*60))
             }.each{|device|
-              discovery_command_queue.push({
-                command: :l2ping,
-                address: device.address
-              })
+              query_history[device.address] ||= {}
+              if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:l2ping].to_i
+                BlueHydra.logger.debug("device l2ping scan triggered")
+                discovery_command_queue.push({
+                  command: :l2ping,
+                  address: device.address
+                })
+                query_history[device.address][:l2ping] = Time.now.to_i
+              end
             }
 
             until result_queue.empty?
