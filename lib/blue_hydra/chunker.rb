@@ -26,7 +26,8 @@ module BlueHydra
 
       if chunk[0] =~ /Connect Complete|Role Change|Extended Inqu|Inquiry Result/
         true
-      elsif chunk[0] =~ /LE Meta Event/ && chunk[1] =~ /LE Connection Complete|LE Advertising Report/
+      elsif chunk[0] =~ /LE Meta Event/ &&
+            chunk[1] =~ /LE Connection Complete|LE Advertising Report/
         true
       else
         false
