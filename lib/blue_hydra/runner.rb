@@ -77,6 +77,8 @@ module BlueHydra
             begin
 
               # do a discovery
+              interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
+              sleep 1
               discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
 
               if discovery_errors
