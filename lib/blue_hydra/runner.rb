@@ -182,26 +182,29 @@ module BlueHydra
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
-                query_history[device.address] ||= {}
-                if device.le_mode
-                  # device.le_mode - this is a le device which has not been queried for >=15m
-                  #   if true, add to active_queue to "hcitool leinfo result[:address]"
-                  if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
-                    discovery_command_queue.push({command: :leinfo, address: device.address})
-                    query_history[device.address][:le] = Time.now.to_i
-                  end
-                end
-
-                if device.classic_mode
-                  # device.classic_mode - this is a classic device which has not been queried for >=15m
-                  #   if true, add to active_queue "hcitool info result[:address]"
-                  if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
-                    discovery_command_queue.push({command: :info, address: device.address})
-                    query_history[device.address][:classic] = Time.now.to_i
-                  end
-                end
               else
                 BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
+              end
+            end
+
+            BlueHydra::Device.all.each do |device|
+              query_history[device.address] ||= {}
+              if device.le_mode
+                # device.le_mode - this is a le device which has not been queried for >=15m
+                #   if true, add to active_queue to "hcitool leinfo result[:address]"
+                if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
+                  discovery_command_queue.push({command: :leinfo, address: device.address})
+                  query_history[device.address][:le] = Time.now.to_i
+                end
+              end
+
+              if device.classic_mode
+                # device.classic_mode - this is a classic device which has not been queried for >=15m
+                #   if true, add to active_queue "hcitool info result[:address]"
+                if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
+                  discovery_command_queue.push({command: :info, address: device.address})
+                  query_history[device.address][:classic] = Time.now.to_i
+                end
               end
             end
 
