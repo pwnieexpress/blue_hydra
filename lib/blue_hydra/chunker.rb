@@ -22,9 +22,11 @@ module BlueHydra
     end
 
     def starting_chunk?(chunk=[])
-      key_line = chunk.first
+      key_line = chunk[0]
 
-      if key_line =~ /Connect Complete|Role Change|Extended Inqu|LE Meta Event|Inquiry Result/
+      if chunk[0] =~ /Connect Complete|Role Change|Extended Inqu|Inquiry Result/
+        true
+      elsif chunk[0] =~ /LE Meta Event/ && chunk[1] =~ /LE Connection Complete|LE Advertising Report/
         true
       else
         false
