@@ -1,5 +1,5 @@
 # BlueHydra
 ## Bluetooth device discovery service
-### Pretty much the pimpest
+### :blue_book: :blue_car: :blue_heart: :large_blue_circle: :large_blue_diamond: 
 
 
