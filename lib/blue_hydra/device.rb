@@ -8,6 +8,7 @@ class BlueHydra::Device
   property :name,                          String
   property :address,                       String
   property :oui,                           Text
+  property :status,                       String
 
   property :classic_role,                  String
   property :classic_lmp_version,           String
@@ -74,6 +75,10 @@ class BlueHydra::Device
     address = result[:address].first
 
     record = self.all(address: address).first || self.new
+
+    # if we are processing things here we have, implicitly seen them so
+    # mark as online?
+    record.status = "online"
 
     attrs = %w{
       address

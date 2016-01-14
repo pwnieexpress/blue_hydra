@@ -218,6 +218,13 @@ module BlueHydra
               end
             end
 
+            # mark hosts as 'offline' if we haven't seen for a while
+            BlueHydra::Device.all.select{|x|
+              x.last_seen < (Time.now.to_i - (60*60))
+            }.each{|device|
+              device.status = 'offline'
+              device.save
+            }
 
             sleep 1
           end
