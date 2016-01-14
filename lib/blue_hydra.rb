@@ -30,14 +30,14 @@ module BlueHydra
   VERSION = '0.0.2'
 
   CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
-              File.expand_path('/opt/pwnix/pwnix-config/blue_hydra.json', __FILE__)
+              '/opt/pwnix/pwnix-config/blue_hydra.json'
             else
               File.expand_path('../../blue_hydra.json', __FILE__)
             end
 
   DEFAULT_CONFIG = {
     log_level: "debug",
-    bt_device: "hci0" # TODO - make use of...?
+    bt_device: "hci0"
   }
 
   @@config = if File.exists?(CONFIG_FILE)
@@ -46,7 +46,7 @@ module BlueHydra
                  symbolize_names: true
                ))
              else
-               # TODO update config with defaults
+               File.write(CONFIG_FILE, JSON.generate(DEFAULT_CONFIG))
                DEFAULT_CONFIG
              end
 

@@ -38,3 +38,4 @@ build/
 devices/*.json
 *.db
 Gemfile.lock
+blue_hydra.json

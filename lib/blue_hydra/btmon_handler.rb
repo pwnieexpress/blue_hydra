@@ -12,8 +12,9 @@ module BlueHydra
         begin
           stdout.each do |line|
 
-            # TODO Like, uh, dont do this
+            # TODO: REMOVE THIS
             File.open('btmon.log','a'){|f| f.puts line}
+            # TODO: REMOVE THIS
 
             line = line.gsub("\e[0;37m", "")
             line = line.gsub("\e[0;36m", "")

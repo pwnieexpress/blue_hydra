@@ -5,7 +5,9 @@ module BlueHydra
     def initialize(chunks=[])
       @chunks     = chunks
       @attributes = {}
-      @bt_mode = @chunks[0][1] =~ /^\s+LE/ ? "le" : "classic"
+      if @chunks[0] && @chunks[0][1]
+        @bt_mode = @chunks[0][1] =~ /^\s+LE/ ? "le" : "classic"
+      end
     end
 
     def parse
