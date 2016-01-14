@@ -20,60 +20,60 @@ import time
 compact = False
 devices = {}
 
-def print_compact(address, properties):
-	name = ""
-	address = "<unknown>"
+#def print_compact(address, properties):
+#	name = ""
+#	address = "<unknown>"
+#
+#	for key, value in properties.iteritems():
+#		if type(value) is dbus.String:
+#			value = unicode(value).encode('ascii', 'replace')
+#		if (key == "Name"):
+#			name = value
+#		elif (key == "Address"):
+#			address = value
+#
+#	if "Logged" in properties:
+#		flag = "*"
+#	else:
+#		flag = " "
+#
+#	print("%s%s %s" % (flag, address, name))
+#
+#	properties["Logged"] = True
 
-	for key, value in properties.iteritems():
-		if type(value) is dbus.String:
-			value = unicode(value).encode('ascii', 'replace')
-		if (key == "Name"):
-			name = value
-		elif (key == "Address"):
-			address = value
-
-	if "Logged" in properties:
-		flag = "*"
-	else:
-		flag = " "
-
-	print("%s%s %s" % (flag, address, name))
-
-	properties["Logged"] = True
-
-def print_normal(address, properties):
-	print("[ " + address + " ]")
-
-	for key in properties.keys():
-		value = properties[key]
-		if type(value) is dbus.String:
-			value = unicode(value).encode('ascii', 'replace')
-		if (key == "Class"):
-			print("    %s = 0x%06x" % (key, value))
-		#zero hax
-		elif (key == "Paired"):
-			continue
-		elif (key == "LegacyPairing"):
-			continue
-		elif (key == "Connected"):
-			continue
-		elif (key == "UUIDs"):
-			continue
-		elif (key == "Trusted"):
-			continue
-		elif (key == "Blocked"):
-			continue
-		elif (key == "Logged"):
-			continue
-		elif (key == "ManufacturerData"):
-			continue
-		#end hax
-		else:
-			print("    %s = %s" % (key, value))
-
-	print()
-
-	properties["Logged"] = True
+#def print_normal(address, properties):
+#	print("[ " + address + " ]")
+#
+#	for key in properties.keys():
+#		value = properties[key]
+#		if type(value) is dbus.String:
+#			value = unicode(value).encode('ascii', 'replace')
+#		if (key == "Class"):
+#			print("    %s = 0x%06x" % (key, value))
+#		#zero hax
+#		elif (key == "Paired"):
+#			continue
+#		elif (key == "LegacyPairing"):
+#			continue
+#		elif (key == "Connected"):
+#			continue
+#		elif (key == "UUIDs"):
+#			continue
+#		elif (key == "Trusted"):
+#			continue
+#		elif (key == "Blocked"):
+#			continue
+#		elif (key == "Logged"):
+#			continue
+#		elif (key == "ManufacturerData"):
+#			continue
+#		#end hax
+#		else:
+#			print("    %s = %s" % (key, value))
+#
+#	print()
+#
+#	properties["Logged"] = True
 
 def skip_dev(old_dev, new_dev):
 	if not "Logged" in old_dev:
