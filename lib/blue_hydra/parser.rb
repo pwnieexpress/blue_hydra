@@ -136,7 +136,6 @@ module BlueHydra
       end
     end
 
-    # TODO dry this sucker up
     def parse_single_line(line, bt_mode, timestamp)
       line = line.strip
       case
@@ -154,9 +153,6 @@ module BlueHydra
       when line =~ /^Encryption:/
         set_attr("#{bt_mode}_encryption".to_sym, line.split(': ')[1])
 
-      when line =~ /^Link type:/
-        set_attr("#{bt_mode}_link_type".to_sym, line.split(': ')[1])
-
       when line =~ /^Role:/
         set_attr("#{bt_mode}_role".to_sym, line.split(': ')[1])
 
@@ -170,26 +166,11 @@ module BlueHydra
         set_attr("address".to_sym, addr)
         set_attr("oui".to_sym, oui.join(' '))
 
-      when line =~ /^Connection interval:/
-        set_attr("#{bt_mode}_connection_interval".to_sym, line.split(': ')[1])
-
-      when line =~ /^Connection latency:/
-        set_attr("#{bt_mode}_connection_latency".to_sym, line.split(': ')[1])
-
-      when line =~ /^Supervision timeout:/
-        set_attr("#{bt_mode}_supervision_timeout".to_sym, line.split(': ')[1])
-
-      when line =~ /^Master clock accuracy:/
-        set_attr("#{bt_mode}_master_clock_accuracy".to_sym, line.split(': ')[1])
-
       when line =~ /^LMP version:/
         set_attr("#{bt_mode}_lmp_version".to_sym, line.split(': ')[1])
 
       when line =~ /^Manufacturer:/
         set_attr("#{bt_mode}_manufacturer".to_sym, line.split(': ')[1])
-
-      when line =~ /^Server RX MTU:/
-        set_attr("#{bt_mode}_server_rx_mtu".to_sym, line.split(': ')[1])
 
       when line =~ /^Handle range:/
         set_attr("#{bt_mode}_handle_range".to_sym, line.split(': ')[1])
@@ -197,59 +178,11 @@ module BlueHydra
       when line =~ /^UUID:/
         set_attr("#{bt_mode}_uuid".to_sym, line.split(': ')[1])
 
-      when line =~ /^Min interval:/
-        set_attr("#{bt_mode}_mint_interval".to_sym, line.split(': ')[1])
-
-      when line =~ /^Max interval:/
-        set_attr("#{bt_mode}_max_interval".to_sym, line.split(': ')[1])
-
-      when line =~ /^Slave latency:/
-        set_attr("#{bt_mode}_slave_latency".to_sym, line.split(': ')[1])
-
-      when line =~ /^Timeout multiplier:/
-        set_attr("#{bt_mode}_timeout_multiplier".to_sym, line.split(': ')[1])
-
-      when line =~ /^Attribute group type:/
-        set_attr("#{bt_mode}_attribute_group_type".to_sym, line.split(': ')[1])
-
-      when line =~ /^Max slots:/
-        set_attr("#{bt_mode}_max_slots".to_sym, line.split(': ')[1])
-
-      when line =~ /^Page:/
-        set_attr("#{bt_mode}_page".to_sym, line.split(': ')[1])
-
-      when line =~ /^Type:/
-        set_attr("#{bt_mode}_type".to_sym, line.split(': ')[1])
-
       when line =~ /^Name:/ || line =~ /^Name \(complete\):/
         set_attr("name".to_sym, line.split(': ')[1])
 
       when line =~ /^Firmware:/
         set_attr("#{bt_mode}_firmware".to_sym, line.split(': ')[1])
-
-      when line =~ /^Error:/
-        set_attr("#{bt_mode}_error".to_sym, line.split(': ')[1])
-
-      when line =~ /^Attribute type:/
-        set_attr("#{bt_mode}_attribute_type".to_sym, line.split(': ')[1])
-
-      when line =~ /^Read By Group Type Request/
-        set_attr("#{bt_mode}_read_by_group_type_request".to_sym, line.split(': ')[1])
-
-      when line =~ /^Read By Type Request/
-        set_attr("#{bt_mode}_read_by_type_request".to_sym, line.split(': ')[1])
-
-      when line =~ /^Num responses/
-        set_attr("#{bt_mode}_num_responses".to_sym, line.split(': ')[1])
-
-      when line =~ /^Page scan repetition mode:/
-        set_attr("#{bt_mode}_page_scan_repetition_mode".to_sym, line.split(': ')[1])
-
-      when line =~ /^Page period mode:/
-        set_attr("#{bt_mode}_page_period_mode".to_sym, line.split(': ')[1])
-
-      when line =~ /^Clock offset:/
-        set_attr("#{bt_mode}_clock_offset".to_sym, line.split(': ')[1])
 
       when line =~ /^RSSI:/
         set_attr("#{bt_mode}_rssi".to_sym, {
@@ -257,9 +190,30 @@ module BlueHydra
           rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
         })
 
+      # TODO review and remove unused keys...
       when line =~ /^(Attribute (data length|group list)|Reason|Result):/
-        # do nothing
-
+      when line =~ /^Num responses/
+      when line =~ /^Error:/
+      when line =~ /^Read By Group Type Request/
+      when line =~ /^Read By Type Request/
+      when line =~ /^Attribute type:/
+      when line =~ /^Min interval:/
+      when line =~ /^Max interval:/
+      when line =~ /^Slave latency:/
+      when line =~ /^Timeout multiplier:/
+      when line =~ /^Attribute group type:/
+      when line =~ /^Max slots:/
+      when line =~ /^Page period mode:/
+      when line =~ /^Page scan repetition mode:/
+      when line =~ /^Type:/
+      when line =~ /^Connection interval:/
+      when line =~ /^Connection latency:/
+      when line =~ /^Supervision timeout:/
+      when line =~ /^Master clock accuracy:/
+      when line =~ /^Server RX MTU:/
+      when line =~ /^Page:/
+      when line =~ /^Link type:/
+      when line =~ /^Clock offset:/
       else
         set_attr("#{bt_mode}_unknown".to_sym, line)
       end

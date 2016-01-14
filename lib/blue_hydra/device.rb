@@ -41,38 +41,7 @@ class BlueHydra::Device
 
   before :save, :set_mode_flags
 
-  # TODO: REMOVE THIS -- START
-  # TODO: REMOVE THIS -- START
-  # TODO: REMOVE THIS -- START
-  def self.todo_remove_this_prototype_info_gathering_method(result)
-    address = result[:address].first
-    file_path = File.expand_path(
-      "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
-    )
-    base = if File.exists?(file_path)
-             JSON.parse(
-               File.read(file_path),
-               symbolize_names: true
-             )
-           else
-             {}
-           end
-    result.each do |key, values|
-      if base[key]
-        base[key] = (base[key] + values).uniq
-      else
-        base[key] = values.uniq
-      end
-    end
-    File.write(file_path, JSON.pretty_generate(base))
-  end
-  # TODO: REMOVE THIS -- END
-  # TODO: REMOVE THIS -- END
-  # TODO: REMOVE THIS -- END
-
   def self.update_or_create_from_result(result)
-    todo_remove_this_prototype_info_gathering_method(result.dup)
-
     result = result.dup
 
     address = result[:address].first

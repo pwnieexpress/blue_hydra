@@ -72,8 +72,6 @@ module BlueHydra
         begin
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
           loop do
-            # TODO 1. handle any output / edge cases from commands
-            # TODO 2. use BlueHydra.config[:bt_device] or whatever
             begin
 
               # do a discovery
