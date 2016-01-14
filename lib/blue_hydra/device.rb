@@ -37,7 +37,6 @@ class BlueHydra::Device
 
   before :save, :set_mode_flags
 
-
   # TODO: REMOVE THIS -- START
   # TODO: REMOVE THIS -- START
   # TODO: REMOVE THIS -- START
