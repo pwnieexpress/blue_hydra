@@ -8,7 +8,7 @@ class BlueHydra::Device
   property :name,                          String
   property :address,                       String
   property :oui,                           Text
-  property :status,                       String
+  property :status,                        String
 
   property :classic_role,                  String
   property :classic_lmp_version,           String
@@ -27,12 +27,15 @@ class BlueHydra::Device
   property :le_features,                   Text
   property :le_flags,                      Text
 
+  property :le_rssi,                       Text
+  property :classic_rssi,                  Text
+
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
   property :last_seen,                     Integer
 
-  property :le_mode, Boolean
-  property :classic_mode, Boolean
+  property :le_mode,                       Boolean
+  property :classic_mode,                  Boolean
 
   validates_format_of :address, with: MAC_REGEX
 
@@ -106,6 +109,7 @@ class BlueHydra::Device
       classic_features le_features le_flags classic_channels
       le_16_bit_service_uuids classic_16_bit_service_uuids
       le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
+      le_rssi classic_rssi
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
@@ -215,5 +219,27 @@ class BlueHydra::Device
      new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
      current = JSON.parse(self.le_128_bit_service_uuids || '[]')
      self[:le_128_bit_service_uuids] = JSON.generate((new + current).uniq)
+  end
+
+  def classic_rssi=(rssis)
+    current = JSON.parse(self.classic_rssi || '[]')
+    new = current + rssis
+
+    until new.count <= 100
+      new.shift
+    end
+
+    self[:classic_rssi] = JSON.generate(new)
+  end
+
+  def le_rssi=(rssis)
+    current = JSON.parse(self.le_rssi || '[]')
+    new = current + rssis
+
+    until new.count <= 100
+      new.shift
+    end
+
+    self[:le_rssi] = JSON.generate(current + rssis)
   end
 end

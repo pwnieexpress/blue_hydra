@@ -13,19 +13,22 @@ module BlueHydra
     def parse
       @chunks.each do |chunk|
         chunk.shift # discard first line
+        timestamp = chunk.pop
+
+        set_attr(:last_seen, timestamp.split(': ')[1].to_i)
 
         grouped_chunk = group_by_depth(chunk)
-        handle_grouped_chunk(grouped_chunk, @bt_mode)
+        handle_grouped_chunk(grouped_chunk, @bt_mode, timestamp)
       end
     end
 
-    def handle_grouped_chunk(grouped_chunk, bt_mode)
+    def handle_grouped_chunk(grouped_chunk, bt_mode, timestamp)
       grouped_chunk.each do |grp|
         if grp.count == 1
           line = grp[0]
 
           # next line is not nested, treat as single line
-          parse_single_line(line, bt_mode)
+          parse_single_line(line, bt_mode, timestamp)
         else
           case
           when grp[0] =~ /^\s+(LE|ATT|L2CAP)/
@@ -34,9 +37,9 @@ module BlueHydra
             grp.each do |entry|
               if entry.count == 1
                 line = entry[0]
-                parse_single_line(line, bt_mode)
+                parse_single_line(line, bt_mode, timestamp)
               else
-                handle_grouped_chunk(grp, bt_mode)
+                handle_grouped_chunk(grp, bt_mode, timestamp)
               end
             end
 
@@ -93,7 +96,6 @@ module BlueHydra
            # "          Object Transfer (v-Inbox, v-Folder)\r\n",
            # "          Audio (Speaker, Microphone, Headset)\r\n",
            # "          Telephony (Cordless telephony, Modem, Headset)\r\n",
-
            when grp[0] =~ /Class:/
              grp = grp.map(&:strip)
              vals = []
@@ -115,7 +117,7 @@ module BlueHydra
 
            when grp[0] =~ /^\s+Manufacturer/
              grp.map do |line|
-              parse_single_line(line, bt_mode)
+              parse_single_line(line, bt_mode, timestamp)
             end
 
           else
@@ -135,7 +137,7 @@ module BlueHydra
     end
 
     # TODO dry this sucker up
-    def parse_single_line(line, bt_mode)
+    def parse_single_line(line, bt_mode, timestamp)
       line = line.strip
       case
       when line =~ /^Status:/
@@ -250,10 +252,10 @@ module BlueHydra
         set_attr("#{bt_mode}_clock_offset".to_sym, line.split(': ')[1])
 
       when line =~ /^RSSI:/
-        set_attr("#{bt_mode}_rssi".to_sym, line.split(': ')[1])
-
-      when line =~ /^last_seen:/
-        set_attr(:last_seen, line.split(': ')[1].to_i)
+        set_attr("#{bt_mode}_rssi".to_sym, {
+          t: timestamp,
+          rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
+        })
 
       when line =~ /^(Attribute (data length|group list)|Reason|Result):/
         # do nothing
