@@ -1,0 +1,267 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: blue_hydra
+# Required-Start: $local_fs
+# Required-Stop: $local_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Manage the state of the at_ct_mon scanner
+# Description: A wrapper and configuration utility to do persistent cellular discovery
+### END INIT INFO
+
+#     ____                 _      ______
+#    / __ \_      ______  (_)__  / ____/  ______  ________  __________
+#   / /_/ / | /| / / __ \/ / _ \/ __/ | |/_/ __ \/ ___/ _ \/ ___/ ___/
+#  / ____/| |/ |/ / / / / /  __/ /____>  </ /_/ / /  /  __(__  |__  )
+# /_/     |__/|__/_/ /_/_/\___/_____/_/|_/ .___/_/   \___/____/____/
+#                                       /_/
+#
+# Copyright (c) 2010-2015, Pwnie Express (https://www.pwnieexpress.com/) All
+# rights reserved.
+#
+# Use of this software signifies your agreement to the Pwnie Express / Rapid
+# Focus Security, Inc. End User License Agreement (EULA). You may find a copy
+# of the EULA at the following address: https://www.pwnieexpress.com/pdfs/RFSEULA.pdf
+#
+# As with any software application, any downloads/transfers of this software
+# are subject to export controls under the U.S. Commerce Department's Export
+# Administration Regulations (EAR). By using this software you certify your
+# complete understanding of and compliance with these regulations.
+#
+# Not withstanding the above, redistribution and use in source and binary
+# forms, with or without modification, are permitted provided that the
+# following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# 3. Neither the name of Pwnie Express nor the names of its contributors may be
+# used to endorse or promote products derived from this software without
+# specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# Last Revision: 2015.01.22
+
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/pwnix/bin"
+RUBYOPT=""
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+
+NAME="blue_hydra"
+DESC="AT_CT_Mon"
+DAEMON="blue_hydra"
+DAEMON_ARGS=""
+DAEMON_DIR="/opt/pwnix/blue_hydra/bin"
+PIDFILE=/var/run/$NAME.pid
+UMASK=022
+
+check_status() {
+  if [ -f $PIDFILE ]; then
+    PID=`cat $PIDFILE`
+    if ps -p ${PID} > /dev/null 2>&1; then
+      # Running
+      return 0
+    else
+      # PID file exists but process isn't running
+      return 2
+    fi
+  else
+    #not having a pidfile doesn't mean we are not running
+    if pgrep -f bin/blue_hydra > /dev/null 2>&1; then
+      PID="$(pgrep -f bin/blue_hydra)"
+      if [ ! -f "${PIDFILE}" ]; then
+        printf "${PID}" > "${PIDFILE}"
+        printf "PIDFILE lost, updated pidfile\n"
+      fi
+      return 3
+    elif pgrep -f blue_hydra > /dev/null 2>&1; then
+      PID="$(pgrep -f blue_hydra)"
+      if [ ! -f "${PIDFILE}" ]; then
+        printf "${PID}" > "${PIDFILE}"
+        printf "PIDFILE lost, updated pidfile\n"
+      fi
+      return 3
+    else
+      # Not running
+      return 1
+    fi
+  fi
+}
+
+do_start() {
+  check_status
+  STATUS=$?
+
+  case "$STATUS" in
+    0)
+      printf "%-50s%s\n" "$DESC is already running."
+      ;;
+    1)
+      printf "%-50s%s" "Starting $DESC..."
+
+      umask $UMASK
+
+      start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --chdir $DAEMON_DIR --startas $DAEMON -- $DAEMON_ARGS > /dev/null 2>&1 &
+
+      RETVAL=$?
+
+      [ "$RETVAL" -eq 0 ] && printf "%s\n" "[ Success ]" || printf "%s\n" "[ Failed ]"
+      return $RETVAL
+      ;;
+    2)
+      printf "%-50s\n" "Stale PID file found. Cleaning up and starting anyway..."
+      rm -f $PIDFILE
+      do_start
+      return $?
+      ;;
+    3)
+      printf "%-50s\n" "$name is running but in a bad state, restarting..."
+      do_stop
+      sleep 5
+      do_start
+      return $?
+      ;;
+  esac
+}
+
+do_rotate() {
+  check_status
+
+  if [ $? -eq 0 ]; then
+    PID=`cat $PIDFILE`
+    do_stop
+    printf "%-50s%s" "Rotating logfiles ${DESC}..."
+    echo '' > /var/log/pwnix/$name.log
+    RETVAL=$?
+    [ "$RETVAL" -eq 0 ] && printf "%s\n" "[ Success ]" || printf "%s\n" "[ Failed ]"
+    do_start
+    return $RETVAL
+  else
+    printf "%-50s%s" "Rotating logfiles ${DESC}..."
+    echo '' > /var/log/pwnix/$name.log
+    RETVAL=$?
+    [ "$RETVAL" -eq 0 ] && printf "%s\n" "[ Success ]" || printf "%s\n" "[ Failed ]"
+  fi
+}
+
+do_reload() {
+  check_status
+  RETVAL=$?
+
+  if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 3 ]; then
+    do_stop
+    sleep 5
+    do_start
+
+    return $?
+  else
+    printf "%-50s\n" "${DESC} is not running not attempting a reload."
+    return 1
+  fi
+}
+
+do_stop() {
+  check_status
+  STATUS=$?
+
+  case "$STATUS" in
+    0|3)
+      printf "%-50s%s" "Stopping $DESC..."
+
+      start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+      sleep 1
+      if [ -n "$(pkill -TERM -f blue_hydra)" ]; then sleep 5; fi
+      if [ -n "$(pkill -TERM -f bin/blue_hydra)" ]; then sleep 1; fi
+      while [ -n "$(pkill -KILL -f blue_hydra)" ]; do sleep 1; done
+      while [ -n "$(pkill -KILL -f bin/blue_hydra)" ]; do sleep 1; done
+
+      RETVAL=$?
+      [ "$RETVAL" -eq 0 ] && echo "[ Success ]" || echo "[ Failed ]"
+
+      return $RETVAL
+      ;;
+    1)
+      printf "%-50s%s\n" "$DESC is not running."
+      return 0
+      ;;
+    2)
+      printf "%s\n" "Process already dead but pidfile exists."
+      return 2
+      ;;
+  esac
+}
+
+do_status() {
+  check_status
+  STATUS=$?
+
+  case "$STATUS" in
+    0)
+      printf "%-50s%s" "$DESC"
+      echo "[ Running ]"
+      ;;
+    1)
+      printf "%-50s%s" "$DESC"
+      echo "[ Stopped ]"
+      ;;
+    2)
+      printf "%-50s%s" "$DESC"
+      echo "[ Stopped ]"
+      echo "There is a stale PID file at: ${PIDFILE}, please delete before starting"
+      ;;
+    3)
+      printf "%-50s%s" "$DESC"
+      printf "[ Running ]\n"
+      ;;
+  esac
+
+  return $STATUS
+}
+
+case "$1" in
+  start)
+    do_start
+    exit $?
+    ;;
+  status)
+    do_status
+    exit $?
+    ;;
+  stop)
+    do_stop
+    exit $?
+    ;;
+  rotate)
+    do_rotate
+    exit $?
+    ;;
+  reload)
+    do_reload
+    exit 0
+    ;;
+  restart)
+    do_stop
+    sleep 5
+    do_start
+    exit $?
+    ;;
+  *)
+    echo "Usage: $SCRIPTNAME {start|stop|restart|status}" >&2
+    exit 3
+    ;;
+esac
