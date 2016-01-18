@@ -9,18 +9,19 @@ module BlueHydra
                   :discovery_thread,
                   :chunker_thread,
                   :parser_thread,
-                  :discovery_command_queue,
+                  :info_scan_queue,
+                  :l2ping_queue,
                   :result_thread
 
     def start(command="btmon -T -i #{BlueHydra.config[:bt_device]}")
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
-        self.command      = command
-        self.raw_queue    = Queue.new
-        self.chunk_queue  = Queue.new
-        self.result_queue = Queue.new
-
-        self.discovery_command_queue = Queue.new
+        self.command         = command
+        self.raw_queue       = Queue.new
+        self.chunk_queue     = Queue.new
+        self.result_queue    = Queue.new
+        self.info_scan_queue = Queue.new
+        self.l2ping_queue    = Queue.new
 
         start_btmon_thread
         start_discovery_thread
@@ -38,9 +39,11 @@ module BlueHydra
 
     def stop
       BlueHydra.logger.info("Runner exiting...")
-      self.raw_queue    = nil
-      self.chunk_queue  = nil
-      self.result_queue = nil
+      self.raw_queue       = nil
+      self.chunk_queue     = nil
+      self.result_queue    = nil
+      self.info_scan_queue = nil
+      self.l2ping_queue    = nil
 
       self.btmon_thread.kill
       self.discovery_thread.kill
@@ -86,19 +89,28 @@ module BlueHydra
                 end
               end
 
-              # clear queue
-              until discovery_command_queue.empty?
-                BlueHydra.logger.debug("Popping off discovery queue. Depth: #{ discovery_command_queue.length}")
-                command = discovery_command_queue.pop
-                case command[:command]
-                when :info
-                  BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
-                when :leinfo
-                  BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --random #{command[:address]}")
-                when :l2ping
+              # clear queues
+              until info_scan_queue.empty? && l2ping_queue.empty?
+
+                # clear out entire info scan queue
+                until info_scan_queue.empty?
+                  BlueHydra.logger.debug("Popping off info scan queue. Depth: #{ info_scan_queue.length}")
+                  command = info_scan_queue.pop
+                  case command[:command]
+                  when :info
+                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
+                  when :leinfo
+                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --random #{command[:address]}")
+                  else
+                    BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
+                  end
+                end
+
+                # run 1 l2ping a time while still checking if info scan queue
+                # is empty
+                unless l2ping_queue.empty?
+                  command = l2ping_queue.pop
                   BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}")
-                else
-                  BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
                 end
               end
 
@@ -174,7 +186,7 @@ module BlueHydra
               query_history[device.address] ||= {}
               if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:l2ping].to_i
                 #BlueHydra.logger.debug("device l2ping scan triggered")
-                discovery_command_queue.push({
+                l2ping_queue.push({
                   command: :l2ping,
                   address: device.address
                 })
@@ -196,7 +208,7 @@ module BlueHydra
                   #   if true, add to active_queue to "hcitool leinfo result[:address]"
                   if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
                     #BlueHydra.logger.debug("device le scan triggered")
-                    discovery_command_queue.push({command: :leinfo, address: device.address})
+                    info_scan_queue.push({command: :leinfo, address: device.address})
                     query_history[device.address][:le] = Time.now.to_i
                   end
                 end
@@ -206,7 +218,7 @@ module BlueHydra
                   #   if true, add to active_queue "hcitool info result[:address]"
                   if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
                     #BlueHydra.logger.debug("device classic scan triggered")
-                    discovery_command_queue.push({command: :info, address: device.address})
+                    info_scan_queue.push({command: :info, address: device.address})
                     query_history[device.address][:classic] = Time.now.to_i
                   end
                 end
