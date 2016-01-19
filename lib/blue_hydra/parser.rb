@@ -195,7 +195,7 @@ module BlueHydra
 
       when line =~ /^RSSI:/
         set_attr("#{bt_mode}_rssi".to_sym, {
-          t: timestamp,
+          t: timestamp.split(': ')[1].to_i
           rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
         })
 
