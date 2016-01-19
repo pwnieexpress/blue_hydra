@@ -9,11 +9,12 @@ module BlueHydra
     def spawn
       PTY.spawn(@command) do |stdout, stdin, pid|
         buffer = []
+        file=File.open('btmon.log','a')
         begin
           stdout.each do |line|
 
             # TODO: REMOVE THIS
-            File.open('btmon.log','a'){|f| f.puts line}
+            file.puts line
             # TODO: REMOVE THIS
 
             line = line.gsub("\e[0;37m", "")
