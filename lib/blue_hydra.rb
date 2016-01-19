@@ -92,3 +92,6 @@ require 'blue_hydra/device'
 
 DataMapper.auto_upgrade!
 DataMapper.finalize
+#massive speed up of sqlite
+DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
+DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')

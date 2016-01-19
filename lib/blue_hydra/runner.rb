@@ -13,7 +13,17 @@ module BlueHydra
                   :l2ping_queue,
                   :result_thread
 
-    def start(command="btmon -T -i #{BlueHydra.config[:bt_device]}")
+    if BlueHydra.config[:file]
+      if BlueHydra.config[:file] =~ /\.xz$/
+        @@command = "xzcat #{BlueHydra.config[:file]}"
+      else
+        @@command = "cat #{BlueHydra.config[:file]}"
+      end
+    else
+      @@command = "btmon -T -i #{BlueHydra.config[:bt_device]}"
+    end
+
+    def start(command=@@command)
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
         self.command         = command
@@ -24,7 +34,7 @@ module BlueHydra
         self.l2ping_queue    = Queue.new
 
         start_btmon_thread
-        start_discovery_thread
+        start_discovery_thread unless BlueHydra.config[:file]
         start_chunker_thread
         start_parser_thread
         start_result_thread
@@ -46,7 +56,7 @@ module BlueHydra
       self.l2ping_queue    = nil
 
       self.btmon_thread.kill
-      self.discovery_thread.kill
+      self.discovery_thread.kill unless BlueHydra.config[:file]
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
@@ -178,48 +188,53 @@ module BlueHydra
           query_history = {}
           loop do
 
-            # if their last_seen value is > 15 minutes ago and not > 1 hour ago
-            #   l2ping them :  "l2ping -c 3 result[:address]"
-            BlueHydra::Device.all.select{|x|
-              x.last_seen < (Time.now.to_i - (60 * 15)) && x.last_seen > (Time.now.to_i - (60*60))
-            }.each{|device|
-              query_history[device.address] ||= {}
-              if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:l2ping].to_i
-                #BlueHydra.logger.debug("device l2ping scan triggered")
-                l2ping_queue.push({
-                  command: :l2ping,
-                  address: device.address
-                })
-                query_history[device.address][:l2ping] = Time.now.to_i
-              end
-            }
+            unless BlueHydra.config[:file]
+              # if their last_seen value is > 15 minutes ago and not > 1 hour ago
+              #   l2ping them :  "l2ping -c 3 result[:address]"
+              BlueHydra::Device.all.select{|x|
+                x.last_seen < (Time.now.to_i - (60 * 15)) && x.last_seen > (Time.now.to_i - (60*60))
+              }.each{|device|
+                query_history[device.address] ||= {}
+                if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:l2ping].to_i
+                  #BlueHydra.logger.debug("device l2ping scan triggered")
+                  l2ping_queue.push({
+                    command: :l2ping,
+                    address: device.address
+                  })
+                  query_history[device.address][:l2ping] = Time.now.to_i
+                end
+              }
+            end
 
             until result_queue.empty?
+              BlueHydra.logger.debug("Popping off result queue. Depth: #{ result_queue.length}")
               result = result_queue.pop
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
                 query_history[device.address] ||= {}
 
-                #BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
+                unless BlueHydra.config[:file]
+                  # BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
 
-                if device.le_mode
-                  # device.le_mode - this is a le device which has not been queried for >=15m
-                  #   if true, add to active_queue to "hcitool leinfo result[:address]"
-                  if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
-                    #BlueHydra.logger.debug("device le scan triggered")
-                    info_scan_queue.push({command: :leinfo, address: device.address})
-                    query_history[device.address][:le] = Time.now.to_i
+                  if device.le_mode
+                    # device.le_mode - this is a le device which has not been queried for >=15m
+                    #   if true, add to active_queue to "hcitool leinfo result[:address]"
+                    if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
+                      #BlueHydra.logger.debug("device le scan triggered")
+                      info_scan_queue.push({command: :leinfo, address: device.address})
+                      query_history[device.address][:le] = Time.now.to_i
+                    end
                   end
-                end
 
-                if device.classic_mode
-                  # device.classic_mode - this is a classic device which has not been queried for >=15m
-                  #   if true, add to active_queue "hcitool info result[:address]"
-                  if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
-                    #BlueHydra.logger.debug("device classic scan triggered")
-                    info_scan_queue.push({command: :info, address: device.address})
-                    query_history[device.address][:classic] = Time.now.to_i
+                  if device.classic_mode
+                    # device.classic_mode - this is a classic device which has not been queried for >=15m
+                    #   if true, add to active_queue "hcitool info result[:address]"
+                    if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
+                      #BlueHydra.logger.debug("device classic scan triggered")
+                      info_scan_queue.push({command: :info, address: device.address})
+                      query_history[device.address][:classic] = Time.now.to_i
+                    end
                   end
                 end
 
@@ -236,7 +251,7 @@ module BlueHydra
               device.save
             }
 
-            sleep 1
+            sleep 1 unless BlueHydra.config[:file]
           end
 
         rescue => e
@@ -247,7 +262,6 @@ module BlueHydra
         end
       end
 
-    end # def
-
+    end
   end
 end
