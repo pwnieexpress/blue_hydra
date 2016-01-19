@@ -178,6 +178,15 @@ module BlueHydra
       when line =~ /^UUID:/
         set_attr("#{bt_mode}_uuid".to_sym, line.split(': ')[1])
 
+      when line =~ /^Address type:/
+        set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
+
+      when line =~ /^TX power:/
+        set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
+
+      when line =~ /^Name (short):/
+        set_attr("short_name".to_sym, line.split(': ')[1])
+
       when line =~ /^Name:/ || line =~ /^Name \(complete\):/
         set_attr("name".to_sym, line.split(': ')[1])
 
@@ -186,7 +195,7 @@ module BlueHydra
 
       when line =~ /^RSSI:/
         set_attr("#{bt_mode}_rssi".to_sym, {
-          t: timestamp,
+          t: timestamp[:last_seen],
           rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
         })
 

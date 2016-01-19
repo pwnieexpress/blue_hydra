@@ -6,6 +6,7 @@ class BlueHydra::Device
   property :id,                            Serial
 
   property :name,                          String
+  property :short_name,                    String
   property :address,                       String
   property :oui,                           Text
   property :status,                        String
@@ -26,9 +27,13 @@ class BlueHydra::Device
   property :le_16_bit_service_uuids,       Text
   property :le_features,                   Text
   property :le_flags,                      Text
+  property :le_address_type,               Text
 
   property :le_rssi,                       Text
   property :classic_rssi,                  Text
+
+  property :le_tx_power,                   Text
+  property :classic_tx_power,              Text
 
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
@@ -95,8 +100,9 @@ class BlueHydra::Device
     end
 
     %w{
-      address name oui classic_role classic_manufacturer classic_lmp_version
-      classic_firmware classic_major_class classic_minor_class
+      address short_name name oui classic_role classic_manufacturer classic_lmp_
+      version classic_firmware classic_major_class classic_minor_class
+      le_tx_power classic_tx_power le_address_type
     }.map(&:to_sym).each do |attr|
       if result[attr]
         if result[attr].uniq.count > 1
