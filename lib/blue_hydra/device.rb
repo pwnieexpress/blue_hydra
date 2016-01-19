@@ -243,6 +243,6 @@ class BlueHydra::Device
       new.shift
     end
 
-    self[:le_rssi] = JSON.generate(current + rssis)
+    self[:le_rssi] = JSON.generate(new)
   end
 end
