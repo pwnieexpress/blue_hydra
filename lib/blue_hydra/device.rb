@@ -1,4 +1,4 @@
-class BlueHydra::Device
+cilass BlueHydra::Device
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
 
   include DataMapper::Resource
@@ -12,7 +12,7 @@ class BlueHydra::Device
   property :status,                        String
   property :appearance,                    String
 
-  property :primary_service,               String
+  property :primary_services,              Text
   property :service_data,                  String
 
   property :company,                       String
@@ -106,7 +106,7 @@ class BlueHydra::Device
       address short_name name oui classic_role classic_manufacturer classic_lmp_
       version classic_firmware classic_major_class classic_minor_class
       le_tx_power classic_tx_power le_address_type company_uuid company
-      company_type service_data primary_service appearance
+      company_type service_data appearance
     }.map(&:to_sym).each do |attr|
       if result[attr]
         if result[attr].uniq.count > 1
@@ -122,7 +122,7 @@ class BlueHydra::Device
       classic_features le_features le_flags classic_channels
       le_16_bit_service_uuids classic_16_bit_service_uuids
       le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
-      le_rssi classic_rssi
+      le_rssi classic_rssi primary_services
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
@@ -174,6 +174,11 @@ class BlueHydra::Device
       end
     end
     self[:le_mode] = le
+  end
+
+  def primary_services=(new)
+    current = JSON.parse(self.classic_class || '[]')
+    self[:classic_channels] = JSON.generate((new + current).uniq)
   end
 
   def classic_channels=(channels)

@@ -50,7 +50,7 @@ module BlueHydra
             vals = grp.map(&:strip)
             uuid = vals.select{|x| x =~ /^UUID/}[0]
 
-            set_attr(:primary_service, uuid.split(': ')[1])
+            set_attr(:primary_services, uuid.split(': ')[1])
 
           when grp[0] =~ /^\s+Flags:/
             grp.shift
