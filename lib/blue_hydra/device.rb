@@ -54,10 +54,7 @@ class BlueHydra::Device
 
   before :save, :set_mode_flags
 
-  # TODO: REMOVE THIS -- START
-  # TODO: REMOVE THIS -- START
-  # TODO: REMOVE THIS -- START
-  def self.todo_remove_this_prototype_info_gathering_method(result)
+  def self.update_device_file(result)
     address = result[:address].first
     file_path = File.expand_path(
       "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
@@ -79,15 +76,13 @@ class BlueHydra::Device
     end
     File.write(file_path, JSON.pretty_generate(base))
   end
-  # TODO: REMOVE THIS -- END
-  # TODO: REMOVE THIS -- END
-  # TODO: REMOVE THIS -- END
 
   def self.update_or_create_from_result(result)
 
-    # TODO: REMOVE THIS -- START
-    todo_remove_this_prototype_info_gathering_method(result.dup)
-    # TODO: REMOVE THIS -- END
+    # log raw results into device files for review
+    if BlueHydra.config[:log_level] == "debug"
+      update_device_file(result.dup)
+    end
 
     result = result.dup
 

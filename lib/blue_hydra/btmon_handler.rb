@@ -9,12 +9,19 @@ module BlueHydra
     def spawn
       PTY.spawn(@command) do |stdout, stdin, pid|
         buffer = []
-        file=File.open('btmon.log','a')
+
+        # log raw btmon output for review
+        if BlueHydra.config[:log_level] == "debug"
+          log_file = File.open('btmon.log','a')
+        end
+
         begin
           stdout.each do |line|
-            # TODO: REMOVE THIS
-            file.puts line
-            # TODO: REMOVE THIS
+
+            # log raw btmon output for review
+            if BlueHydra.config[:log_level] == "debug"
+              file.puts line
+            end
 
             line = line.gsub("\e[0;37m", "")
             line = line.gsub("\e[0;36m", "")
