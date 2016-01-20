@@ -253,7 +253,7 @@ module BlueHydra
               }
             end
 
-            sleep 1 unless BlueHydra.config[:file]
+            sleep 1
           end
 
         rescue => e
