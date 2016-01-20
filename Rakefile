@@ -14,11 +14,12 @@ task "summary" do
     dev.attributes.each do |name, val|
       next if name == :address
       if %w{ 
-          classic_16_bit_service_uuids
-          le_16_bit_service_uuids 
-          classic_class 
+        classic_features le_features le_flags classic_channels
+        le_16_bit_service_uuids classic_16_bit_service_uuids
+        le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
+        le_rssi classic_rssi
         }.map(&:to_sym).include?(name)
-          unless val == '[]'
+          unless val == '[]' || val == nil
             puts "  #{name}:"
             JSON.parse(val).each do |v|
               puts "    #{v}"

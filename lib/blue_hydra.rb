@@ -36,8 +36,8 @@ module BlueHydra
             end
 
   DEFAULT_CONFIG = {
-    log_level: "debug",
-    bt_device: "hci0"
+    log_level: "info",
+    bt_device: "hci1"
   }
 
   @@config = if File.exists?(CONFIG_FILE)
@@ -92,3 +92,6 @@ require 'blue_hydra/device'
 
 DataMapper.auto_upgrade!
 DataMapper.finalize
+#massive speed up of sqlite
+DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
+DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')

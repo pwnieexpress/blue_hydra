@@ -6,8 +6,18 @@ class BlueHydra::Device
   property :id,                            Serial
 
   property :name,                          String
+  property :short_name,                    String
   property :address,                       String
   property :oui,                           Text
+  property :status,                        String
+  property :appearance,                    String
+
+  property :primary_service,               String
+  property :service_data,                  String
+
+  property :company,                       String
+  property :company_type,                  String
+  property :company_uuid,                  String
 
   property :classic_role,                  String
   property :classic_lmp_version,           String
@@ -25,22 +35,26 @@ class BlueHydra::Device
   property :le_16_bit_service_uuids,       Text
   property :le_features,                   Text
   property :le_flags,                      Text
+  property :le_address_type,               Text
+
+  property :le_rssi,                       Text
+  property :classic_rssi,                  Text
+
+  property :le_tx_power,                   Text
+  property :classic_tx_power,              Text
+
+  property :le_mode,                       Boolean
+  property :classic_mode,                  Boolean
 
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
   property :last_seen,                     Integer
 
-  property :le_mode, Boolean
-  property :classic_mode, Boolean
-
   validates_format_of :address, with: MAC_REGEX
 
   before :save, :set_mode_flags
 
-  # TODO: REMOVE THIS -- START
-  # TODO: REMOVE THIS -- START
-  # TODO: REMOVE THIS -- START
-  def self.todo_remove_this_prototype_info_gathering_method(result)
+  def self.update_device_file(result)
     address = result[:address].first
     file_path = File.expand_path(
       "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
@@ -62,12 +76,13 @@ class BlueHydra::Device
     end
     File.write(file_path, JSON.pretty_generate(base))
   end
-  # TODO: REMOVE THIS -- END
-  # TODO: REMOVE THIS -- END
-  # TODO: REMOVE THIS -- END
 
   def self.update_or_create_from_result(result)
-    todo_remove_this_prototype_info_gathering_method(result.dup)
+
+    # log raw results into device files for review
+    if BlueHydra.config[:log_level] == "debug"
+      update_device_file(result.dup)
+    end
 
     result = result.dup
 
@@ -75,90 +90,53 @@ class BlueHydra::Device
 
     record = self.all(address: address).first || self.new
 
-    attrs = %w{
-      address
-      name
-      oui
-      peer_address
-      peer_address_type
-      peer_address_oui
-      classic_role
-      classic_manufacturer
-      classic_lmp_version
-      classic_firmware
-      classic_major_class
-      classic_minor_class
-    }.map(&:to_sym)
-
-    if result[:classic_features]
-      record.classic_features = result[:classic_features]
-    end
-
-    if result[:le_features]
-      record.le_features = result[:le_features]
-    end
-
-    if result[:le_flags]
-      record.le_flags = result[:le_flags]
-    end
-
-    if result[:classic_channels]
-      record.classic_channels = result[:classic_channels]
-    end
-
-    if result[:le_16_bit_service_uuids]
-      record.le_16_bit_service_uuids = result[:le_16_bit_service_uuids]
-    end
-
-    if result[:classic_16_bit_service_uuids]
-      record.classic_16_bit_service_uuids = result[:classic_16_bit_service_uuids]
-    end
-
-    if result[:le_128_bit_service_uuids]
-      record.le_128_bit_service_uuids = result[:le_128_bit_service_uuids]
-    end
-
-    if result[:classic_128_bit_service_uuids]
-      record.classic_128_bit_service_uuids = result[:classic_128_bit_service_uuids]
-    end
-
-    if result[:classic_class]
-      record.classic_class = result[:classic_class]
-    end
+    # if we are processing things here we have, implicitly seen them so
+    # mark as online?
+    record.status = "online"
 
     if result[:last_seen] &&
-       result[:last_seen].class == Array &&
-       !result[:last_seen].empty?
-      record.last_seen = result[:last_seen].sort.last
+      result[:last_seen].class == Array &&
+      !result[:last_seen].empty?
+      record.last_seen = result[:last_seen].sort.last # latest value
     else
       record.last_seen = Time.now.to_i
     end
 
-    attrs.each do |attr|
+    %w{
+      address short_name name oui classic_role classic_manufacturer classic_lmp_
+      version classic_firmware classic_major_class classic_minor_class
+      le_tx_power classic_tx_power le_address_type company_uuid company
+      company_type service_data primary_service appearance
+    }.map(&:to_sym).each do |attr|
       if result[attr]
-
         if result[attr].uniq.count > 1
           BlueHydra.logger.debug(
             "#{address} multiple values detected for #{attr}: #{result[attr].inspect}. Using first value..."
           )
         end
-
-        new_val     = result[attr].first
-        current_val = record[attr]
-
-        unless new_val == current_val
-          record[attr] = result.delete(attr).uniq.first
-        end
-
-        if record.valid?
-          record.save
-        else
-          BlueHydra.logger.warn(
-            "#{address} can not save. attrs: #{ record.attributes.inspect }"
-          )
-        end
+        record.send("#{attr.to_s}=", result.delete(attr).uniq.first)
       end
     end
+
+    %w{
+      classic_features le_features le_flags classic_channels
+      le_16_bit_service_uuids classic_16_bit_service_uuids
+      le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
+      le_rssi classic_rssi
+    }.map(&:to_sym).each do |attr|
+      if result[attr]
+        record.send("#{attr.to_s}=", result.delete(attr))
+      end
+    end
+
+    if record.valid?
+      record.save
+    else
+      BlueHydra.logger.warn(
+        "#{address} can not save. attrs: #{ record.attributes.inspect }"
+      )
+    end
+
     record
   end
 
@@ -198,106 +176,83 @@ class BlueHydra::Device
     self[:le_mode] = le
   end
 
-  # NOTE: returns raw json...
-  def classic_channels
-    self[:classic_channels] || '[]'
-  end
-
   def classic_channels=(channels)
-     new = channels.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-     current = JSON.parse(self.classic_class)
-     self[:classic_channels] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def classic_class
-    self[:classic_class] || '[]'
+    new = channels.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.classic_class || '[]')
+    self[:classic_channels] = JSON.generate((new + current).uniq)
   end
 
   def classic_class=(new_classes)
-     new = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
-     current = JSON.parse(self.classic_class)
-     self[:classic_class] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def classic_features
-    self[:classic_features] || '[]'
+    new = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
+    current = JSON.parse(self.classic_class || '[]')
+    self[:classic_class] = JSON.generate((new + current).uniq)
   end
 
   def classic_features=(features)
-     new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-     current = JSON.parse(self.classic_features)
-     self[:classic_features] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def le_features
-    self[:le_features] || '[]'
+    new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.classic_features || '[]')
+    self[:classic_features] = JSON.generate((new + current).uniq)
   end
 
   def le_features=(features)
-     new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-     current = JSON.parse(self.le_features)
-     self[:le_features] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def le_flags
-    self[:le_flags] || '[]'
+    new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.le_features || '[]')
+    self[:le_features] = JSON.generate((new + current).uniq)
   end
 
   def le_flags=(flags)
-     new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-     current = JSON.parse(self.le_flags)
-     self[:le_flags] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def classic_16_bit_service_uuids
-    self[:classic_16_bit_service_uuids] || '[]'
+    new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.le_flags || '[]')
+    self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
   def classic_16_bit_service_uuids=(new_uuids)
-     new = new_uuids.reject{|x| x =~ /^0x/}
-     new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-     current = JSON.parse(self.classic_16_bit_service_uuids)
-     self[:classic_16_bit_service_uuids] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def le_16_bit_service_uuids
-    self[:le_16_bit_service_uuids] || '[]'
+    new = new_uuids.reject{|x| x =~ /^0x/}
+    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
+    current = JSON.parse(self.classic_16_bit_service_uuids || '[]')
+    self[:classic_16_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 
   def le_16_bit_service_uuids=(new_uuids)
-     new = new_uuids.reject{|x| x =~ /^0x/}
-     new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-     current = JSON.parse(self.le_16_bit_service_uuids)
-     self[:le_16_bit_service_uuids] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def classic_128_bit_service_uuids
-    self[:classic_128_bit_service_uuids] || '[]'
+    new = new_uuids.reject{|x| x =~ /^0x/}
+    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
+    current = JSON.parse(self.le_16_bit_service_uuids || '[]')
+    self[:le_16_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 
   def classic_128_bit_service_uuids=(new_uuids)
-     new = new_uuids.reject{|x| x =~ /^0x/}
-     new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-     current = JSON.parse(self.classic_128_bit_service_uuids)
-     self[:classic_128_bit_service_uuids] = JSON.generate((new + current).uniq)
-  end
-
-  # NOTE: returns raw json...
-  def le_128_bit_service_uuids
-    self[:le_128_bit_service_uuids] || '[]'
+    new = new_uuids.reject{|x| x =~ /^0x/}
+    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
+    current = JSON.parse(self.classic_128_bit_service_uuids || '[]')
+    self[:classic_128_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 
   def le_128_bit_service_uuids=(new_uuids)
-     new = new_uuids.reject{|x| x =~ /^0x/}
-     new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-     current = JSON.parse(self.le_128_bit_service_uuids)
-     self[:le_128_bit_service_uuids] = JSON.generate((new + current).uniq)
+    new = new_uuids.reject{|x| x =~ /^0x/}
+    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
+    current = JSON.parse(self.le_128_bit_service_uuids || '[]')
+    self[:le_128_bit_service_uuids] = JSON.generate((new + current).uniq)
+  end
+
+  def classic_rssi=(rssis)
+    current = JSON.parse(self.classic_rssi || '[]')
+    new = current + rssis
+
+    until new.count <= 100
+      new.shift
+    end
+
+    self[:classic_rssi] = JSON.generate(new)
+  end
+
+  def le_rssi=(rssis)
+    current = JSON.parse(self.le_rssi || '[]')
+    new = current + rssis
+
+    until new.count <= 100
+      new.shift
+    end
+
+    self[:le_rssi] = JSON.generate(new)
   end
 end

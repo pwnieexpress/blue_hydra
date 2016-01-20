@@ -1,3 +1,4 @@
+
 module BlueHydra
   class Parser
     attr_accessor :attributes
@@ -13,19 +14,22 @@ module BlueHydra
     def parse
       @chunks.each do |chunk|
         chunk.shift # discard first line
+        timestamp = chunk.pop
+
+        set_attr(:last_seen, timestamp.split(': ')[1].to_i)
 
         grouped_chunk = group_by_depth(chunk)
-        handle_grouped_chunk(grouped_chunk, @bt_mode)
+        handle_grouped_chunk(grouped_chunk, @bt_mode, timestamp)
       end
     end
 
-    def handle_grouped_chunk(grouped_chunk, bt_mode)
+    def handle_grouped_chunk(grouped_chunk, bt_mode, timestamp)
       grouped_chunk.each do |grp|
         if grp.count == 1
           line = grp[0]
 
           # next line is not nested, treat as single line
-          parse_single_line(line, bt_mode)
+          parse_single_line(line, bt_mode, timestamp)
         else
           case
           when grp[0] =~ /^\s+(LE|ATT|L2CAP)/
@@ -34,11 +38,19 @@ module BlueHydra
             grp.each do |entry|
               if entry.count == 1
                 line = entry[0]
-                parse_single_line(line, bt_mode)
+                parse_single_line(line, bt_mode, timestamp)
               else
-                handle_grouped_chunk(grp, bt_mode)
+                handle_grouped_chunk(grp, bt_mode, timestamp)
               end
             end
+
+          # Attribute type: Primary Service (0x2800)
+          #  UUID: Unknown (7905f431-b5ce-4e99-a40f-4b1e122d00d0)
+          when grp[0] =~ /^\s+Attribute type: Primary Service/
+            vals = grp.map(&:strip)
+            uuid = vals.select{|x| x =~ /^UUID/}[0]
+
+            set_attr(:primary_service, uuid.split(': ')[1])
 
           when grp[0] =~ /^\s+Flags:/
             grp.shift
@@ -61,11 +73,32 @@ module BlueHydra
             # "        128-bit Service UUIDs (complete): 2 entries\r\n",
             # "          00000000-deca-fade-deca-deafdecacafe\r\n",
             # "          2d8d2466-e14d-451c-88bc-7301abea291a\r\n",
-           when grp[0] =~ /128-bit Service UUIDs \(complete\):/
+           when grp[0] =~ /128-bit Service UUIDs \((complete|partial)\):/
              grp.shift # header line
              vals = grp.map(&:strip)
              vals.each do |uuid|
                set_attr("#{bt_mode}_128_bit_service_uuids".to_sym, uuid)
+             end
+
+           # Company: Apple, Inc. (76)
+           #   Type: iBeacon (2)
+           #   UUID: 7988f2b6-dc41-1291-8746-ecf83cc7a06c
+           #   Version: 15104.61591
+           #   TX power: -56 dB
+           when grp[0] =~ /Company:/
+             vals = grp.map(&:strip)
+
+             set_attr(:company, vals.shift.split(': ')[1])
+
+             vals.each do |line|
+               case
+               when line =~ /^Type:/
+                 set_attr(:company_type, line.split(': ')[1])
+               when line =~ /^UUID:/
+                 set_attr(:company_uuid, line.split(': ')[1])
+               when line =~ /^TX power:/
+                 set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
+               end
              end
 
            # not in spec fixtures...
@@ -93,7 +126,6 @@ module BlueHydra
            # "          Object Transfer (v-Inbox, v-Folder)\r\n",
            # "          Audio (Speaker, Microphone, Headset)\r\n",
            # "          Telephony (Cordless telephony, Modem, Headset)\r\n",
-
            when grp[0] =~ /Class:/
              grp = grp.map(&:strip)
              vals = []
@@ -115,7 +147,7 @@ module BlueHydra
 
            when grp[0] =~ /^\s+Manufacturer/
              grp.map do |line|
-              parse_single_line(line, bt_mode)
+              parse_single_line(line, bt_mode, timestamp)
             end
 
           else
@@ -134,8 +166,7 @@ module BlueHydra
       end
     end
 
-    # TODO dry this sucker up
-    def parse_single_line(line, bt_mode)
+    def parse_single_line(line, bt_mode, timestamp)
       line = line.strip
       case
       when line =~ /^Status:/
@@ -152,33 +183,18 @@ module BlueHydra
       when line =~ /^Encryption:/
         set_attr("#{bt_mode}_encryption".to_sym, line.split(': ')[1])
 
-      when line =~ /^Link type:/
-        set_attr("#{bt_mode}_link_type".to_sym, line.split(': ')[1])
-
       when line =~ /^Role:/
         set_attr("#{bt_mode}_role".to_sym, line.split(': ')[1])
 
-      #  Peer Adress is when our device connectes to this device so treat as
+      #  Peer Adress is when our device connects to this device so treat as
       #  the device address
       when line =~ /^Peer address type:/
-        set_attr("address_type".to_sym, line.split(': ')[1])
+        set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
 
       when line =~ /^Peer address:/
         addr, *oui = line.split(': ')[1].split(" ")
         set_attr("address".to_sym, addr)
         set_attr("oui".to_sym, oui.join(' '))
-
-      when line =~ /^Connection interval:/
-        set_attr("#{bt_mode}_connection_interval".to_sym, line.split(': ')[1])
-
-      when line =~ /^Connection latency:/
-        set_attr("#{bt_mode}_connection_latency".to_sym, line.split(': ')[1])
-
-      when line =~ /^Supervision timeout:/
-        set_attr("#{bt_mode}_supervision_timeout".to_sym, line.split(': ')[1])
-
-      when line =~ /^Master clock accuracy:/
-        set_attr("#{bt_mode}_master_clock_accuracy".to_sym, line.split(': ')[1])
 
       when line =~ /^LMP version:/
         set_attr("#{bt_mode}_lmp_version".to_sym, line.split(': ')[1])
@@ -186,38 +202,20 @@ module BlueHydra
       when line =~ /^Manufacturer:/
         set_attr("#{bt_mode}_manufacturer".to_sym, line.split(': ')[1])
 
-      when line =~ /^Server RX MTU:/
-        set_attr("#{bt_mode}_server_rx_mtu".to_sym, line.split(': ')[1])
-
       when line =~ /^Handle range:/
         set_attr("#{bt_mode}_handle_range".to_sym, line.split(': ')[1])
 
       when line =~ /^UUID:/
         set_attr("#{bt_mode}_uuid".to_sym, line.split(': ')[1])
 
-      when line =~ /^Min interval:/
-        set_attr("#{bt_mode}_mint_interval".to_sym, line.split(': ')[1])
+      when line =~ /^Address type:/
+        set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
 
-      when line =~ /^Max interval:/
-        set_attr("#{bt_mode}_max_interval".to_sym, line.split(': ')[1])
+      when line =~ /^TX power:/
+        set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
 
-      when line =~ /^Slave latency:/
-        set_attr("#{bt_mode}_slave_latency".to_sym, line.split(': ')[1])
-
-      when line =~ /^Timeout multiplier:/
-        set_attr("#{bt_mode}_timeout_multiplier".to_sym, line.split(': ')[1])
-
-      when line =~ /^Attribute group type:/
-        set_attr("#{bt_mode}_attribute_group_type".to_sym, line.split(': ')[1])
-
-      when line =~ /^Max slots:/
-        set_attr("#{bt_mode}_max_slots".to_sym, line.split(': ')[1])
-
-      when line =~ /^Page:/
-        set_attr("#{bt_mode}_page".to_sym, line.split(': ')[1])
-
-      when line =~ /^Type:/
-        set_attr("#{bt_mode}_type".to_sym, line.split(': ')[1])
+      when line =~ /^Name \(short\):/
+        set_attr("short_name".to_sym, line.split(': ')[1])
 
       when line =~ /^Name:/ || line =~ /^Name \(complete\):/
         set_attr("name".to_sym, line.split(': ')[1])
@@ -225,39 +223,46 @@ module BlueHydra
       when line =~ /^Firmware:/
         set_attr("#{bt_mode}_firmware".to_sym, line.split(': ')[1])
 
-      when line =~ /^Error:/
-        set_attr("#{bt_mode}_error".to_sym, line.split(': ')[1])
+      when line =~ /^Service Data \(/
+        set_attr(:service_data, line.split('Service Data ')[1])
 
-      when line =~ /^Attribute type:/
-        set_attr("#{bt_mode}_attribute_type".to_sym, line.split(': ')[1])
-
-      when line =~ /^Read By Group Type Request/
-        set_attr("#{bt_mode}_read_by_group_type_request".to_sym, line.split(': ')[1])
-
-      when line =~ /^Read By Type Request/
-        set_attr("#{bt_mode}_read_by_type_request".to_sym, line.split(': ')[1])
-
-      when line =~ /^Num responses/
-        set_attr("#{bt_mode}_num_responses".to_sym, line.split(': ')[1])
-
-      when line =~ /^Page scan repetition mode:/
-        set_attr("#{bt_mode}_page_scan_repetition_mode".to_sym, line.split(': ')[1])
-
-      when line =~ /^Page period mode:/
-        set_attr("#{bt_mode}_page_period_mode".to_sym, line.split(': ')[1])
-
-      when line =~ /^Clock offset:/
-        set_attr("#{bt_mode}_clock_offset".to_sym, line.split(': ')[1])
+      #  "Appearance: Watch (0x00c0)"
+      when line =~ /^Appearance:/
+        set_attr(:appearance, line.split(': ')[1])
 
       when line =~ /^RSSI:/
-        set_attr("#{bt_mode}_rssi".to_sym, line.split(': ')[1])
+        set_attr("#{bt_mode}_rssi".to_sym, {
+          t: timestamp.split(': ')[1].to_i,
+          rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
+        })
 
-      when line =~ /^last_seen:/
-        set_attr(:last_seen, line.split(': ')[1].to_i)
-
+      # TODO review and remove unused keys...
       when line =~ /^(Attribute (data length|group list)|Reason|Result):/
-        # do nothing
-
+      when line =~ /^Num responses/
+      when line =~ /^Error:/
+      when line =~ /^Read By Group Type Request/
+      when line =~ /^Read By Type Request/
+      when line =~ /^Attribute type:/
+      when line =~ /^Min interval:/
+      when line =~ /^Max interval:/
+      when line =~ /^Slave latency:/
+      when line =~ /^Timeout multiplier:/
+      when line =~ /^Attribute group type:/
+      when line =~ /^Max slots:/
+      when line =~ /^Page period mode:/
+      when line =~ /^Page scan repetition mode:/
+      when line =~ /^Type:/
+      when line =~ /^Connection interval:/
+      when line =~ /^Connection latency:/
+      when line =~ /^Supervision timeout:/
+      when line =~ /^Master clock accuracy:/
+      when line =~ /^Server RX MTU:/
+      when line =~ /^Page:/
+      when line =~ /^Link type:/
+      when line =~ /^Clock offset:/
+      when line =~ /^Num reports:/
+      when line =~ /^Event type:/
+      when line =~ /^Data length:/
       else
         set_attr("#{bt_mode}_unknown".to_sym, line)
       end
