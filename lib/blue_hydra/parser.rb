@@ -214,6 +214,9 @@ module BlueHydra
       when line =~ /^Firmware:/
         set_attr("#{bt_mode}_firmware".to_sym, line.split(': ')[1])
 
+      when line =~ /^Service Data \(/
+        set_attr(:service_data, line.split('Service Data ')[1])
+
       when line =~ /^RSSI:/
         set_attr("#{bt_mode}_rssi".to_sym, {
           t: timestamp.split(': ')[1].to_i,

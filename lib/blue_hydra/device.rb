@@ -11,6 +11,8 @@ class BlueHydra::Device
   property :oui,                           Text
   property :status,                        String
 
+  property :service_data                   String
+
   property :company,                       String
   property :company_type,                  String
   property :company_uuid,                  String
@@ -107,7 +109,7 @@ class BlueHydra::Device
       address short_name name oui classic_role classic_manufacturer classic_lmp_
       version classic_firmware classic_major_class classic_minor_class
       le_tx_power classic_tx_power le_address_type company_uuid company
-      company_type
+      company_type service_data
     }.map(&:to_sym).each do |attr|
       if result[attr]
         if result[attr].uniq.count > 1
