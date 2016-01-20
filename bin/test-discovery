@@ -1,14 +1,10 @@
 #!/usr/bin/python2.7
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
 
 from optparse import OptionParser, make_option
 import dbus
 import dbus.mainloop.glib
-try:
-  from gi.repository import GObject
-except ImportError:
-  import gobject as GObject
 import sys
 #gentoo
 sys.path.append('/usr/lib64/bluez/test')
@@ -16,8 +12,6 @@ sys.path.append('/usr/lib64/bluez/test')
 sys.path.append('/usr/share/doc/bluez-test-scripts/examples')
 import bluezutils
 import time
-
-devices = {}
 
 def property_changed(name, value):
 	if (name == "Discovering" and not value):
@@ -42,14 +36,6 @@ if __name__ == '__main__':
 					dbus_interface = "org.bluez.Adapter1",
 					signal_name = "PropertyChanged")
 
-	om = dbus.Interface(bus.get_object("org.bluez", "/"),
-				"org.freedesktop.DBus.ObjectManager")
-	objects = om.GetManagedObjects()
-	for path, interfaces in objects.iteritems():
-		if "org.bluez.Device1" in interfaces:
-			devices[path] = interfaces["org.bluez.Device1"]
-
 	adapter.StartDiscovery()
-
 	time.sleep(30)
 	adapter.StopDiscovery()
