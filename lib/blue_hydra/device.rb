@@ -11,8 +11,8 @@ class BlueHydra::Device
   property :oui,                           Text
   property :status,                        String
 
-  property :primary_service                String
-  property :service_data                   String
+  property :primary_service,               String
+  property :service_data,                  String
 
   property :company,                       String
   property :company_type,                  String
