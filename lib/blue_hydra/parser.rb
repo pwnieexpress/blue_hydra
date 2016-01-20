@@ -43,6 +43,14 @@ module BlueHydra
               end
             end
 
+          # Attribute type: Primary Service (0x2800)
+          #  UUID: Unknown (7905f431-b5ce-4e99-a40f-4b1e122d00d0)
+          when grp[0] =~ /^\s+Attribute type: Primary Service/
+            vals = grp.map(&:strip)
+            uuid = vals.select{|x| x =~ /^UUID/}
+
+            set_attr(:primary_service, uuid.split(': ')[1])
+
           when grp[0] =~ /^\s+Flags:/
             grp.shift
             vals = grp.map(&:strip)
