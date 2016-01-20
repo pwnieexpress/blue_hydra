@@ -207,7 +207,11 @@ module BlueHydra
             end
 
             until result_queue.empty?
-              BlueHydra.logger.debug("Popping off result queue. Depth: #{ result_queue.length}")
+
+              if (queue_depth = result_queue.length) > 100
+                BlueHydra.logger.warn("Popping off result queue. Depth: #{queue_depth}")
+              end
+
               result = result_queue.pop
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
