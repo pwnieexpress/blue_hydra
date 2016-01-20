@@ -20,7 +20,7 @@ module BlueHydra
 
             # log raw btmon output for review
             if BlueHydra.config[:log_level] == "debug"
-              file.puts line
+              log_file.puts line
             end
 
             line = line.gsub("\e[0;37m", "")
