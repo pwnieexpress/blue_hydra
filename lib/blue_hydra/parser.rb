@@ -64,11 +64,32 @@ module BlueHydra
             # "        128-bit Service UUIDs (complete): 2 entries\r\n",
             # "          00000000-deca-fade-deca-deafdecacafe\r\n",
             # "          2d8d2466-e14d-451c-88bc-7301abea291a\r\n",
-           when grp[0] =~ /128-bit Service UUIDs \(complete\):/
+           when grp[0] =~ /128-bit Service UUIDs \((complete|partial)\):/
              grp.shift # header line
              vals = grp.map(&:strip)
              vals.each do |uuid|
                set_attr("#{bt_mode}_128_bit_service_uuids".to_sym, uuid)
+             end
+
+           # Company: Apple, Inc. (76)
+           #   Type: iBeacon (2)
+           #   UUID: 7988f2b6-dc41-1291-8746-ecf83cc7a06c
+           #   Version: 15104.61591
+           #   TX power: -56 dB
+           when grp[0] =~ /Company:/
+             vals = grp.map(&:strip)
+
+             set_attr(:company, vals.shift.split(': ')[1])
+
+             vals.each do |line|
+               case
+               when line =~ /^Type:/
+                 set_attr(:company_type, line.split(': ')[1])
+               when line =~ /^UUID:/
+                 set_attr(:company_uuid, line.split(': ')[1])
+               when line =~ /^TX power:/
+                 set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
+               end
              end
 
            # not in spec fixtures...
@@ -223,6 +244,9 @@ module BlueHydra
       when line =~ /^Page:/
       when line =~ /^Link type:/
       when line =~ /^Clock offset:/
+      when line =~ /^Num reports:/
+      when line =~ /^Event type:/
+      when line =~ /^Data length:/
       else
         set_attr("#{bt_mode}_unknown".to_sym, line)
       end

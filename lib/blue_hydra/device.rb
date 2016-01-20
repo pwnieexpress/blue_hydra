@@ -11,6 +11,10 @@ class BlueHydra::Device
   property :oui,                           Text
   property :status,                        String
 
+  property :company,                       String
+  property :company_type,                  String
+  property :company_uuid,                  String
+
   property :classic_role,                  String
   property :classic_lmp_version,           String
   property :classic_manufacturer,          String
@@ -35,12 +39,12 @@ class BlueHydra::Device
   property :le_tx_power,                   Text
   property :classic_tx_power,              Text
 
+  property :le_mode,                       Boolean
+  property :classic_mode,                  Boolean
+
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
   property :last_seen,                     Integer
-
-  property :le_mode,                       Boolean
-  property :classic_mode,                  Boolean
 
   validates_format_of :address, with: MAC_REGEX
 
@@ -102,7 +106,8 @@ class BlueHydra::Device
     %w{
       address short_name name oui classic_role classic_manufacturer classic_lmp_
       version classic_firmware classic_major_class classic_minor_class
-      le_tx_power classic_tx_power le_address_type
+      le_tx_power classic_tx_power le_address_type company_uuid company
+      company_type
     }.map(&:to_sym).each do |attr|
       if result[attr]
         if result[attr].uniq.count > 1
