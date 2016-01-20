@@ -1,3 +1,4 @@
+
 module BlueHydra
   class Parser
     attr_accessor :attributes
@@ -213,7 +214,7 @@ module BlueHydra
       when line =~ /^TX power:/
         set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
 
-      when line =~ /^Name (short):/
+      when line =~ /^Name \(short\):/
         set_attr("short_name".to_sym, line.split(': ')[1])
 
       when line =~ /^Name:/ || line =~ /^Name \(complete\):/
@@ -224,6 +225,10 @@ module BlueHydra
 
       when line =~ /^Service Data \(/
         set_attr(:service_data, line.split('Service Data ')[1])
+
+      #  "Appearance: Watch (0x00c0)"
+      when line =~ /^Appearance:/
+        set_attr(:appearance, line.split(': ')[1])
 
       when line =~ /^RSSI:/
         set_attr("#{bt_mode}_rssi".to_sym, {
