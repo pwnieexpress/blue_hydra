@@ -240,6 +240,8 @@ module BlueHydra
       self.result_thread = Thread.new do
         begin
           query_history = {}
+          #debugging
+          maxdepth = 0
           loop do
 
             unless BlueHydra.config[:file]
@@ -262,8 +264,12 @@ module BlueHydra
 
             until result_queue.empty?
 
-              if (queue_depth = result_queue.length) > 100
-                BlueHydra.logger.warn("Popping off result queue. Depth: #{queue_depth}")
+              queue_depth = result_queue.length
+              if (maxdepth < queue_depth)
+                BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
+                maxdepth = result_queue.length
+              else
+                BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
               end
 
               result = result_queue.pop
