@@ -83,19 +83,22 @@ module BlueHydra
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
         begin
+          last_discover_time = 0
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
           loop do
             begin
+              if ( Time.now.to_i - last_discover_time ) > 30
+                # do a discovery
+                interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
+                sleep 1
+                discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
+                last_discover_time = Time.now.to_i
 
-              # do a discovery
-              interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
-              sleep 1
-              discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
-
-              if discovery_errors
-                BlueHydra.logger.error("Error with test-discovery script..")
-                discovery_errors.split("\n").each do |ln|
-                  BlueHydra.logger.error(ln)
+                if discovery_errors
+                  BlueHydra.logger.error("Error with test-discovery script..")
+                  discovery_errors.split("\n").each do |ln|
+                    BlueHydra.logger.error(ln)
+                  end
                 end
               end
 
