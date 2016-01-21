@@ -6,7 +6,6 @@ class BlueHydra::Device
   property :id,                            Serial
 
   property :name,                          String
-  property :short_name,                    String
   property :address,                       String
   property :oui,                           Text
   property :status,                        String
@@ -103,7 +102,7 @@ class BlueHydra::Device
     end
 
     %w{
-      address short_name name oui classic_manufacturer
+      address name oui classic_manufacturer short_name
       classic_lmp_version classic_firmware classic_major_class
       classic_minor_class le_lmp_version le_tx_power classic_tx_power
       le_address_type company_uuid company company_type service_data
@@ -182,6 +181,12 @@ class BlueHydra::Device
       end
     end
     self[:le_mode] = le
+  end
+
+  def short_name=(new)
+    unless ["",nil].include?(new) || self.name
+      self.name = new
+    end
   end
 
   def primary_services=(new)
