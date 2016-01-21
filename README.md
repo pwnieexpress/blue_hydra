@@ -6,3 +6,4 @@ TODO:
 
 when any thread exits, ensure there is an error and the program exits
 except the btmon_handler thread, if reading a file exit, otherwise restart and warn
+get oui from louis pulse
