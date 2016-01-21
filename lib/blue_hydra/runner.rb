@@ -170,10 +170,45 @@ module BlueHydra
       BlueHydra.logger.info("Parser thread starting")
       self.parser_thread = Thread.new do
         begin
+
+          scan_results = {}
+
           while chunk = chunk_queue.pop do
             p = BlueHydra::Parser.new(chunk)
             p.parse
-            result_queue.push(p.attributes)
+
+            attrs = p.attributes
+
+            if attrs[:address]
+              if scan_results[attrs[:address]]
+                needs_push = false
+
+                attrs.each do |k,v|
+
+                  unless [:last_seen, :le_rssi, :classic_rssi].include? k
+
+                    unless attrs[k] == scan_results[attrs[:address]][k]
+                      scan_results[attrs[:address]][k] = v
+                      needs_push = true
+                    end
+
+                  else
+
+                    # TODO revisit syncing rssi and last_seen
+
+                  end
+                end
+
+                if needs_push
+                  result_queue.push(p.attributes)
+                end
+              else
+                scan_results[attrs[:address]] = attributes
+                result_queue.push(p.attributes)
+              end
+
+            end
+
           end
         rescue => e
           BlueHydra.logger.error("Parser thread #{e.message}")
