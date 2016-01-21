@@ -183,9 +183,6 @@ module BlueHydra
       when line =~ /^Encryption:/
         set_attr("#{bt_mode}_encryption".to_sym, line.split(': ')[1])
 
-      when line =~ /^Role:/
-        set_attr("#{bt_mode}_role".to_sym, line.split(': ')[1])
-
       #  Peer Adress is when our device connects to this device so treat as
       #  the device address
       when line =~ /^Peer address type:/
@@ -263,6 +260,7 @@ module BlueHydra
       when line =~ /^Num reports:/
       when line =~ /^Event type:/
       when line =~ /^Data length:/
+      when line =~ /^Role:/
       else
         set_attr("#{bt_mode}_unknown".to_sym, line)
       end

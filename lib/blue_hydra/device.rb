@@ -19,7 +19,6 @@ class BlueHydra::Device
   property :company_type,                  String
   property :company_uuid,                  String
 
-  property :classic_role,                  String
   property :classic_lmp_version,           String
   property :classic_manufacturer,          String
   property :classic_features,              Text
@@ -104,7 +103,7 @@ class BlueHydra::Device
     end
 
     %w{
-      address short_name name oui classic_role classic_manufacturer
+      address short_name name oui classic_manufacturer
       classic_lmp_version classic_firmware classic_major_class
       classic_minor_class le_lmp_version le_tx_power classic_tx_power
       le_address_type company_uuid company company_type service_data
@@ -156,7 +155,6 @@ class BlueHydra::Device
       :classic_manufacturer,
       :classic_minor_class,
       :classic_mode,
-      :classic_role,
       :classic_rssi,
       :classic_tx_power,
     ].each do |classic_attr|
