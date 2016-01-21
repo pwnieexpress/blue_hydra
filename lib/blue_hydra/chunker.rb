@@ -10,8 +10,8 @@ module BlueHydra
 
       while current_msg = @incoming_q.pop
         if starting_chunk?(current_msg) && !working_set.empty?
-            @outgoing_q.push working_set
-            working_set = []
+          @outgoing_q.push working_set
+          working_set = []
         end
 
         ts = Time.parse(current_msg.first.split(/\[hci[0-9]\] /)[-1]).to_i

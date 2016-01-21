@@ -188,7 +188,7 @@ class BlueHydra::Device
 
   def primary_services=(new)
     current = JSON.parse(self.classic_class || '[]')
-    self[:classic_channels] = JSON.generate((new + current).uniq)
+    self[:primary_services] = JSON.generate((new + current).uniq)
   end
 
   def classic_channels=(channels)
