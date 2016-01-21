@@ -32,6 +32,7 @@ class BlueHydra::Device
   property :classic_class,                 Text
 
   property :le_128_bit_service_uuids,      Text
+  property :le_lmp_version,                String
   property :le_16_bit_service_uuids,       Text
   property :le_features,                   Text
   property :le_flags,                      Text
@@ -103,10 +104,11 @@ class BlueHydra::Device
     end
 
     %w{
-      address short_name name oui classic_role classic_manufacturer classic_lmp_
-      version classic_firmware classic_major_class classic_minor_class
-      le_tx_power classic_tx_power le_address_type company_uuid company
-      company_type service_data appearance
+      address short_name name oui classic_role classic_manufacturer
+      classic_lmp_version classic_firmware classic_major_class
+      classic_minor_class le_lmp_version le_tx_power classic_tx_power
+      le_address_type company_uuid company company_type service_data
+      appearance
     }.map(&:to_sym).each do |attr|
       if result[attr]
         if result[attr].uniq.count > 1
@@ -143,17 +145,20 @@ class BlueHydra::Device
   def set_mode_flags
     classic = false
     [
-      :classic_role,
-      :classic_lmp_version,
-      :classic_manufacturer,
-      :classic_features,
-      :classic_firmware,
-      :classic_channels,
-      :classic_major_class,
-      :classic_minor_class,
-      :classic_16_bit_service_uuids,
-      :classic_128_bit_service_uuids,
+      :classic_128_bit_service_uuids
+      :classic_16_bit_service_uuids
+      :classic_channels
       :classic_class
+      :classic_features
+      :classic_firmware
+      :classic_lmp_version
+      :classic_major_class
+      :classic_manufacturer
+      :classic_minor_class
+      :classic_mode
+      :classic_role
+      :classic_rssi
+      :classic_tx_power
     ].each do |classic_attr|
       if self[classic_attr]
         classic ||= true
@@ -164,10 +169,15 @@ class BlueHydra::Device
 
     le = false
     [
-      :le_16_bit_service_uuids,
-      :le_128_bit_service_uuids,
-      :le_flags,
+      :le_128_bit_service_uuids
+      :le_16_bit_service_uuids
+      :le_address_type
       :le_features
+      :le_flags
+      :le_lmp_version
+      :le_mode
+      :le_rssi
+      :le_tx_power
     ].each do |le_attr|
       if self[le_attr]
         le ||= true
@@ -227,14 +237,12 @@ class BlueHydra::Device
 
   def classic_128_bit_service_uuids=(new_uuids)
     new = new_uuids.reject{|x| x =~ /^0x/}
-    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
     current = JSON.parse(self.classic_128_bit_service_uuids || '[]')
     self[:classic_128_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
 
   def le_128_bit_service_uuids=(new_uuids)
     new = new_uuids.reject{|x| x =~ /^0x/}
-    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
     current = JSON.parse(self.le_128_bit_service_uuids || '[]')
     self[:le_128_bit_service_uuids] = JSON.generate((new + current).uniq)
   end
