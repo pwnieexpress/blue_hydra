@@ -145,20 +145,20 @@ class BlueHydra::Device
   def set_mode_flags
     classic = false
     [
-      :classic_128_bit_service_uuids
-      :classic_16_bit_service_uuids
-      :classic_channels
-      :classic_class
-      :classic_features
-      :classic_firmware
-      :classic_lmp_version
-      :classic_major_class
-      :classic_manufacturer
-      :classic_minor_class
-      :classic_mode
-      :classic_role
-      :classic_rssi
-      :classic_tx_power
+      :classic_128_bit_service_uuids,
+      :classic_16_bit_service_uuids,
+      :classic_channels,
+      :classic_class,
+      :classic_features,
+      :classic_firmware,
+      :classic_lmp_version,
+      :classic_major_class,
+      :classic_manufacturer,
+      :classic_minor_class,
+      :classic_mode,
+      :classic_role,
+      :classic_rssi,
+      :classic_tx_power,
     ].each do |classic_attr|
       if self[classic_attr]
         classic ||= true
@@ -169,15 +169,15 @@ class BlueHydra::Device
 
     le = false
     [
-      :le_128_bit_service_uuids
-      :le_16_bit_service_uuids
-      :le_address_type
-      :le_features
-      :le_flags
-      :le_lmp_version
-      :le_mode
-      :le_rssi
-      :le_tx_power
+      :le_128_bit_service_uuids,
+      :le_16_bit_service_uuids,
+      :le_address_type,
+      :le_features,
+      :le_flags,
+      :le_lmp_version,
+      :le_mode,
+      :le_rssi,
+      :le_tx_power,
     ].each do |le_attr|
       if self[le_attr]
         le ||= true
