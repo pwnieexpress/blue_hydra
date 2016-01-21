@@ -87,7 +87,7 @@ module BlueHydra
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
           loop do
             begin
-              if Time.now.to_i - last_discover_time > 30
+              if ( Time.now.to_i - last_discover_time ) > 30
                 # do a discovery
                 interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                 sleep 1
