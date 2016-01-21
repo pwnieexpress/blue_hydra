@@ -203,7 +203,7 @@ module BlueHydra
                   result_queue.push(p.attributes)
                 end
               else
-                scan_results[attrs[:address]] = attributes
+                scan_results[attrs[:address]] = attrs
                 result_queue.push(p.attributes)
               end
 
