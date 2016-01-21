@@ -178,24 +178,40 @@ module BlueHydra
             p.parse
 
             attrs = p.attributes
+            address = attrs[:address].uniq.first
 
-            if attrs[:address]
-              if scan_results[attrs[:address]]
+            if address
+              if scan_results[address]
                 needs_push = false
 
                 attrs.each do |k,v|
 
                   unless [:last_seen, :le_rssi, :classic_rssi].include? k
 
-                    unless attrs[k] == scan_results[attrs[:address]][k]
-                      scan_results[attrs[:address]][k] = v
+                    unless attrs[k] == scan_results[address][k]
+                      scan_results[address][k] = v
                       needs_push = true
                     end
 
                   else
+                    case
+                    when k == :last_seen
+                      if (attrs[k].first - 600) >= scan_results[address][k].first
+                        # BlueHydra.logger.debug("syncing #{k} for #{address} last sync was #{attrs[k].first - scan_results[address][k].first}s ago...")
+                        scan_results[address][k] = attrs[k]
+                        needs_push = true
+                      end
+                    when [:le_rssi, :classic_rssi].include?(k)
+                      #   => [{:t=>1452952885, :rssi=>"-51 dBm"}]
+                      threshold_time = attrs[k][0][:t] - 60
+                      last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
-                    # TODO revisit syncing rssi and last_seen
-
+                      if threshold_time > last_seen_time
+                        # BlueHydra.logger.debug("syncing #{k} for #{address} last sync was #{attrs[k][0][:t] - last_seen_time}s ago...")
+                        scan_results[address][k] = attrs[k]
+                        needs_push = true
+                      end
+                    end
                   end
                 end
 
@@ -203,7 +219,7 @@ module BlueHydra
                   result_queue.push(p.attributes)
                 end
               else
-                scan_results[attrs[:address]] = attrs
+                scan_results[address] = attrs
                 result_queue.push(p.attributes)
               end
 
