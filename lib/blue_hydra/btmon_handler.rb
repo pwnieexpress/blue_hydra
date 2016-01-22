@@ -4,7 +4,7 @@ module BlueHydra
       @command = command
       @parse_queue = parse_queue
 
-      # log raw btmon output for review
+      # # log raw btmon output for review
       if BlueHydra.config[:log_level] == "debug"
         @log_file = File.open('btmon.log','a')
       end
