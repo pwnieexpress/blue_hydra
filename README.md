@@ -6,4 +6,7 @@ TODO:
 
 when any thread exits, ensure there is an error and the program exits
 except the btmon_handler thread, if reading a file exit, otherwise restart and warn
-get oui from louis pulse
+move company_uuid into uuid, kill company_uuid
+move service_data into uuid, kill service_data
+le_lmp_version is empty
+le_feature is empty

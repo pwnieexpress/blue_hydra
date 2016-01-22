@@ -265,13 +265,14 @@ module BlueHydra
             end
 
             until result_queue.empty?
-
               queue_depth = result_queue.length
-              if (maxdepth < queue_depth)
-                BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
-                maxdepth = result_queue.length
-              else
-                BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
+              if queue_depth > 250
+                if (maxdepth < queue_depth)
+                  BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
+                  maxdepth = result_queue.length
+                else
+                  BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
+                end
               end
 
               result = result_queue.pop
