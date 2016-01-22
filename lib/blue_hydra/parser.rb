@@ -48,8 +48,7 @@ module BlueHydra
           when grp[0] =~ /^\s+Attribute type: Primary Service/
             vals = grp.map(&:strip)
             uuid = vals.select{|x| x =~ /^UUID/}[0]
-
-            set_attr(:primary_services, uuid.split(': ')[1])
+            set_attr(:uuids, uuid.split(': ')[1])
 
           when grp[0] =~ /^\s+Flags:/
             grp.shift
@@ -76,7 +75,7 @@ module BlueHydra
              grp.shift # header line
              vals = grp.map(&:strip)
              vals.each do |uuid|
-               set_attr("#{bt_mode}_128_bit_service_uuids".to_sym, uuid)
+               set_attr("bt_128_bit_service_uuids".to_sym, uuid)
              end
 
            # Company: Apple, Inc. (76)
@@ -113,7 +112,7 @@ module BlueHydra
              grp.shift # header line
              vals = grp.map(&:strip)
              vals.each do |uuid|
-               set_attr("#{bt_mode}_16_bit_service_uuids".to_sym, uuid)
+               set_attr("uuids".to_sym, uuid)
              end
 
            # not in spec fixtures...
@@ -168,9 +167,8 @@ module BlueHydra
     def parse_single_line(line, bt_mode, timestamp)
       line = line.strip
       case
-      when line =~ /^Status:/
-        set_attr("#{bt_mode}_status".to_sym, line.split(': ')[1])
 
+      # TODO make use of handle
       when line =~ /^Handle:/
         set_attr("#{bt_mode}_handle".to_sym, line.split(': ')[1])
 
@@ -182,20 +180,14 @@ module BlueHydra
           set_attr("le_random_address_type".to_sym, oui.join(' '))
         end
 
-      when line =~ /^Encryption:/
-        set_attr("#{bt_mode}_encryption".to_sym, line.split(': ')[1])
-
       when line =~ /^LMP version:/
         set_attr("#{bt_mode}_lmp_version".to_sym, line.split(': ')[1])
 
       when line =~ /^Manufacturer:/
         set_attr("#{bt_mode}_manufacturer".to_sym, line.split(': ')[1])
 
-      when line =~ /^Handle range:/
-        set_attr("#{bt_mode}_handle_range".to_sym, line.split(': ')[1])
-
       when line =~ /^UUID:/
-        set_attr("#{bt_mode}_uuid".to_sym, line.split(': ')[1])
+        set_attr("uuids".to_sym, line.split(': ')[1])
 
       when line =~ /^Address type:/
         set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
@@ -225,7 +217,9 @@ module BlueHydra
           rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
         })
 
-      # TODO review and remove unused keys...
+      when line =~ /^Status:/
+      when line =~ /^Encryption:/
+      when line =~ /^Handle range:/
       when line =~ /^(Attribute (data length|group list)|Reason|Result):/
       when line =~ /^Num responses/
       when line =~ /^Error:/

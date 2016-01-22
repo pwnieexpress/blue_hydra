@@ -11,7 +11,6 @@ class BlueHydra::Device
   property :status,                        String
   property :appearance,                    String
 
-  property :primary_services,              Text
   property :service_data,                  String
 
   property :company,                       String
@@ -25,22 +24,18 @@ class BlueHydra::Device
   property :classic_channels,              String
   property :classic_major_class,           String
   property :classic_minor_class,           String
-  property :classic_16_bit_service_uuids,  Text
-  property :classic_128_bit_service_uuids, Text
   property :classic_class,                 Text
+  property :classic_rssi,                  Text
+
+  property :uuids,                         Text
 
   property :le_address_type,               String
   property :le_random_address_type,        String
-
-  property :le_128_bit_service_uuids,      Text
   property :le_lmp_version,                String
-  property :le_16_bit_service_uuids,       Text
   property :le_features,                   Text
   property :le_flags,                      Text
   property :le_address_type,               Text
-
   property :le_rssi,                       Text
-  property :classic_rssi,                  Text
 
   property :le_tx_power,                   Text
   property :classic_tx_power,              Text
@@ -125,9 +120,8 @@ class BlueHydra::Device
 
     %w{
       classic_features le_features le_flags classic_channels
-      le_16_bit_service_uuids classic_16_bit_service_uuids
-      le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
-      le_rssi classic_rssi primary_services
+      bt_128_bit_service_uuids classic_class le_rssi classic_rssi
+      uuids
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
@@ -182,8 +176,6 @@ class BlueHydra::Device
   def set_mode_flags
     classic = false
     [
-      :classic_128_bit_service_uuids,
-      :classic_16_bit_service_uuids,
       :classic_channels,
       :classic_class,
       :classic_features,
@@ -205,8 +197,6 @@ class BlueHydra::Device
 
     le = false
     [
-      :le_128_bit_service_uuids,
-      :le_16_bit_service_uuids,
       :le_address_type,
       :le_features,
       :le_flags,
@@ -263,30 +253,17 @@ class BlueHydra::Device
     self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
-  def classic_16_bit_service_uuids=(new_uuids)
-    new = new_uuids.reject{|x| x =~ /^0x/}
-    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-    current = JSON.parse(self.classic_16_bit_service_uuids || '[]')
-    self[:classic_16_bit_service_uuids] = JSON.generate((new + current).uniq)
+  def uuids=(new_uuids)
+    current = JSON.parse(self.uuids || '[]')
+    self[:uuids] = JSON.generate((new_uuids + current).uniq)
   end
 
-  def le_16_bit_service_uuids=(new_uuids)
-    new = new_uuids.reject{|x| x =~ /^0x/}
-    new.map!{|x| x.scan(/(.*) \(0x/).flatten.first}
-    current = JSON.parse(self.le_16_bit_service_uuids || '[]')
-    self[:le_16_bit_service_uuids] = JSON.generate((new + current).uniq)
-  end
-
-  def classic_128_bit_service_uuids=(new_uuids)
-    new = new_uuids.reject{|x| x =~ /^0x/}
-    current = JSON.parse(self.classic_128_bit_service_uuids || '[]')
-    self[:classic_128_bit_service_uuids] = JSON.generate((new + current).uniq)
-  end
-
-  def le_128_bit_service_uuids=(new_uuids)
-    new = new_uuids.reject{|x| x =~ /^0x/}
-    current = JSON.parse(self.le_128_bit_service_uuids || '[]')
-    self[:le_128_bit_service_uuids] = JSON.generate((new + current).uniq)
+  def bt_128_bit_service_uuids=(new_uuids)
+    new_uuids.map! do |uuid|
+      #TODO extend based on lookup table as available..
+      "Unknown (#{ uuid })"
+    end
+    self.uuids = new_uuids
   end
 
   def classic_rssi=(rssis)
