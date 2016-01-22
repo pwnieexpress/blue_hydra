@@ -310,4 +310,20 @@ class BlueHydra::Device
 
     self[:le_rssi] = JSON.generate(new)
   end
+
+  def le_address_type=(type)
+    if type =~ /Public/
+      self[:le_random_address_type] = type
+      self[:le_address_type] = nil if le_address_type
+    elsif type =~ /Random/
+      self[:le_random_address_type] = type
+    end
+  end
+
+  def le_random_address_type=(type)
+    unless le_random_address_type && le_random_address_type =~ /Public/
+      self[:le_address_type] = type
+    end
+  end
+
 end

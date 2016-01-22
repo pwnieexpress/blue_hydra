@@ -179,7 +179,7 @@ module BlueHydra
         set_attr("address".to_sym, addr)
 
         if bt_mode == "le"
-          set_attr("le_address_type".to_sym, oui.join(' '))
+          set_attr("le_random_address_type".to_sym, oui.join(' '))
         end
 
       when line =~ /^Encryption:/
@@ -198,7 +198,7 @@ module BlueHydra
         set_attr("#{bt_mode}_uuid".to_sym, line.split(': ')[1])
 
       when line =~ /^Address type:/
-        set_attr("#{bt_mode}_random_address_type".to_sym, line.split(': ')[1])
+        set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
 
       when line =~ /^TX power:/
         set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
