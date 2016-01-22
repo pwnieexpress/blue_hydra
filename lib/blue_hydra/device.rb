@@ -261,7 +261,11 @@ class BlueHydra::Device
   def bt_128_bit_service_uuids=(new_uuids)
     new_uuids.map! do |uuid|
       #TODO extend based on lookup table as available..
-      "Unknown (#{ uuid })"
+      if uuids =~ /\(/
+        uuid
+      else
+        "Unknown (#{ uuid })"
+      end
     end
     self.uuids = new_uuids
   end
