@@ -168,13 +168,13 @@ class BlueHydra::Device
 
     json = JSON.generate(send_data)
 
-    BlueHydra.logger.debug "Sending to pulse: #{json}"
+    File.write("/root/json/#{address}.json", json)
 
-    TCPSocket.open('127.0.0.1', 8244) do |sock|
-      sock.write(json)
-      sock.write("\n")
-      sock.flush
-    end
+    # TCPSocket.open('127.0.0.1', 8244) do |sock|
+    #   sock.write(json)
+    #   sock.write("\n")
+    #   sock.flush
+    # end
   rescue => e
     BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
   end
@@ -313,16 +313,16 @@ class BlueHydra::Device
 
   def le_address_type=(type)
     if type =~ /Public/
-      self[:le_random_address_type] = type
-      self[:le_address_type] = nil if le_address_type
+      self[:le_address_type] = type
+      self[:le_random_address_type] = nil if le_address_type
     elsif type =~ /Random/
-      self[:le_random_address_type] = type
+      self[:le_address_type] = type
     end
   end
 
   def le_random_address_type=(type)
-    unless le_random_address_type && le_random_address_type =~ /Public/
-      self[:le_address_type] = type
+    unless le_address_type && le_address_type =~ /Public/
+      self[:le_random_address_type] = type
     end
   end
 
