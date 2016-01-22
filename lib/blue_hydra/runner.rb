@@ -178,7 +178,7 @@ module BlueHydra
             p.parse
 
             attrs = p.attributes
-            address = attrs[:address].uniq.first
+            address = (attrs[:address]||[]).uniq.first
 
             if address
               if scan_results[address]
@@ -240,8 +240,10 @@ module BlueHydra
       self.result_thread = Thread.new do
         begin
           query_history = {}
+
           #debugging
           maxdepth = 0
+
           loop do
 
             unless BlueHydra.config[:file]
@@ -252,7 +254,7 @@ module BlueHydra
               }.each{|device|
                 query_history[device.address] ||= {}
                 if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:l2ping].to_i
-                  #BlueHydra.logger.debug("device l2ping scan triggered")
+                  # BlueHydra.logger.debug("device l2ping scan triggered")
                   l2ping_queue.push({
                     command: :l2ping,
                     address: device.address

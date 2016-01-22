@@ -29,6 +29,9 @@ class BlueHydra::Device
   property :classic_128_bit_service_uuids, Text
   property :classic_class,                 Text
 
+  property :le_address_type,               String
+  property :le_random_address_type,        String
+
   property :le_128_bit_service_uuids,      Text
   property :le_lmp_version,                String
   property :le_16_bit_service_uuids,       Text
@@ -51,7 +54,9 @@ class BlueHydra::Device
 
   validates_format_of :address, with: MAC_REGEX
 
+  before :save, :set_oui
   before :save, :set_mode_flags
+  after  :save, :sync_to_pulse
 
   def self.update_device_file(result)
     address = result[:address].first
@@ -102,11 +107,11 @@ class BlueHydra::Device
     end
 
     %w{
-      address name oui classic_manufacturer short_name
+      address name classic_manufacturer short_name
       classic_lmp_version classic_firmware classic_major_class
       classic_minor_class le_lmp_version le_tx_power classic_tx_power
       le_address_type company_uuid company company_type service_data
-      appearance
+      appearance le_address_type le_random_address_type
     }.map(&:to_sym).each do |attr|
       if result[attr]
         if result[attr].uniq.count > 1
@@ -138,6 +143,40 @@ class BlueHydra::Device
     end
 
     record
+  end
+
+  def set_oui
+    vendor = Louis.lookup(address)
+    if self.oui == nil || self.oui == "Unknown"
+      self.oui = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
+    end
+  end
+
+  def sync_to_pulse
+    data = self.attributes.dup
+
+    [:id, :created_at, :updated_at].each do |attr|
+      data.delete(attr)
+    end
+
+    send_data = {
+      type:   "bluetooth",
+      source: "BlueHydra",
+      version: BlueHydra::VERSION,
+      data:    data
+    }
+
+    json = JSON.generate(send_data)
+
+    BlueHydra.logger.debug "Sending to pulse: #{json}"
+
+    TCPSocket.open('127.0.0.1', 8244) do |sock|
+      sock.write(json)
+      sock.write("\n")
+      sock.flush
+    end
+  rescue => e
+    BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
   end
 
   def set_mode_flags
