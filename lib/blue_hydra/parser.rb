@@ -1,4 +1,3 @@
-
 module BlueHydra
   class Parser
     attr_accessor :attributes
@@ -175,23 +174,16 @@ module BlueHydra
       when line =~ /^Handle:/
         set_attr("#{bt_mode}_handle".to_sym, line.split(': ')[1])
 
-      when line =~ /^Address:/
+      when line =~ /^Address:/ || line =~ /^Peer Address:/
         addr, *oui = line.split(': ')[1].split(" ")
         set_attr("address".to_sym, addr)
-        set_attr("oui".to_sym, oui.join(' '))
+
+        if bt_mode == "le"
+          set_attr("le_random_address_type".to_sym, oui.join(' '))
+        end
 
       when line =~ /^Encryption:/
         set_attr("#{bt_mode}_encryption".to_sym, line.split(': ')[1])
-
-      #  Peer Adress is when our device connects to this device so treat as
-      #  the device address
-      when line =~ /^Peer address type:/
-        set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
-
-      when line =~ /^Peer address:/
-        addr, *oui = line.split(': ')[1].split(" ")
-        set_attr("address".to_sym, addr)
-        set_attr("oui".to_sym, oui.join(' '))
 
       when line =~ /^LMP version:/
         set_attr("#{bt_mode}_lmp_version".to_sym, line.split(': ')[1])
@@ -260,6 +252,7 @@ module BlueHydra
       when line =~ /^Num reports:/
       when line =~ /^Event type:/
       when line =~ /^Data length:/
+      when line =~ /^Peer address type:/
       when line =~ /^Role:/
       else
         set_attr("#{bt_mode}_unknown".to_sym, line)

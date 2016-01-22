@@ -7,6 +7,14 @@ task "version" do
   puts BlueHydra::VERSION
 end
 
+desc "Sync all records to pulse"
+task "sync_all" do 
+  BlueHydra::Device.all.each do |dev|
+    puts "Syncing #{dev.address}" 
+    dev.sync_to_pulse
+  end
+end
+
 desc "Summarize Devices"
 task "summary" do
   BlueHydra::Device.all.each do |dev|
@@ -14,10 +22,10 @@ task "summary" do
     dev.attributes.each do |name, val|
       next if name == :address
       if %w{ 
-        classic_features le_features le_flags classic_channels
-        le_16_bit_service_uuids classic_16_bit_service_uuids
-        le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
-        le_rssi classic_rssi
+          classic_features le_features le_flags classic_channels
+          le_16_bit_service_uuids classic_16_bit_service_uuids
+          le_128_bit_service_uuids classic_128_bit_service_uuids classic_class
+          le_rssi classic_rssi primary_services
         }.map(&:to_sym).include?(name)
           unless val == '[]' || val == nil
             puts "  #{name}:"
