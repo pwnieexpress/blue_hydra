@@ -1,6 +1,5 @@
 class BlueHydra::Device
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
-
   include DataMapper::Resource
 
   property :id,                            Serial
@@ -137,20 +136,41 @@ class BlueHydra::Device
   end
 
   def sync_to_pulse
-    data = self.attributes.dup
-
-    [:id, :created_at, :updated_at].each do |attr|
-      data.delete(attr)
-    end
-
     send_data = {
       type:   "bluetooth",
       source: "BlueHydra",
       version: BlueHydra::VERSION,
-      data:    data
+      data:    {
+        name:                    name,
+        status:                  status,
+        address:                 address,
+        oui:                     oui,
+        appearance:              appearance,
+        company:                 company,
+        company_type:            company_type,
+        lmp_version:             lmp_version,
+        manufacturer:            manufacturer,
+        features:                JSON.parse(features||'[]'),
+        firmware:                firmware,
+        uuids:                   JSON.parse(uuids||'[]'),
+        classic_mode:            classic_mode,
+        classic_channels:        classic_channels,
+        classic_major_class:     classic_major_class,
+        classic_minor_class:     classic_minor_class,
+        classic_class:           JSON.parse(classic_class||'[]'),
+        classic_rssi:            JSON.parse(classic_rssi||'[]'),
+        classic_tx_power:        classic_tx_power,
+        le_flags:                JSON.parse(le_flags||'[]'),
+        le_mode:                 le_mode,
+        le_address_type:         le_address_type,
+        le_random_address_type:  le_random_address_type,
+        le_rssi:                 JSON.parse(le_rssi||'[]'),
+        le_tx_power:             le_tx_power,
+        last_seen:               last_seen
+      }
     }
 
-    json = JSON.generate(send_data)
+    json = JSON.pretty_generate(send_data)
 
     File.write("/root/json/#{address}.json", json)
 
@@ -202,11 +222,6 @@ class BlueHydra::Device
     unless ["",nil].include?(new) || self.name
       self.name = new
     end
-  end
-
-  def primary_services=(new)
-    current = JSON.parse(self.classic_class || '[]')
-    self[:primary_services] = JSON.generate((new + current).uniq)
   end
 
   def classic_channels=(channels)
