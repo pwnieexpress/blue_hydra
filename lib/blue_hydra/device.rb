@@ -50,35 +50,35 @@ class BlueHydra::Device
   before :save, :set_mode_flags
   after  :save, :sync_to_pulse
 
-  # def self.update_device_file(result)
-  #   address = result[:address].first
-  #   file_path = File.expand_path(
-  #     "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
-  #   )
-  #   base = if File.exists?(file_path)
-  #            JSON.parse(
-  #              File.read(file_path),
-  #              symbolize_names: true
-  #            )
-  #          else
-  #            {}
-  #          end
-  #   result.each do |key, values|
-  #     if base[key]
-  #       base[key] = (base[key] + values).uniq
-  #     else
-  #       base[key] = values.uniq
-  #     end
-  #   end
-  #   File.write(file_path, JSON.pretty_generate(base))
-  # end
+   def self.update_device_file(result)
+     address = result[:address].first
+     file_path = File.expand_path(
+       "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
+     )
+     base = if File.exists?(file_path)
+              JSON.parse(
+                File.read(file_path),
+                symbolize_names: true
+              )
+            else
+              {}
+            end
+     result.each do |key, values|
+       if base[key]
+         base[key] = (base[key] + values).uniq
+       else
+         base[key] = values.uniq
+       end
+     end
+     File.write(file_path, JSON.pretty_generate(base))
+   end
 
   def self.update_or_create_from_result(result)
 
-    # # log raw results into device files for review
-    # if BlueHydra.config[:log_level] == "debug"
-    #   update_device_file(result.dup)
-    # end
+     # log raw results into device files for review
+     if BlueHydra.config[:log_level] == "debug"
+       update_device_file(result.dup)
+     end
 
     result = result.dup
 
