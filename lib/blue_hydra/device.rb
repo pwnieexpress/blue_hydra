@@ -154,7 +154,7 @@ class BlueHydra::Device
         firmware:                firmware,
         uuids:                   JSON.parse(uuids||'[]'),
         classic_mode:            classic_mode,
-        classic_channels:        classic_channels,
+        classic_channels:        JSON.parse(classic_channels||'[]'),
         classic_major_class:     classic_major_class,
         classic_minor_class:     classic_minor_class,
         classic_class:           JSON.parse(classic_class||'[]'),
