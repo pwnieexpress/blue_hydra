@@ -90,7 +90,6 @@ module BlueHydra
               if ( Time.now.to_i - last_discover_time ) > 30
                 # do a discovery
                 interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
-                sleep 1
                 discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
                 last_discover_time = Time.now.to_i
 
@@ -108,8 +107,7 @@ module BlueHydra
                 # clear out entire info scan queue
                 until info_scan_queue.empty?
                   BlueHydra.logger.debug("Popping off info scan queue. Depth: #{ info_scan_queue.length}")
-                  # This slows us down a lot and likely isn't needed
-                  #BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
+                  BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                   command = info_scan_queue.pop
                   case command[:command]
                   when :info
@@ -302,6 +300,8 @@ module BlueHydra
                     if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
                       #BlueHydra.logger.debug("device classic scan triggered")
                       info_scan_queue.push({command: :info, address: device.address})
+                      #testing only, TODO remove this
+                      info_scan_queue.push({command: :leinfo, address: device.address})
                       query_history[device.address][:classic] = Time.now.to_i
                     end
                   end
