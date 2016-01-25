@@ -93,7 +93,7 @@ module BlueHydra
                when line =~ /^Type:/
                  set_attr(:company_type, line.split(': ')[1])
                when line =~ /^UUID:/
-                 set_attr(:company_uuid, line.split(': ')[1])
+                 set_attr(:uuids, line.split(': ')[1])
                when line =~ /^TX power:/
                  set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
                end
@@ -205,7 +205,7 @@ module BlueHydra
         set_attr("#{bt_mode}_firmware".to_sym, line.split(': ')[1])
 
       when line =~ /^Service Data \(/
-        set_attr(:service_data, line.split('Service Data ')[1])
+        set_attr(:uuids, line.split('Service Data ')[1])
 
       #  "Appearance: Watch (0x00c0)"
       when line =~ /^Appearance:/
