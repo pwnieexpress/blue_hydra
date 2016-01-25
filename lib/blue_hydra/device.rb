@@ -6,38 +6,34 @@ class BlueHydra::Device
   property :id,                            Serial
 
   property :name,                          String
+  property :status,                        String
+
   property :address,                       String
   property :oui,                           Text
-  property :status,                        String
-  property :appearance,                    String
 
+  property :appearance,                    String
   property :company,                       String
   property :company_type,                  String
-
   property :lmp_version,                   String
   property :manufacturer,                  String
   property :features,                      Text
+  property :firmware,                      String
+  property :uuids,                         Text
 
-  property :classic_firmware,              String
+  property :classic_mode,                  Boolean
   property :classic_channels,              String
   property :classic_major_class,           String
   property :classic_minor_class,           String
   property :classic_class,                 Text
   property :classic_rssi,                  Text
-
-  property :uuids,                         Text
-
-  property :le_address_type,               String
-  property :le_random_address_type,        String
-  property :le_flags,                      Text
-  property :le_address_type,               Text
-  property :le_rssi,                       Text
-
-  property :le_tx_power,                   Text
   property :classic_tx_power,              Text
 
   property :le_mode,                       Boolean
-  property :classic_mode,                  Boolean
+  property :le_address_type,               String
+  property :le_random_address_type,        String
+  property :le_flags,                      Text
+  property :le_rssi,                       Text
+  property :le_tx_power,                   Text
 
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
@@ -98,7 +94,7 @@ class BlueHydra::Device
     end
 
     %w{
-      address name manufacturer short_name lmp_version classic_firmware
+      address name manufacturer short_name lmp_version firmware
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
       le_random_address_type
@@ -168,14 +164,14 @@ class BlueHydra::Device
   end
 
   def set_mode_flags
+
     classic = false
     [
+      :classic_mode,
       :classic_channels,
-      :classic_class,
-      :classic_firmware,
       :classic_major_class,
       :classic_minor_class,
-      :classic_mode,
+      :classic_class,
       :classic_rssi,
       :classic_tx_power,
     ].each do |classic_attr|
@@ -188,9 +184,10 @@ class BlueHydra::Device
 
     le = false
     [
-      :le_address_type,
-      :le_flags,
       :le_mode,
+      :le_address_type,
+      :le_random_address_type,
+      :le_flags,
       :le_rssi,
       :le_tx_power,
     ].each do |le_attr|

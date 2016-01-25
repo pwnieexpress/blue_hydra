@@ -202,7 +202,7 @@ module BlueHydra
         set_attr("name".to_sym, line.split(': ')[1])
 
       when line =~ /^Firmware:/
-        set_attr("#{bt_mode}_firmware".to_sym, line.split(': ')[1])
+        set_attr(:firmware, line.split(': ')[1])
 
       when line =~ /^Service Data \(/
         set_attr(:uuids, line.split('Service Data ')[1])
