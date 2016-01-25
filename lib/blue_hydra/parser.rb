@@ -172,7 +172,7 @@ module BlueHydra
       when line =~ /^Handle:/
         set_attr("#{bt_mode}_handle".to_sym, line.split(': ')[1])
 
-      when line =~ /^Address:/ || line =~ /^Peer Address:/
+      when line =~ /^Address:/ || line =~ /^Peer address:/
         addr, *oui = line.split(': ')[1].split(" ")
         set_attr("address".to_sym, addr)
 
