@@ -113,7 +113,7 @@ module BlueHydra
                   when :info
                     BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
                   when :leinfo
-                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --random #{command[:address]}")
+                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}")
                   else
                     BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
                   end
