@@ -59,7 +59,7 @@ module BlueHydra
             header = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
             vals.unshift(header)
-            set_attr("#{bt_mode}_features".to_sym, vals.join(", "))
+            set_attr("features".to_sym, vals.join(", "))
 
           when grp[0] =~ /^\s+Channels/
             header = grp.shift.split(':')[1].strip
@@ -181,10 +181,10 @@ module BlueHydra
         end
 
       when line =~ /^LMP version:/
-        set_attr("#{bt_mode}_lmp_version".to_sym, line.split(': ')[1])
+        set_attr("lmp_version".to_sym, line.split(': ')[1])
 
       when line =~ /^Manufacturer:/
-        set_attr("#{bt_mode}_manufacturer".to_sym, line.split(': ')[1])
+        set_attr("manufacturer".to_sym, line.split(': ')[1])
 
       when line =~ /^UUID:/
         set_attr("uuids".to_sym, line.split(': ')[1])

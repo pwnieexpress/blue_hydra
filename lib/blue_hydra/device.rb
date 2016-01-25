@@ -14,9 +14,10 @@ class BlueHydra::Device
   property :company,                       String
   property :company_type,                  String
 
-  property :classic_lmp_version,           String
-  property :classic_manufacturer,          String
-  property :classic_features,              Text
+  property :lmp_version,                   String
+  property :manufacturer,                  String
+  property :features,                      Text
+
   property :classic_firmware,              String
   property :classic_channels,              String
   property :classic_major_class,           String
@@ -28,8 +29,6 @@ class BlueHydra::Device
 
   property :le_address_type,               String
   property :le_random_address_type,        String
-  property :le_lmp_version,                String
-  property :le_features,                   Text
   property :le_flags,                      Text
   property :le_address_type,               Text
   property :le_rssi,                       Text
@@ -99,9 +98,8 @@ class BlueHydra::Device
     end
 
     %w{
-      address name classic_manufacturer short_name
-      classic_lmp_version classic_firmware classic_major_class
-      classic_minor_class le_lmp_version le_tx_power classic_tx_power
+      address name manufacturer short_name lmp_version classic_firmware
+      classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
       le_random_address_type
     }.map(&:to_sym).each do |attr|
@@ -116,9 +114,8 @@ class BlueHydra::Device
     end
 
     %w{
-      classic_features le_features le_flags classic_channels
-      bt_128_bit_service_uuids classic_class le_rssi classic_rssi
-      uuids
+      features le_flags classic_channels bt_128_bit_service_uuids
+      classic_class le_rssi classic_rssi uuids
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
@@ -175,11 +172,8 @@ class BlueHydra::Device
     [
       :classic_channels,
       :classic_class,
-      :classic_features,
       :classic_firmware,
-      :classic_lmp_version,
       :classic_major_class,
-      :classic_manufacturer,
       :classic_minor_class,
       :classic_mode,
       :classic_rssi,
@@ -195,9 +189,7 @@ class BlueHydra::Device
     le = false
     [
       :le_address_type,
-      :le_features,
       :le_flags,
-      :le_lmp_version,
       :le_mode,
       :le_rssi,
       :le_tx_power,
@@ -232,13 +224,7 @@ class BlueHydra::Device
     self[:classic_class] = JSON.generate((new + current).uniq)
   end
 
-  def classic_features=(features)
-    new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = JSON.parse(self.classic_features || '[]')
-    self[:classic_features] = JSON.generate((new + current).uniq)
-  end
-
-  def le_features=(features)
+  def features=(features)
     new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
     current = JSON.parse(self.le_features || '[]')
     self[:le_features] = JSON.generate((new + current).uniq)
