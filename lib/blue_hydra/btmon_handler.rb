@@ -55,18 +55,19 @@ module BlueHydra
       unless(
           buffer.first =~ /^</ ||
           buffer.first =~ /^@/ ||
-          buffer.first =~ /^> HCI Event: Command Complete \(0x0e\)/ ||
           buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/ ||
           buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
           buffer.first =~ /^Bluetooth monitor ver/ ||
           buffer.first =~ /^= New Index:/
         )
+
         # log raw btmon output for review
         if BlueHydra.config[:log_level] == "debug"
           buffer.each do |line|
             @log_file.puts(line.chomp)
           end
         end
+
         @parse_queue.push(buffer)
       end
     end
