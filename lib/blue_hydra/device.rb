@@ -226,8 +226,8 @@ class BlueHydra::Device
 
   def features=(features)
     new = features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = JSON.parse(self.le_features || '[]')
-    self[:le_features] = JSON.generate((new + current).uniq)
+    current = JSON.parse(self.features || '[]')
+    self[:features] = JSON.generate((new + current).uniq)
   end
 
   def le_flags=(flags)
