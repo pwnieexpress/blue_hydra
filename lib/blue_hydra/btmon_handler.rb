@@ -58,7 +58,8 @@ module BlueHydra
           buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/ ||
           buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
           buffer.first =~ /^Bluetooth monitor ver/ ||
-          buffer.first =~ /^= New Index:/
+          buffer.first =~ /^= New Index:/ ||
+          ( buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ )
         )
 
         # log raw btmon output for review
