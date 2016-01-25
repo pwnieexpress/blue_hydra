@@ -252,18 +252,20 @@ class BlueHydra::Device
 
   def uuids=(new_uuids)
     current = JSON.parse(self.uuids || '[]')
-    self[:uuids] = JSON.generate((new_uuids + current).uniq)
-  end
+    new = (new_uuids + current)
 
-  def bt_128_bit_service_uuids=(new_uuids)
-    new_uuids.map! do |uuid|
-      #TODO extend based on lookup table as available..
-      if uuids =~ /\(/
+    new.map! do |uuid|
+      if uuid =~ /\(/
         uuid
       else
         "Unknown (#{ uuid })"
       end
     end
+
+    self[:uuids] = JSON.generate(new.uniq)
+  end
+
+  def bt_128_bit_service_uuids=(new_uuids)
     self.uuids = new_uuids
   end
 
