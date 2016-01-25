@@ -300,8 +300,6 @@ module BlueHydra
                     if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
                       #BlueHydra.logger.debug("device classic scan triggered")
                       info_scan_queue.push({command: :info, address: device.address})
-                      #testing only, TODO remove this
-                      info_scan_queue.push({command: :leinfo, address: device.address})
                       query_history[device.address][:classic] = Time.now.to_i
                     end
                   end
