@@ -108,7 +108,8 @@ module BlueHydra
                 # clear out entire info scan queue
                 until info_scan_queue.empty?
                   BlueHydra.logger.debug("Popping off info scan queue. Depth: #{ info_scan_queue.length}")
-                  BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
+                  # This slows us down a lot and likely isn't needed
+                  #BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                   command = info_scan_queue.pop
                   case command[:command]
                   when :info
