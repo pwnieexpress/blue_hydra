@@ -48,7 +48,7 @@ module BlueHydra
           when grp[0] =~ /^\s+Attribute type: Primary Service/
             vals = grp.map(&:strip)
             uuid = vals.select{|x| x =~ /^UUID/}[0]
-            set_attr(:uuids, uuid.split(': ')[1])
+            set_attr("#{bt_mode}_service_uuids".to_sym, uuid.split(': ')[1])
 
           when grp[0] =~ /^\s+Flags:/
             grp.shift
@@ -75,7 +75,7 @@ module BlueHydra
              grp.shift # header line
              vals = grp.map(&:strip)
              vals.each do |uuid|
-               set_attr("bt_128_bit_service_uuids".to_sym, uuid)
+               set_attr("#{bt_mode}_service_uuids".to_sym, uuid)
              end
 
            # Company: Apple, Inc. (76)
@@ -93,7 +93,7 @@ module BlueHydra
                when line =~ /^Type:/
                  set_attr(:company_type, line.split(': ')[1])
                when line =~ /^UUID:/
-                 set_attr(:uuids, line.split(': ')[1])
+                 set_attr("#{bt_mode}_service_uuids".to_sym, line.split(': ')[1])
                when line =~ /^TX power:/
                  set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
                end
@@ -112,7 +112,7 @@ module BlueHydra
              grp.shift # header line
              vals = grp.map(&:strip)
              vals.each do |uuid|
-               set_attr("uuids".to_sym, uuid)
+               set_attr("#{bt_mode}_uuids".to_sym, uuid)
              end
 
            # not in spec fixtures...
@@ -187,7 +187,7 @@ module BlueHydra
         set_attr("manufacturer".to_sym, line.split(': ')[1])
 
       when line =~ /^UUID:/
-        set_attr("uuids".to_sym, line.split(': ')[1])
+        set_attr("#{bt_mode}_service_uuids".to_sym, line.split(': ')[1])
 
       when line =~ /^Address type:/
         set_attr("#{bt_mode}_address_type".to_sym, line.split(': ')[1])
@@ -205,7 +205,7 @@ module BlueHydra
         set_attr(:firmware, line.split(': ')[1])
 
       when line =~ /^Service Data \(/
-        set_attr(:uuids, line.split('Service Data ')[1])
+        set_attr("#{bt_mode}_service_uuids".to_sym, line.split('Service Data ')[1])
 
       #  "Appearance: Watch (0x00c0)"
       when line =~ /^Appearance:/

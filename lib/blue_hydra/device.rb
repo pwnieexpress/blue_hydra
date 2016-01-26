@@ -6,10 +6,8 @@ class BlueHydra::Device
 
   property :name,                          String
   property :status,                        String
-
   property :address,                       String
   property :oui,                           Text
-
   property :appearance,                    String
   property :company,                       String
   property :company_type,                  String
@@ -17,7 +15,9 @@ class BlueHydra::Device
   property :manufacturer,                  String
   property :features,                      Text
   property :firmware,                      String
-  property :uuids,                         Text
+
+  property :classic_service_uuids,         Text
+  property :le_service_uuids,              Text
 
   property :classic_mode,                  Boolean
   property :classic_channels,              String
@@ -50,11 +50,7 @@ class BlueHydra::Device
        "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
      )
      base = if File.exists?(file_path)
-              JSON.parse(
-                File.read(file_path),
-                symbolize_names: true
-              )
-            else
+              JSON.parse( File.read(file_path), symbolize_names: true) else
               {}
             end
      result.each do |key, values|
@@ -109,8 +105,8 @@ class BlueHydra::Device
     end
 
     %w{
-      features le_flags classic_channels bt_128_bit_service_uuids
-      classic_class le_rssi classic_rssi uuids
+      features le_flags classic_channels classic_class le_rssi
+      classic_rssi le_service_uuids classic_service_uuids
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
@@ -152,7 +148,8 @@ class BlueHydra::Device
         manufacturer:            manufacturer,
         features:                JSON.parse(features||'[]'),
         firmware:                firmware,
-        uuids:                   JSON.parse(uuids||'[]'),
+        le_service_uuids:        JSON.parse(le_service_uuids||'[]'),
+        classic_service_uuids:   JSON.parse(classic_service_uuids||'[]'),
         classic_mode:            classic_mode,
         classic_channels:        JSON.parse(classic_channels||'[]'),
         classic_major_class:     classic_major_class,
@@ -248,8 +245,8 @@ class BlueHydra::Device
     self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
-  def uuids=(new_uuids)
-    current = JSON.parse(self.uuids || '[]')
+  def le_service_uuids=(new_uuids)
+    current = JSON.parse(self.le_service_uuids || '[]')
     new = (new_uuids + current)
 
     new.map! do |uuid|
@@ -260,11 +257,22 @@ class BlueHydra::Device
       end
     end
 
-    self[:uuids] = JSON.generate(new.uniq)
+    self[:le_service_uuids] = JSON.generate(new.uniq)
   end
 
-  def bt_128_bit_service_uuids=(new_uuids)
-    self.uuids = new_uuids
+  def classic_service_uuids=(new_uuids)
+    current = JSON.parse(self.classic_service_uuids || '[]')
+    new = (new_uuids + current)
+
+    new.map! do |uuid|
+      if uuid =~ /\(/
+        uuid
+      else
+        "Unknown (#{ uuid })"
+      end
+    end
+
+    self[:classic_service_uuids] = JSON.generate(new.uniq)
   end
 
   def classic_rssi=(rssis)
