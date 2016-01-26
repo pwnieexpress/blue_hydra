@@ -37,7 +37,7 @@ module BlueHydra
 
   DEFAULT_CONFIG = {
     log_level: "info",
-    bt_device: "hci1"
+    bt_device: "hci0"
   }
 
   @@config = if File.exists?(CONFIG_FILE)
