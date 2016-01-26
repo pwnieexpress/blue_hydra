@@ -56,9 +56,9 @@ module BlueHydra
             set_attr("#{bt_mode}_flags".to_sym, vals.join(", "))
 
           when grp[0] =~ /^\s+Features/
-            header = grp.shift.split(':')[1].strip
+            bitmap = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
-            vals.unshift(header)
+            set_attr("features_bitmap".to_sym, bitmap)
             set_attr("features".to_sym, vals.join(", "))
 
           when grp[0] =~ /^\s+Channels/
