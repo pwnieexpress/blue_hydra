@@ -4,8 +4,6 @@
 
 TODO:
 
-when any thread exits, ensure there is an error and the program exits
-except the btmon_handler thread, if reading a file exit, otherwise restart and warn
+* when any thread exits, ensure there is an error and the program exits
+* except the btmon_handler thread, if reading a file exit, otherwise restart and warn
 
-le_lmp_version is empty
-le_feature is empty
