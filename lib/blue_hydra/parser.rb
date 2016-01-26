@@ -58,8 +58,8 @@ module BlueHydra
           when grp[0] =~ /^\s+Features/
             bitmap = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
-            set_attr("features_bitmap".to_sym, bitmap)
-            set_attr("features".to_sym, vals.join(", "))
+            set_attr("#{bt_mode}_features_bitmap".to_sym, bitmap)
+            set_attr("#{bt_mode}_features".to_sym, vals.join(", "))
 
           when grp[0] =~ /^\s+Channels/
             header = grp.shift.split(':')[1].strip
