@@ -49,7 +49,7 @@ class BlueHydra::Device
    def self.update_device_file(result)
      address = result[:address].first
      file_path = File.expand_path(
-       "../../../devices/#{address.gsub(':', '-')}_device_info.json", __FILE__
+       "../../../devices/raw_#{address.gsub(':', '-')}_device_info.json", __FILE__
      )
      base = if File.exists?(file_path)
               JSON.parse( File.read(file_path), symbolize_names: true) else
@@ -175,8 +175,16 @@ class BlueHydra::Device
 
     json = JSON.pretty_generate(send_data)
 
-    File.write("/root/json/#{address}.json", json)
+    # log raw results into device files for review
+    if BlueHydra.config[:log_level] == "debug"
+      file_path = File.expand_path(
+        "../../../devices/synced_#{address.gsub(':', '-')}.json", __FILE__
+      )
+      File.write(file_path, json)
+    end
 
+    # TODO enable
+    #
     # TCPSocket.open('127.0.0.1', 8244) do |sock|
     #   sock.write(json)
     #   sock.write("\n")
