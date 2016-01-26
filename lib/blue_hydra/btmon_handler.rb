@@ -40,9 +40,10 @@ module BlueHydra
             buffer << line
           end
         rescue Errno::EIO
+          # File has completed, flush last chunks to buffer
           enqueue(buffer)
-          # puts "Errno:EIO error, but this probably just means " +
-          #   "that the process has finished giving output"
+
+          raise BtmonExitedError
         end
       end
     end

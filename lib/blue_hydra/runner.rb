@@ -39,6 +39,8 @@ module BlueHydra
         start_parser_thread
         start_result_thread
 
+        sleep 5 # allow it start up
+
       rescue => e
         BlueHydra.logger.error("Runner master thread: #{e.message}")
         e.backtrace.each do |x|
@@ -47,15 +49,41 @@ module BlueHydra
       end
     end
 
+    def status
+      x = {
+        raw_queue:         self.raw_queue.length,
+        chunk_queue:       self.chunk_queue.length,
+        result_queue:      self.result_queue.length,
+        info_scan_queue:   self.info_scan_queue.length,
+        l2ping_queue:      self.l2ping_queue.length,
+        btmon_thread:      self.btmon_thread.status,
+        chunker_thread:    self.chunker_thread.status,
+        parser_thread:     self.parser_thread.status,
+        result_thread:     self.result_thread.status
+      }
+
+      unless BlueHydra.config[:file]
+        x[:discovery_thread] = self.discovery_thread.status
+      end
+
+      x
+    end
+
     def stop
       BlueHydra.logger.info("Runner exiting...")
+      self.btmon_thread.kill # stop this first thread so data stops flowing ...
+
+      # clear queue...
+      until [nil, false].include?(parser_thread.status) || self.result_queue.empty?
+        sleep 1
+      end
+
       self.raw_queue       = nil
       self.chunk_queue     = nil
       self.result_queue    = nil
       self.info_scan_queue = nil
       self.l2ping_queue    = nil
 
-      self.btmon_thread.kill
       self.discovery_thread.kill unless BlueHydra.config[:file]
       self.chunker_thread.kill
       self.parser_thread.kill
@@ -70,6 +98,8 @@ module BlueHydra
             self.command,
             self.raw_queue
           )
+        rescue BtmonExitedError
+          BlueHydra.logger.error("Btmon thread exiting...")
         rescue => e
           BlueHydra.logger.error("Btmon thread #{e.message}")
           e.backtrace.each do |x|

@@ -17,13 +17,41 @@ begin
   # This blocking loop keeps the scanner alive in its threads. Refer to the
   # BlueHydra::Runner to understand the main work threads.
   loop do 
+
+    status = runner.status
+
+    keys = [ :btmon_thread, :chunker_thread, :parser_thread, :result_thread ]
+
+    unless BlueHydra.config[:file]
+      keys << :discovery_thread
+    end
+
+    keys.each do |thread_key|
+      if status[thread_key] == nil || status[thread_key] == false
+        raise FailedThreadError, thread_key
+      end
+    end
     sleep 1
   end
+
 rescue SignalException, Interrupt => e
   BlueHydra.logger.info("BlueHydra Killed! Exiting... #{e.to_s}")
+  exit_status = 0
+
+rescue FailedThreadError => e
+  BlueHydra.logger.error("Thread failure: #{e.message}")
+  exit_status = 1
+
 rescue => e
-  BlueHydra.logger.error("Generic Error: #{e.to_s} #{e.backtrace}")
+  BlueHydra.logger.error("Generic Error: #{e.to_s}") 
+  e.backtrace.each do |line|
+    BlueHydra.logger.error(line) 
+  end
+  exit_status = 1
+
 ensure
   runner.stop
   File.unlink(PID_FILE)
+  BlueHydra.logger.warn("GOODBYE! ^_^")
+  exit exit_status
 end

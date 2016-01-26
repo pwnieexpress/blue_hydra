@@ -24,6 +24,10 @@ DataMapper.setup(
   Dir.exist?('/opt/pwnix/') ?  "sqlite:/opt/pwnix/blue_hydra.db" : "sqlite:blue_hydra.db"
 )
 
+class FailedThreadError < StandardError; end
+class BtmonExitedError < StandardError; end
+
+
 module BlueHydra
   # 0.0.1 first stable verison
   # 0.0.2 timestamps, feedback loop for info scans, l2ping
@@ -97,6 +101,8 @@ begin
     db_file = Dir.exist?('/opt/pwnix/') ?  "/opt/pwnix/blue_hydra.db" : "blue_hydra.db"
     BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
     File.rename(db_file, "#{db_file}.corrupt")   #=> 0
+
+    # TODO send message to pulse offline all clients
     DataMapper.auto_upgrade!
   end
 
