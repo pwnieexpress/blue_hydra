@@ -90,8 +90,25 @@ require 'blue_hydra/runner'
 require 'blue_hydra/command'
 require 'blue_hydra/device'
 
-DataMapper.auto_upgrade!
-DataMapper.finalize
-#massive speed up of sqlite
-DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
-DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')
+begin
+  begin
+    DataMapper.auto_upgrade!
+  rescue DataObjects::ConnectionError
+    db_file = Dir.exist?('/opt/pwnix/') ?  "/opt/pwnix/blue_hydra.db" : "blue_hydra.db"
+    BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
+    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
+    DataMapper.auto_upgrade!
+  end
+
+  DataMapper.finalize
+
+  #massive speed up of sqlite
+  DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
+  DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')
+rescue => e
+  BlueHydra.logger.error("#{e.class}: #{e.message}")
+  e.backtrace.each do |line|
+    BlueHydra.logger.error(line)
+  end
+  exit 1
+end
