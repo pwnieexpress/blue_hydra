@@ -1,7 +1,13 @@
+# this is the bluetooth Device model stored in the DB
 class BlueHydra::Device
+
+  # regex to validate macs
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
+
+  # this is a DataMapper model...
   include DataMapper::Resource
 
+  # Attributes for the DB
   property :id,                            Serial
 
   property :name,                          String
@@ -40,34 +46,51 @@ class BlueHydra::Device
   property :updated_at,                    DateTime
   property :last_seen,                     Integer
 
+  # validate the address. the only validation currently
   validates_format_of :address, with: MAC_REGEX
 
+  # before saving set the vendor info and the mode flags (le/classic)
   before :save, :set_oui
   before :save, :set_mode_flags
+
+  # after saving send up to pulse
   after  :save, :sync_to_pulse
 
-   def self.update_device_file(result)
-     address = result[:address].first
-     file_path = File.expand_path(
-       "../../../devices/raw_#{address.gsub(':', '-')}_device_info.json", __FILE__
-     )
-     base = if File.exists?(file_path)
-              JSON.parse( File.read(file_path), symbolize_names: true) else
-              {}
-            end
-     result.each do |key, values|
-       if base[key]
-         base[key] = (base[key] + values).uniq
-       else
-         base[key] = values.uniq
-       end
-     end
-     File.write(file_path, JSON.pretty_generate(base))
-   end
+  # this method only gets called in debug mode and will write out device files to
+  # the devices local dir to be reviewed. These files will be raw data from the parser
+  # before being converted to a model
+  #
+  # == Parameters :
+  #   result ::
+  #     Hash of results from parser
+  def self.update_device_file(result)
+    address = result[:address].first
+    file_path = File.expand_path(
+      "../../../devices/raw_#{address.gsub(':', '-')}_device_info.json", __FILE__
+    )
+    base = if File.exists?(file_path)
+             JSON.parse( File.read(file_path), symbolize_names: true) else
+             {}
+             end
+    result.each do |key, values|
+      if base[key]
+        base[key] = (base[key] + values).uniq
+      else
+        base[key] = values.uniq
+      end
+    end
+    File.write(file_path, JSON.pretty_generate(base))
+  end
 
+  # this class method is take a result Hash and convert it into a new or update
+  # an existing record
+  #
+  # == Parameters :
+  #   result ::
+  #     Hash of results from parser
   def self.update_or_create_from_result(result)
 
-     # log raw results into device files for review
+     # log raw results into device files for review in debug mode
      if BlueHydra.config[:log_level] == "debug"
        update_device_file(result.dup)
      end
@@ -82,6 +105,7 @@ class BlueHydra::Device
     # mark as online?
     record.status = "online"
 
+    # set last_seen or default value if missing
     if result[:last_seen] &&
       result[:last_seen].class == Array &&
       !result[:last_seen].empty?
@@ -90,14 +114,16 @@ class BlueHydra::Device
       record.last_seen = Time.now.to_i
     end
 
+    # update normal attributes
     %w{
       address name manufacturer short_name lmp_version firmware
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
       le_random_address_type le_features_bitmap classic_features_bitmap
-
     }.map(&:to_sym).each do |attr|
       if result[attr]
+        # we should only get a single value for these so we need to warn if
+        # we are getting multiple values for these keys.. it should NOT be...
         if result[attr].uniq.count > 1
           BlueHydra.logger.warn(
             "#{address} multiple values detected for #{attr}: #{result[attr].inspect}. Using first value..."
@@ -107,6 +133,7 @@ class BlueHydra::Device
       end
     end
 
+    # update array attributes
     %w{
       classic_features le_features le_flags classic_channels classic_class le_rssi
       classic_rssi le_service_uuids classic_service_uuids
@@ -127,6 +154,8 @@ class BlueHydra::Device
     record
   end
 
+  # look up the vendor for the address in the Louis gem
+  # and set it
   def set_oui
     vendor = Louis.lookup(address)
     if self.oui == nil || self.oui == "Unknown"
@@ -134,6 +163,7 @@ class BlueHydra::Device
     end
   end
 
+  # sync record to pulse
   def sync_to_pulse
     send_data = {
       type:   "bluetooth",
@@ -142,6 +172,7 @@ class BlueHydra::Device
       data: {}
     }
 
+    # ignore nil value attributes
     send_data[:data][:name]                    = name                              if name
     send_data[:data][:status]                  = status                            if status
     send_data[:data][:address]                 = address                           if address
@@ -173,9 +204,10 @@ class BlueHydra::Device
     send_data[:data][:le_tx_power]             = le_tx_power                       if le_tx_power
     send_data[:data][:last_seen]               = last_seen                         if last_seen
 
+    # create the json
     json = JSON.pretty_generate(send_data)
 
-    # log raw results into device files for review
+    # log raw results into device files for review in debugmode
     if BlueHydra.config[:log_level] == "debug"
       file_path = File.expand_path(
         "../../../devices/synced_#{address.gsub(':', '-')}.json", __FILE__
@@ -185,6 +217,7 @@ class BlueHydra::Device
 
     # TODO enable
     #
+    # # write json data to result socket
     # TCPSocket.open('127.0.0.1', 8244) do |sock|
     #   sock.write(json)
     #   sock.write("\n")
@@ -194,17 +227,21 @@ class BlueHydra::Device
     BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
   end
 
+  # set the le_mode and classic_mode flags to true or false based on the
+  # presence of certain attributes being set
   def set_mode_flags
-
     classic = false
     [
-      :classic_mode,
+      :classic_service_uuids,
       :classic_channels,
       :classic_major_class,
       :classic_minor_class,
       :classic_class,
       :classic_rssi,
       :classic_tx_power,
+      :classic_features,
+      :classic_features_bitmap,
+
     ].each do |classic_attr|
       if self[classic_attr]
         classic ||= true
@@ -215,12 +252,14 @@ class BlueHydra::Device
 
     le = false
     [
-      :le_mode,
+      :le_service_uuids,
       :le_address_type,
       :le_random_address_type,
       :le_flags,
       :le_rssi,
       :le_tx_power,
+      :le_features,
+      :le_features_bitmap,
     ].each do |le_attr|
       if self[le_attr]
         le ||= true
@@ -229,42 +268,78 @@ class BlueHydra::Device
     self[:le_mode] = le
   end
 
+  # set the :name attribute from the :short_name key only if name is not already
+  # set
+  #
+  # == Parameters
+  #   new ::
+  #     new short name value
   def short_name=(new)
     unless ["",nil].include?(new) || self.name
       self.name = new
     end
   end
 
+  # set the :classic_channels attribute by merging with previously seen values
+  #
+  # == Parameters
+  #   channels ::
+  #     new channels
   def classic_channels=(channels)
     new = channels.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
     current = JSON.parse(self.classic_class || '[]')
     self[:classic_channels] = JSON.generate((new + current).uniq)
   end
 
+  # set the :classic_class attribute by merging with previously seen values
+  #
+  # == Parameters
+  #   new_classes ::
+  #     new classes
   def classic_class=(new_classes)
     new = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
     current = JSON.parse(self.classic_class || '[]')
     self[:classic_class] = JSON.generate((new + current).uniq)
   end
 
+  # set the :classic_features attribute by merging with previously seen values
+  #
+  # == Parameters
+  #   new_features ::
+  #     new features
   def classic_features=(new_features)
     new = new_features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
     current = JSON.parse(self.classic_features || '[]')
     self[:classic_features] = JSON.generate((new + current).uniq)
   end
 
+  # set the :le_features attribute by merging with previously seen values
+  #
+  # == Parameters
+  #   new_features ::
+  #     new features
   def le_features=(new_features)
     new = new_features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
     current = JSON.parse(self.le_features || '[]')
     self[:le_features] = JSON.generate((new + current).uniq)
   end
 
+  # set the :le_flags attribute by merging with previously seen values
+  #
+  # == Parameters
+  #   new_flags ::
+  #     new flags
   def le_flags=(flags)
     new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
     current = JSON.parse(self.le_flags || '[]')
     self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
+  # set the :le_service_uuids attribute by merging with previously seen values
+  #
+  # == Parameters
+  #   new_uuids ::
+  #     new uuids
   def le_service_uuids=(new_uuids)
     current = JSON.parse(self.le_service_uuids || '[]')
     new = (new_uuids + current)
@@ -280,6 +355,13 @@ class BlueHydra::Device
     self[:le_service_uuids] = JSON.generate(new.uniq)
   end
 
+  # set the :cassic_service_uuids attribute by merging with previously seen values
+  #
+  # Wrap some uuids in Unknown(uuid) as needed
+  #
+  # == Parameters
+  #   new_uuids ::
+  #     new uuids
   def classic_service_uuids=(new_uuids)
     current = JSON.parse(self.classic_service_uuids || '[]')
     new = (new_uuids + current)
@@ -295,6 +377,14 @@ class BlueHydra::Device
     self[:classic_service_uuids] = JSON.generate(new.uniq)
   end
 
+
+  # set the :classic_rss attribute by merging with previously seen values
+  #
+  # limit to last 100 rssis
+  #
+  # == Parameters
+  #   rssis ::
+  #     new rssis
   def classic_rssi=(rssis)
     current = JSON.parse(self.classic_rssi || '[]')
     new = current + rssis
@@ -306,6 +396,13 @@ class BlueHydra::Device
     self[:classic_rssi] = JSON.generate(new)
   end
 
+  # set the :le_rss attribute by merging with previously seen values
+  #
+  # limit to last 100 rssis
+  #
+  # == Parameters
+  #   rssis ::
+  #     new rssis
   def le_rssi=(rssis)
     current = JSON.parse(self.le_rssi || '[]')
     new = current + rssis
@@ -317,6 +414,12 @@ class BlueHydra::Device
     self[:le_rssi] = JSON.generate(new)
   end
 
+  # set the :le_address_type carefully , may also result in the
+  # le_random_address_type being nil'd out if the type value is "public"
+  #
+  # == Parameters
+  #   type ::
+  #     new type to set
   def le_address_type=(type)
     type = type.split(' ')[0]
     if type =~ /Public/
@@ -327,10 +430,14 @@ class BlueHydra::Device
     end
   end
 
+  # set the :le_random_address_type unless the le_address_type is set
+  #
+  # == Parameters
+  #   type ::
+  #     new type to set
   def le_random_address_type=(type)
     unless le_address_type && le_address_type =~ /Public/
       self[:le_random_address_type] = type
     end
   end
-
 end
