@@ -1,6 +1,12 @@
 module BlueHydra::Command
-
   # execute a command using Open3
+  #
+  # == Parameters
+  #   command ::
+  #     the command to execute
+  #
+  # == Returns
+  #   Hash containing :stdout, :stderr, :exit_code from the command
   def execute3(command)
     BlueHydra.logger.debug("Executing Command: #{command}")
     output = {}

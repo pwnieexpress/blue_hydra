@@ -1,36 +1,78 @@
 module BlueHydra
+
+  # class responsible for parsing a group of message chunks into a serialized
+  # hash appropriate to generate or update a device record.
   class Parser
     attr_accessor :attributes
 
+    # initializer which takes an Array of chunks to be parsed
+    #
+    # == Parameters :
+    #   chunks ::
+    #     Array of message chunks which are arrays of lines of btmon output
     def initialize(chunks=[])
       @chunks     = chunks
       @attributes = {}
+
+      # the first chunk  will determine the mode (le/classic) these message
+      # fall into. This mode will be used to differentiate between setting
+      # le or classic attributes during the parsing of this batch of chunks
       if @chunks[0] && @chunks[0][1]
         @bt_mode = @chunks[0][1] =~ /^\s+LE/ ? "le" : "classic"
       end
     end
 
+    # this ithe main work method which processes the @chunks Array
+    # and populates the @attributes
     def parse
       @chunks.each do |chunk|
-        chunk.shift # discard first line
-        timestamp = chunk.pop
 
+        # the first line is no longer useful as we ahve extracted the mode and
+        # timestamp at other points in the pipeline. Time to discard it
+        chunk.shift
+
+        # the last message will always be a timestamp from the chunker, this
+        # value is used throughout during this parsing process but should
+        # also be set to last_seen
+        timestamp = chunk.pop
         set_attr(:last_seen, timestamp.split(': ')[1].to_i)
 
+        # group the chunk of lines into nested / related groups of data
+        # containing 1 or more lines
         grouped_chunk = group_by_depth(chunk)
+
+        # handle each chunk of grouped data individually
         handle_grouped_chunk(grouped_chunk, @bt_mode, timestamp)
       end
     end
 
+    # The main parser case statement to handle grouped message data from a
+    # given chunk
+    #
+    # == Parameters
+    #   grouped_chunk ::
+    #     Array of lines to be processed
+    #   bt_mode ::
+    #     String of "le" or "classic"
+    #   timestamp ::
+    #     Unix timestamp for when this message data was created
     def handle_grouped_chunk(grouped_chunk, bt_mode, timestamp)
       grouped_chunk.each do |grp|
+
+        # when we only have a single line in a group we can handle simply
         if grp.count == 1
           line = grp[0]
 
-          # next line is not nested, treat as single line
+          # next line was not nested, treat as single line
           parse_single_line(line, bt_mode, timestamp)
+
+        # if we have multiple lines in our group of lines determine how to
+        # process and set
         else
           case
+
+          # these special messags had effectively duplicate header lines
+          # which is be shifted off and then re-grouped
           when grp[0] =~ /^\s+(LE|ATT|L2CAP)/
             grp.shift
             grp = group_by_depth(grp)
@@ -155,6 +197,13 @@ module BlueHydra
       end
     end
 
+    # Determine the depth of the whitespace characters in a line
+    #
+    # == Parameters
+    #   line ::
+    #     the line to test]
+    # == Returns
+    #   Integer value for number of whitespace chars
     def line_depth(line)
       whitespace = line.scan(/^([\s]+)/).flatten.first
       if whitespace
@@ -217,6 +266,7 @@ module BlueHydra
           rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
         })
 
+      # unused lines which we will exclude from the :unknown key manually
       when line =~ /^Status:/
       when line =~ /^Encryption:/
       when line =~ /^Handle range:/
@@ -253,6 +303,13 @@ module BlueHydra
       end
     end
 
+    # group the lines of an array of lines in a chunk together by there depth
+    #
+    # == Parameters:
+    #   arr ::
+    #     Array of lines
+    # == Returns:
+    #   Array of arrays of grouped lines
     def group_by_depth(arr)
       output = []
 
@@ -288,6 +345,16 @@ module BlueHydra
       output
     end
 
+    # set an attribute key with a value in the @attributes hash
+    #
+    # This defaults the values in the @attributes to be an array of (ideally 1)
+    # value so that we can test for mismatched messages
+    #
+    # == Parameters:
+    #   key ::
+    #     key to set
+    #   val ::
+    #     value to inject into the key in @attributes
     def set_attr(key, val)
       @attributes[key] ||= []
       @attributes[key] << val
