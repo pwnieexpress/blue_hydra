@@ -137,41 +137,41 @@ class BlueHydra::Device
   def sync_to_pulse
     send_data = {
       type:   "bluetooth",
-      source: "BlueHydra",
+      source: "blue-hydra",
       version: BlueHydra::VERSION,
-      data:    {
-        name:                    name,
-        status:                  status,
-        address:                 address,
-        oui:                     oui,
-        appearance:              appearance,
-        company:                 company,
-        company_type:            company_type,
-        lmp_version:             lmp_version,
-        manufacturer:            manufacturer,
-        le_features_bitmap:      le_features_bitmap,
-        le_features:             JSON.parse(le_features||'[]'),
-        classic_features_bitmap: classic_features_bitmap,
-        classic_features:        JSON.parse(classic_features||'[]'),
-        firmware:                firmware,
-        le_service_uuids:        JSON.parse(le_service_uuids||'[]'),
-        classic_service_uuids:   JSON.parse(classic_service_uuids||'[]'),
-        classic_mode:            classic_mode,
-        classic_channels:        JSON.parse(classic_channels||'[]'),
-        classic_major_class:     classic_major_class,
-        classic_minor_class:     classic_minor_class,
-        classic_class:           JSON.parse(classic_class||'[]'),
-        classic_rssi:            JSON.parse(classic_rssi||'[]'),
-        classic_tx_power:        classic_tx_power,
-        le_flags:                JSON.parse(le_flags||'[]'),
-        le_mode:                 le_mode,
-        le_address_type:         le_address_type,
-        le_random_address_type:  le_random_address_type,
-        le_rssi:                 JSON.parse(le_rssi||'[]'),
-        le_tx_power:             le_tx_power,
-        last_seen:               last_seen
-      }
+      data: {}
     }
+
+    send_data[:data][:name]                    = name                              if name
+    send_data[:data][:status]                  = status                            if status
+    send_data[:data][:address]                 = address                           if address
+    send_data[:data][:oui]                     = oui                               if oui
+    send_data[:data][:appearance]              = appearance                        if appearance
+    send_data[:data][:company]                 = company                           if company
+    send_data[:data][:company_type]            = company_type                      if company_type
+    send_data[:data][:lmp_version]             = lmp_version                       if lmp_version
+    send_data[:data][:manufacturer]            = manufacturer                      if manufacturer
+    send_data[:data][:le_features_bitmap]      = le_features_bitmap                if le_features_bitmap
+    send_data[:data][:le_features]             = JSON.parse(le_features)           if le_features
+    send_data[:data][:classic_features_bitmap] = classic_features_bitmap           if classic_features_bitmap
+    send_data[:data][:classic_features]        = JSON.parse(classic_features)      if classic_features
+    send_data[:data][:firmware]                = firmware                          if firmware
+    send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)      if le_service_uuids
+    send_data[:data][:classic_service_uuids]   = JSON.parse(classic_service_uuids) if classic_service_uuids
+    send_data[:data][:classic_mode]            = classic_mode                      if classic_mode
+    send_data[:data][:classic_channels]        = JSON.parse(classic_channels)      if classic_channels
+    send_data[:data][:classic_major_class]     = classic_major_class               if classic_major_class
+    send_data[:data][:classic_minor_class]     = classic_minor_class               if classic_minor_class
+    send_data[:data][:classic_class]           = JSON.parse(classic_class)         if classic_class
+    send_data[:data][:classic_rssi]            = JSON.parse(classic_rssi)          if classic_rssi
+    send_data[:data][:classic_tx_power]        = classic_tx_power                  if classic_tx_power
+    send_data[:data][:le_flags]                = JSON.parse(le_flags)              if le_flags
+    send_data[:data][:le_mode]                 = le_mode                           if le_mode
+    send_data[:data][:le_address_type]         = le_address_type                   if le_address_type
+    send_data[:data][:le_random_address_type]  = le_random_address_type            if le_random_address_type
+    send_data[:data][:le_rssi]                 = JSON.parse(le_rssi)               if le_rssi
+    send_data[:data][:le_tx_power]             = le_tx_power                       if le_tx_power
+    send_data[:data][:last_seen]               = last_seen                         if last_seen
 
     json = JSON.pretty_generate(send_data)
 
