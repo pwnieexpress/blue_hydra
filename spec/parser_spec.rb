@@ -41,7 +41,13 @@ describe BlueHydra::Parser do
     command = "cat #{filepath} && sleep 1"
     queue1  = Queue.new
     queue2  = Queue.new
-    handler = BlueHydra::BtmonHandler.new(command, queue1)
+
+    begin
+      handler = BlueHydra::BtmonHandler.new(command, queue1)
+    rescue BtmonExitedError
+      # will be raised in file mode
+    end
+
     chunker = BlueHydra::Chunker.new(queue1, queue2)
 
 

@@ -5,4 +5,3 @@
 TODO:
 - handle alt UUIDs which contain paren
 - rate limit incoming RSSIs to 1 per timeframe
-  flags to sync to pulse

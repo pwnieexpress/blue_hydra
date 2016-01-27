@@ -9,7 +9,12 @@ describe BlueHydra::BtmonHandler do
     filepath = File.expand_path('../fixtures/btmon.stdout', __FILE__)
     command = "cat #{filepath} && sleep 1"
     queue = Queue.new
-    handler = BlueHydra::BtmonHandler.new(command, queue)
+
+    begin
+      handler = BlueHydra::BtmonHandler.new(command, queue)
+    rescue BtmonExitedError
+      # will be raised in file mode
+    end
 
     expect(queue.empty?).to eq(false)
   end

@@ -7,8 +7,35 @@ describe BlueHydra::Device do
 
     %w{
       id
+      name
+      status
       address
-      oui
+      vendor
+      appearance
+      company
+      company_type
+      lmp_version
+      manufacturer
+      firmware
+      classic_mode
+      classic_service_uuids
+      classic_channels
+      classic_major_class
+      classic_minor_class
+      classic_class
+      classic_rssi
+      classic_tx_power
+      classic_features
+      classic_features_bitmap
+      le_mode
+      le_service_uuids
+      le_address_type
+      le_random_address_type
+      le_flags
+      le_rssi
+      le_tx_power
+      le_features
+      le_features_bitmap
       created_at
       updated_at
       last_seen
@@ -30,7 +57,7 @@ describe BlueHydra::Device do
       ]
     ]
 
-    classic_16_bit_service_uuids = [
+    classic_uuids = [
       "PnP Information (0x1200)",
       "Handsfree Audio Gateway (0x111f)",
       "Phonebook Access Server (0x112f)",
@@ -40,22 +67,21 @@ describe BlueHydra::Device do
       "Message Access Server (0x1132)"
     ]
 
-    le_16_bit_service_uuids = ["Unknown (0xfeed)"]
+    le_uuids = ["Unknown (0xfeed)"]
 
     device.classic_class = classic_class
-    device.classic_16_bit_service_uuids = classic_16_bit_service_uuids
-    device.le_16_bit_service_uuids = le_16_bit_service_uuids
+    device.classic_service_uuids = classic_uuids
+    device.le_service_uuids = le_uuids
 
     expect(JSON.parse(device.classic_class).first).to eq("Networking (LAN, Ad hoc)")
-    expect(JSON.parse(device.classic_16_bit_service_uuids).first).to eq("PnP Information")
-    expect(JSON.parse(device.le_16_bit_service_uuids).first).to eq("Unknown")
+    expect(JSON.parse(device.classic_service_uuids).first).to eq("PnP Information (0x1200)")
+    expect(JSON.parse(device.le_service_uuids).first).to eq("Unknown (0xfeed)")
   end
 
   it "create or updates from a hash" do
     raw = {
       classic_num_responses: ["1"],
       address: ["00:00:00:00:00:00"],
-      oui: ["(Apple)"],
       classic_page_scan_repetition_mode: ["R1 (0x01)"],
       classic_page_period_mode: ["P2 (0x02)"],
       classic_major_class: ["Phone (cellular, cordless, payphone, modem)"],
@@ -71,16 +97,14 @@ describe BlueHydra::Device do
       classic_clock_offset: ["0x54a2"],
       classic_rssi: ["-36 dBm (0xdc)"],
       name: ["iPhone"],
-      classic_16_bit_service_uuids: [
+      classic_service_uuids: [
         "PnP Information (0x1200)",
         "Handsfree Audio Gateway (0x111f)",
         "Phonebook Access Server (0x112f)",
         "Audio Source (0x110a)",
         "A/V Remote Control Target (0x110c)",
         "NAP (0x1116)",
-        "Message Access Server (0x1132)"
-      ],
-      classic_128_bit_service_uuids: [
+        "Message Access Server (0x1132)",
         "00000000-deca-fade-deca-deafdecacafe",
         "2d8d2466-e14d-451c-88bc-7301abea291a"
       ],
@@ -95,11 +119,10 @@ describe BlueHydra::Device do
     device = BlueHydra::Device.update_or_create_from_result(raw)
 
     expect(device.address).to eq("00:00:00:00:00:00")
-    expect(device.oui).to eq("(Apple)")
     expect(device.name).to eq("iPhone")
     expect(
       JSON.parse(device.classic_class).first).to eq("Networking (LAN, Ad hoc)")
     expect(
-      JSON.parse(device.classic_16_bit_service_uuids).first).to eq("PnP Information")
+      JSON.parse(device.classic_service_uuids).first).to eq("PnP Information (0x1200)")
   end
 end
