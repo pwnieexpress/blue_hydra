@@ -13,7 +13,7 @@ class BlueHydra::Device
   property :name,                          String
   property :status,                        String
   property :address,                       String
-  property :oui,                           Text
+  property :vendor,                           Text
   property :appearance,                    String
   property :company,                       String
   property :company_type,                  String
@@ -50,7 +50,7 @@ class BlueHydra::Device
   validates_format_of :address, with: MAC_REGEX
 
   # before saving set the vendor info and the mode flags (le/classic)
-  before :save, :set_oui
+  before :save, :set_vendor
   before :save, :set_mode_flags
 
   # after saving send up to pulse
@@ -156,10 +156,10 @@ class BlueHydra::Device
 
   # look up the vendor for the address in the Louis gem
   # and set it
-  def set_oui
+  def set_vendor
     vendor = Louis.lookup(address)
-    if self.oui == nil || self.oui == "Unknown"
-      self.oui = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
+    if self.vendor == nil || self.vendor == "Unknown"
+      self.vendor = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
     end
   end
 
@@ -176,7 +176,7 @@ class BlueHydra::Device
     send_data[:data][:name]                    = name                              if name
     send_data[:data][:status]                  = status                            if status
     send_data[:data][:address]                 = address                           if address
-    send_data[:data][:oui]                     = oui                               if oui
+    send_data[:data][:vendor]                  = vendor                            if vendor
     send_data[:data][:appearance]              = appearance                        if appearance
     send_data[:data][:company]                 = company                           if company
     send_data[:data][:company_type]            = company_type                      if company_type

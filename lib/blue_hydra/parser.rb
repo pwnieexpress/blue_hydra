@@ -222,11 +222,11 @@ module BlueHydra
         set_attr("#{bt_mode}_handle".to_sym, line.split(': ')[1])
 
       when line =~ /^Address:/ || line =~ /^Peer address:/
-        addr, *oui = line.split(': ')[1].split(" ")
+        addr, *addr_type = line.split(': ')[1].split(" ")
         set_attr("address".to_sym, addr)
 
         if bt_mode == "le"
-          set_attr("le_random_address_type".to_sym, oui.join(' '))
+          set_attr("le_random_address_type".to_sym, addr_type.join(' '))
         end
 
       when line =~ /^LMP version:/
