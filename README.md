@@ -26,4 +26,7 @@ Currently there are 3 supported config options
 Some stuff to do
 * handle alt UUIDs which contain paren
 * rate limit incoming RSSIs to 1 per timeframe
-* Investigate duplicate 
+* Investigate duplicate classic_features_bitmaps...
+  ```
+  W, [2016-01-27T15:51:44.838857 #18723]  WARN -- : 00:61:71:D0:E1:EF multiple values detected for classic_features_bitmap: ["0xbf 0xfe 0xcf 0xfe 0xdb 0xff 0x7b 0x87", "0x07 0x00 0x00 0x00 0x00 0x00 0x00 0x00", "0x000002a8"]. Using first value...
+  ```
