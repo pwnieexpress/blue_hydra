@@ -1,24 +1,46 @@
 module BlueHydra
+
+  # This class is responsible for running the Bluetooth monitor. It can also be
+  # passed other commands such as "cat btmonoutput.txt" to allow replaying of
+  # recorded bluetooth scans.
   class BtmonHandler
+
+    # initialize an instance of the class to run a command and push filtered
+    # output into the parsing and processing pipeline
+    #
+    # == Parameters:
+    #   command ::
+    #     the command to get data from, in most cases this is `btmon -T`
+    #   parse_queue ::
+    #     Queue object to push results into
     def initialize(command, parse_queue)
       @command = command
       @parse_queue = parse_queue
 
-      # # log raw btmon output for review
+      # # log raw btmon output for review if we are debug mode
       if BlueHydra.config[:log_level] == "debug"
         @log_file = File.open('btmon.log','a')
       end
 
+      # initialize itself calls the method that spanws the PTY which runst the
+      # command
       spawn
     end
 
+    # spawn a PTY to run @command
     def spawn
       PTY.spawn(@command) do |stdout, stdin, pid|
+
+        # lines of output will be stacked up here until a message is complete
+        # and pushed into @parse_queue
         buffer = []
 
         begin
+          # handle the streaming output line by line
           stdout.each do |line|
 
+            # strip out color codes
+            # TODO prolly a cleaner way to do this
             line = line.gsub("\e[0;37m", "")
             line = line.gsub("\e[0;36m", "")
             line = line.gsub("\e[0;35m", "")
@@ -28,19 +50,43 @@ module BlueHydra
             line = line.gsub("\e[0m",    "")
 
 
+            # Messages are indented under a header as follows
+            #
+            #   Message A
+            #     Data A1
+            #     Data A2
+            #   Message B
+            #     Data B1
+            #       Data B1a
+            #     Data B2
+            #
+            # If the line starts with whitespace we are still in a nested
+            # message otherwise we hit a new message and should empy the buffer
+            #
             # \s == whitespace
             # \S == non whitespace
+            #
+            # When we get a line that starts with non-whitespace we are dealing
+            # with a new message starting
             if line =~ /^\S/
+
+              # if we have nothing in the buffer its our first message of the
+              # run so we dont need to do anything but if we have a non-zero
+              # sized buffer we push the contents of the buffer into the
+              # @parse_queue
               if buffer.size > 0
                 enqueue(buffer)
               end
+
+              # reset the buffer
               buffer = []
             end
 
             buffer << line
           end
         rescue Errno::EIO
-          # File has completed, flush last chunks to buffer
+          # File has completed or command has crashed, either way flush last
+          # chunks to buffer
           enqueue(buffer)
 
           raise BtmonExitedError
@@ -48,7 +94,9 @@ module BlueHydra
       end
     end
 
+    # filter and then push an array of lines into the @parse_queue
     def enqueue(buffer)
+
       # discard anything which we sent to the modem as those lines
       # will start with <
       # also discard anything prefixed with @ (local events)
@@ -63,13 +111,14 @@ module BlueHydra
           ( buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ )
         )
 
-        # log raw btmon output for review
+        # log raw btmon output for review if we are in debug mode
         if BlueHydra.config[:log_level] == "debug"
           buffer.each do |line|
             @log_file.puts(line.chomp)
           end
         end
 
+        # unless this is a filtered message enqueue the buffer for realz.
         @parse_queue.push(buffer)
       end
     end
