@@ -205,7 +205,7 @@ class BlueHydra::Device
     send_data[:data][:last_seen]               = last_seen                         unless last_seen.nil?
 
     # create the json
-    json = JSON.pretty_generate(send_data)
+    json = JSON.generate(send_data)
 
     # log raw results into device files for review in debugmode
     if BlueHydra.config[:log_level] == "debug"
