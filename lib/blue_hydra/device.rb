@@ -215,14 +215,12 @@ class BlueHydra::Device
       File.write(file_path, json)
     end
 
-    # TODO enable
-    #
-    # # write json data to result socket
-    # TCPSocket.open('127.0.0.1', 8244) do |sock|
-    #   sock.write(json)
-    #   sock.write("\n")
-    #   sock.flush
-    # end
+    # write json data to result socket
+    TCPSocket.open('127.0.0.1', 8244) do |sock|
+      sock.write(json)
+      sock.write("\n")
+      sock.flush
+    end
   rescue => e
     BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
   end
