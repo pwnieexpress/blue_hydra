@@ -155,7 +155,7 @@ module BlueHydra
               # Do a standard discovery scan
               if ( Time.now.to_i - last_discover_time ) > 30 && last_discover_time <= last_ubertooth_time
                 # interface reset
-                interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
+                interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")[:stderr]
                 if interface_reset
                   BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
                   interface_reset.split("\n").each do |ln|
@@ -177,14 +177,14 @@ module BlueHydra
               if ubertooth_supported && info_scan_queue.empty?
                 if ( Time.now.to_i - last_ubertooth_time ) > 60 && last_ubertooth_time <= last_discover_time
                   #interface reset
-                  interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
+                  interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")[:stderr]
                   if interface_reset
                     BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
                     interface_reset.split("\n").each do |ln|
                       BlueHydra.logger.error(ln)
                     end
                   end
-                  ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")
+                  ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")[:stderr]
                   if ubertooth_reset
                     BlueHydra.logger.error("Error with ubertooth-util -r...")
                     ubertooth_reset.split("\n").each do |ln|
