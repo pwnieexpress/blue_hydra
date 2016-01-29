@@ -114,11 +114,16 @@ module BlueHydra
       self.discovery_thread = Thread.new do
         begin
           last_discover_time = 0
-          last_ubertooth_time = 0
-          # TODO actually check this
-          ubertooth_supported = true
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
-          ubertooth_command = "ubertooth-scan -b #{BlueHydra.config[:bt_device]} -t 40 -x"
+
+          # Handle ubertooth
+          last_ubertooth_time = 0
+          ubertooth_supported = false
+          if system("ubertooth-util -v > /dev/null 2>&1") && ::File.executable?("/usr/bin/ubertooth-scan")
+            ubertooth_supported = true
+            ubertooth_command = "ubertooth-scan -b #{BlueHydra.config[:bt_device]} -t 40 -x"
+          end
+
           loop do
             begin
               # clear queues
