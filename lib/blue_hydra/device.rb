@@ -150,6 +150,9 @@ class BlueHydra::Device
 
     if record.valid?
       record.save
+      if self.all(uap_lap: record.uap_lap).count > 1
+        BlueHydra.logger.warn("Duplicate UAP/LAP detected: #{record.uap_lap}.")
+      end
     else
       BlueHydra.logger.warn(
         "#{address} can not save. attrs: #{ record.attributes.inspect }"
@@ -457,7 +460,15 @@ class BlueHydra::Device
     unless le_address_type && le_address_type =~ /Public/
       self[:le_random_address_type] = type
     end
- String end
+  end
+
+  def address=(new)
+    current = self.address
+
+    if current.nil? || current =~ /^00:00/
+      self[:address] = new
+    end
+  end
 
   def le_features_bitmap=(arr)
     current = JSON.parse(self.le_features_bitmap||'{}')
