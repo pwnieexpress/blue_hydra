@@ -184,6 +184,13 @@ module BlueHydra
                       BlueHydra.logger.error(ln)
                     end
                   end
+                  ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")
+                  if ubertooth_reset
+                    BlueHydra.logger.error("Error with ubertooth-util -r...")
+                    discovery_errors.split("\n").each do |ln|
+                      BlueHydra.logger.error(ln)
+                    end
+                  end
 
                   ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
                   last_ubertooth_time = Time.now.to_i
