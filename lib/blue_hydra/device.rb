@@ -1,8 +1,6 @@
 # this is the bluetooth Device model stored in the DB
 class BlueHydra::Device
 
-  # regex to validate macs
-  MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
 
   # this is a DataMapper model...
   include DataMapper::Resource
@@ -12,7 +10,10 @@ class BlueHydra::Device
 
   property :name,                          String
   property :status,                        String
+
   property :address,                       String
+  property :uap_lap,                       String
+
   property :vendor,                        Text
   property :appearance,                    String
   property :company,                       String
@@ -46,11 +47,15 @@ class BlueHydra::Device
   property :updated_at,                    DateTime
   property :last_seen,                     Integer
 
+  # regex to validate macs
+  MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
+
   # validate the address. the only validation currently
   validates_format_of :address, with: MAC_REGEX
 
   # before saving set the vendor info and the mode flags (le/classic)
   before :save, :set_vendor
+  before :save, :set_uap_lap
   before :save, :set_mode_flags
 
   # after saving send up to pulse
@@ -99,7 +104,7 @@ class BlueHydra::Device
 
     address = result[:address].first
 
-    record = self.all(address: address).first || self.new
+    record = self.all(address: address).first || self.find_by_uap_lap(address) || self.new
 
     # if we are processing things here we have, implicitly seen them so
     # mark as online?
@@ -161,6 +166,23 @@ class BlueHydra::Device
     if self.vendor == nil || self.vendor == "Unknown"
       self.vendor = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
     end
+  end
+
+
+  # set the last 4 octets of the mac as the uap_lap values
+  #
+  # These values are from mac addresses for bt devices as follows
+  #
+  # |NAP    |UAP |LAP
+  # DE : AD : BE : EF : CA : FE
+  def set_uap_lap
+    self[:uap_lap] = self.address.split(":")[2,4].join(":")
+  end
+
+  # lookup helper method for uap_lap
+  def self.find_by_uap_lap(address)
+    uap_lap = address.split(":")[2,4].join(":")
+    self.all(uap_lap: uap_lap).first
   end
 
   # sync record to pulse
