@@ -97,10 +97,25 @@ module BlueHydra
             vals = grp.map(&:strip)
             set_attr("#{bt_mode}_flags".to_sym, vals.join(", "))
 
+
+          # Page: 1/1
+          # Features: 0x07 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+          #   Secure Simple Pairing (Host Support)
+          #   LE Supported (Host)
+          #   Simultaneous LE and BR/EDR (Host)
+          when grp[0] =~ /^\s+Page/
+            page   = grp.shift.split(':')[1].strip
+            bitmap = grp.shift.split(':')[1].strip
+            vals = grp.map(&:strip)
+            set_attr("#{bt_mode}_features_bitmap".to_sym, [page, bitmap])
+            set_attr("#{bt_mode}_features".to_sym, vals.join(", "))
+
           when grp[0] =~ /^\s+Features/
             bitmap = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
-            set_attr("#{bt_mode}_features_bitmap".to_sym, bitmap)
+
+            # default page value is here set to '0'
+            set_attr("#{bt_mode}_features_bitmap".to_sym, ['0',bitmap])
             set_attr("#{bt_mode}_features".to_sym, vals.join(", "))
 
           when grp[0] =~ /^\s+Channels/
@@ -290,7 +305,6 @@ module BlueHydra
       when line =~ /^Supervision timeout:/
       when line =~ /^Master clock accuracy:/
       when line =~ /^Server RX MTU:/
-      when line =~ /^Page:/
       when line =~ /^Link type:/
       when line =~ /^Clock offset:/
       when line =~ /^Num reports:/
@@ -315,11 +329,16 @@ module BlueHydra
 
       nested = false
       arr.each do |x|
+
         if output.last
 
           last_line = output.last[-1]
 
           if line_depth(last_line) == line_depth(x)
+
+            if x =~ /Features:/ && last_line =~ /Page: \d/
+              nested = true
+            end
 
             if nested
               output.last << x
