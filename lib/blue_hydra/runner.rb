@@ -159,14 +159,14 @@ module BlueHydra
                 discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
                 last_discover_time = Time.now.to_i
 
-                if discovery_errors
-                  BlueHydra.logger.error("Error with test-discovery script..")
+                if interface_reset
+                  BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
                   discovery_errors.split("\n").each do |ln|
                     BlueHydra.logger.error(ln)
                   end
                 end
-                if interface_reset
-                  BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
+                if discovery_errors
+                  BlueHydra.logger.error("Error with test-discovery script..")
                   discovery_errors.split("\n").each do |ln|
                     BlueHydra.logger.error(ln)
                   end
@@ -180,15 +180,15 @@ module BlueHydra
                   ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
                   last_ubertooth_time = Time.now.to_i
 
-                  if ubertooth_errors
-                    BlueHydra.logger.error("Error with ubertooth_scan..")
-                    ubertooth_errors.split("\n").each do |ln|
-                      BlueHydra.logger.error(ln)
-                    end
-                  end
                   if interface_reset
                     BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
                     discovery_errors.split("\n").each do |ln|
+                      BlueHydra.logger.error(ln)
+                    end
+                  end
+                  if ubertooth_errors
+                    BlueHydra.logger.error("Error with ubertooth_scan..")
+                    ubertooth_errors.split("\n").each do |ln|
                       BlueHydra.logger.error(ln)
                     end
                   end
