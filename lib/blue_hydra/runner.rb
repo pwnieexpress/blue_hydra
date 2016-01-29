@@ -154,17 +154,17 @@ module BlueHydra
 
               # Do a standard discovery scan
               if ( Time.now.to_i - last_discover_time ) > 30 && last_discover_time <= last_ubertooth_time
-                # do a discovery
+                # interface reset
                 interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
-                discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
-                last_discover_time = Time.now.to_i
-
                 if interface_reset
                   BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
                   discovery_errors.split("\n").each do |ln|
                     BlueHydra.logger.error(ln)
                   end
                 end
+                # do a discovery
+                discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
+                last_discover_time = Time.now.to_i
                 if discovery_errors
                   BlueHydra.logger.error("Error with test-discovery script..")
                   discovery_errors.split("\n").each do |ln|
@@ -176,16 +176,17 @@ module BlueHydra
               # Do a scan with ubertooth
               if ubertooth_supported && info_scan_queue.empty?
                 if ( Time.now.to_i - last_ubertooth_time ) > 60 && last_ubertooth_time <= last_discover_time
+                  #interface reset
                   interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
-                  ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
-                  last_ubertooth_time = Time.now.to_i
-
                   if interface_reset
                     BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
                     discovery_errors.split("\n").each do |ln|
                       BlueHydra.logger.error(ln)
                     end
                   end
+
+                  ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
+                  last_ubertooth_time = Time.now.to_i
                   if ubertooth_errors
                     BlueHydra.logger.error("Error with ubertooth_scan..")
                     ubertooth_errors.split("\n").each do |ln|
