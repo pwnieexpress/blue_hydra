@@ -31,7 +31,7 @@ class BlueHydra::Device
   property :classic_rssi,                  Text
   property :classic_tx_power,              Text
   property :classic_features,              Text
-  property :classic_features_bitmap,       String
+  property :classic_features_bitmap,       Text
 
   property :le_mode,                       Boolean
   property :le_service_uuids,              Text
@@ -41,7 +41,7 @@ class BlueHydra::Device
   property :le_rssi,                       Text
   property :le_tx_power,                   Text
   property :le_features,                   Text
-  property :le_features_bitmap,            String
+  property :le_features_bitmap,            Text
 
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
@@ -124,7 +124,7 @@ class BlueHydra::Device
       address name manufacturer short_name lmp_version firmware
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
-      le_random_address_type le_features_bitmap classic_features_bitmap
+      le_random_address_type
     }.map(&:to_sym).each do |attr|
       if result[attr]
         # we should only get a single value for these so we need to warn if
@@ -141,7 +141,7 @@ class BlueHydra::Device
     # update array attributes
     %w{
       classic_features le_features le_flags classic_channels classic_class le_rssi
-      classic_rssi le_service_uuids classic_service_uuids
+      classic_rssi le_service_uuids classic_service_uuids le_features_bitmap classic_features_bitmap
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
@@ -195,36 +195,36 @@ class BlueHydra::Device
     }
 
     # ignore nil value attributes
-    send_data[:data][:name]                    = name                              unless name.nil?
-    send_data[:data][:status]                  = status                            unless status.nil?
-    send_data[:data][:address]                 = address                           unless address.nil?
-    send_data[:data][:vendor]                  = vendor                            unless vendor.nil?
-    send_data[:data][:appearance]              = appearance                        unless appearance.nil?
-    send_data[:data][:company]                 = company                           unless company.nil?
-    send_data[:data][:company_type]            = company_type                      unless company_type.nil?
-    send_data[:data][:lmp_version]             = lmp_version                       unless lmp_version.nil?
-    send_data[:data][:manufacturer]            = manufacturer                      unless manufacturer.nil?
-    send_data[:data][:le_features_bitmap]      = le_features_bitmap                unless le_features_bitmap.nil?
-    send_data[:data][:le_features]             = JSON.parse(le_features)           unless le_features.nil? || le_features == "[]"
-    send_data[:data][:classic_features_bitmap] = classic_features_bitmap           unless classic_features_bitmap.nil?
-    send_data[:data][:classic_features]        = JSON.parse(classic_features)      unless classic_features.nil? || classic_features == "[]"
-    send_data[:data][:firmware]                = firmware                          unless firmware.nil?
-    send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)      unless le_service_uuids.nil? || le_service_uuids == "[]"
-    send_data[:data][:classic_service_uuids]   = JSON.parse(classic_service_uuids) unless classic_service_uuids.nil? || classic_service_uuids == "[]"
-    send_data[:data][:classic_mode]            = classic_mode                      unless classic_mode.nil?
-    send_data[:data][:classic_channels]        = JSON.parse(classic_channels)      unless classic_channels.nil? || classic_channels == "[]"
-    send_data[:data][:classic_major_class]     = classic_major_class               unless classic_major_class.nil?
-    send_data[:data][:classic_minor_class]     = classic_minor_class               unless classic_minor_class.nil?
-    send_data[:data][:classic_class]           = JSON.parse(classic_class)         unless classic_class.nil? || classic_class == "[]"
-    send_data[:data][:classic_rssi]            = JSON.parse(classic_rssi)          unless classic_rssi.nil? || classic_rssi == "[]"
-    send_data[:data][:classic_tx_power]        = classic_tx_power                  unless classic_tx_power.nil?
-    send_data[:data][:le_flags]                = JSON.parse(le_flags)              unless le_flags.nil? || le_flags == "[]"
-    send_data[:data][:le_mode]                 = le_mode                           unless le_mode.nil?
-    send_data[:data][:le_address_type]         = le_address_type                   unless le_address_type.nil?
-    send_data[:data][:le_random_address_type]  = le_random_address_type            unless le_random_address_type.nil?
-    send_data[:data][:le_rssi]                 = JSON.parse(le_rssi)               unless le_rssi.nil? || le_rssi == "[]"
-    send_data[:data][:le_tx_power]             = le_tx_power                       unless le_tx_power.nil?
-    send_data[:data][:last_seen]               = last_seen                         unless last_seen.nil?
+    send_data[:data][:name]                    = name                                unless name.nil?
+    send_data[:data][:status]                  = status                              unless status.nil?
+    send_data[:data][:address]                 = address                             unless address.nil?
+    send_data[:data][:vendor]                  = vendor                              unless vendor.nil?
+    send_data[:data][:appearance]              = appearance                          unless appearance.nil?
+    send_data[:data][:company]                 = company                             unless company.nil?
+    send_data[:data][:company_type]            = company_type                        unless company_type.nil?
+    send_data[:data][:lmp_version]             = lmp_version                         unless lmp_version.nil?
+    send_data[:data][:manufacturer]            = manufacturer                        unless manufacturer.nil?
+    send_data[:data][:le_features_bitmap]      = JSON.parse(le_features_bitmap)      unless le_features_bitmap.nil?
+    send_data[:data][:le_features]             = JSON.parse(le_features)             unless le_features.nil? || le_features == "[]"
+    send_data[:data][:classic_features_bitmap] = JSON.parse(classic_features_bitmap) unless classic_features_bitmap.nil?
+    send_data[:data][:classic_features]        = JSON.parse(classic_features)        unless classic_features.nil? || classic_features == "[]"
+    send_data[:data][:firmware]                = firmware                            unless firmware.nil?
+    send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)        unless le_service_uuids.nil? || le_service_uuids == "[]"
+    send_data[:data][:classic_service_uuids]   = JSON.parse(classic_service_uuids)   unless classic_service_uuids.nil? || classic_service_uuids == "[]"
+    send_data[:data][:classic_mode]            = classic_mode                        unless classic_mode.nil?
+    send_data[:data][:classic_channels]        = JSON.parse(classic_channels)        unless classic_channels.nil? || classic_channels == "[]"
+    send_data[:data][:classic_major_class]     = classic_major_class                 unless classic_major_class.nil?
+    send_data[:data][:classic_minor_class]     = classic_minor_class                 unless classic_minor_class.nil?
+    send_data[:data][:classic_class]           = JSON.parse(classic_class)           unless classic_class.nil? || classic_class == "[]"
+    send_data[:data][:classic_rssi]            = JSON.parse(classic_rssi)            unless classic_rssi.nil? || classic_rssi == "[]"
+    send_data[:data][:classic_tx_power]        = classic_tx_power                    unless classic_tx_power.nil?
+    send_data[:data][:le_flags]                = JSON.parse(le_flags)                unless le_flags.nil? || le_flags == "[]"
+    send_data[:data][:le_mode]                 = le_mode                             unless le_mode.nil?
+    send_data[:data][:le_address_type]         = le_address_type                     unless le_address_type.nil?
+    send_data[:data][:le_random_address_type]  = le_random_address_type              unless le_random_address_type.nil?
+    send_data[:data][:le_rssi]                 = JSON.parse(le_rssi)                 unless le_rssi.nil? || le_rssi == "[]"
+    send_data[:data][:le_tx_power]             = le_tx_power                         unless le_tx_power.nil?
+    send_data[:data][:last_seen]               = last_seen                           unless last_seen.nil?
 
     # create the json
     json = JSON.generate(send_data)
@@ -351,8 +351,6 @@ class BlueHydra::Device
   #     new flags
   def le_flags=(flags)
     new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = JSON.parse(self.le_flags || '[]')
-    self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
   # set the :le_service_uuids attribute by merging with previously seen values
@@ -459,5 +457,21 @@ class BlueHydra::Device
     unless le_address_type && le_address_type =~ /Public/
       self[:le_random_address_type] = type
     end
+ String end
+
+  def le_features_bitmap=(arr)
+    current = JSON.parse(self.le_features_bitmap||'{}')
+    arr.each do |(page, bitmap)|
+      current[page] = bitmap
+    end
+    self[:le_features_bitmap] = JSON.generate(current)
+  end
+
+  def classic_features_bitmap=(arr)
+    current = JSON.parse(self.classic_features_bitmap||'{}')
+    arr.each do |(page, bitmap)|
+      current[page] = bitmap
+    end
+    self[:classic_features_bitmap] = JSON.generate(current)
   end
 end
