@@ -148,7 +148,7 @@ module BlueHydra
               end
 
               # Do a standard discovery scan
-              if ( Time.now.to_i - last_discover_time ) > 30 && last_discover_time =< last_ubertooth_time
+              if ( Time.now.to_i - last_discover_time ) > 30 && last_discover_time <= last_ubertooth_time
                 # do a discovery
                 interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                 discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
@@ -164,7 +164,7 @@ module BlueHydra
 
               # Do a scan with ubertooth
               if ubertooth_supported && info_scan_queue.empty?
-                if ( Time.now.to_i - last_ubertooth_time ) > 60 && last_ubertooth_time =< last_discover_time
+                if ( Time.now.to_i - last_ubertooth_time ) > 60 && last_ubertooth_time <= last_discover_time
                   interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                   ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
                   last_ubertooth_time = Time.now.to_i
