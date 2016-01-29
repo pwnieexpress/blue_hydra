@@ -104,7 +104,7 @@ module BlueHydra
           #   LE Supported (Host)
           #   Simultaneous LE and BR/EDR (Host)
           when grp[0] =~ /^\s+Page/
-            page   = grp.shift.split(':')[1].strip
+            page   = grp.shift.split(':')[1].strip.split('/')[0]
             bitmap = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
             set_attr("#{bt_mode}_features_bitmap".to_sym, [page, bitmap])
