@@ -165,6 +165,12 @@ module BlueHydra
                     BlueHydra.logger.error(ln)
                   end
                 end
+                if interface_reset
+                  BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
+                  discovery_errors.split("\n").each do |ln|
+                    BlueHydra.logger.error(ln)
+                  end
+                end
               end
 
               # Do a scan with ubertooth
@@ -177,6 +183,12 @@ module BlueHydra
                   if ubertooth_errors
                     BlueHydra.logger.error("Error with ubertooth_scan..")
                     ubertooth_errors.split("\n").each do |ln|
+                      BlueHydra.logger.error(ln)
+                    end
+                  end
+                  if interface_reset
+                    BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
+                    discovery_errors.split("\n").each do |ln|
                       BlueHydra.logger.error(ln)
                     end
                   end
