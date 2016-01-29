@@ -158,7 +158,7 @@ module BlueHydra
                 interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                 if interface_reset
                   BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
-                  discovery_errors.split("\n").each do |ln|
+                  interface_reset.split("\n").each do |ln|
                     BlueHydra.logger.error(ln)
                   end
                 end
@@ -180,14 +180,14 @@ module BlueHydra
                   interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                   if interface_reset
                     BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
-                    discovery_errors.split("\n").each do |ln|
+                    interface_reset.split("\n").each do |ln|
                       BlueHydra.logger.error(ln)
                     end
                   end
                   ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")
                   if ubertooth_reset
                     BlueHydra.logger.error("Error with ubertooth-util -r...")
-                    discovery_errors.split("\n").each do |ln|
+                    ubertooth_reset.split("\n").each do |ln|
                       BlueHydra.logger.error(ln)
                     end
                   end
