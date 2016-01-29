@@ -4,7 +4,7 @@ source 'http://rubygems.org'
 # need to be added or removed should be handled there. Execution requiring
 # these gems should override the gemfile's location by specifying:
 #
-# BUNDLE_GEMFILE="/opt/pwnix/pwnix_chef/Gemfile"
+# BUNDLE_GEMFILE="/opt/pwnix/chef/Gemfile"
 exit 1
 
 
