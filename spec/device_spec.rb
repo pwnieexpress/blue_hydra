@@ -10,6 +10,7 @@ describe BlueHydra::Device do
       name
       status
       address
+      uap_lap
       vendor
       appearance
       company
@@ -42,6 +43,17 @@ describe BlueHydra::Device do
     }.each do |attr|
       expect(device.respond_to?(attr)).to eq(true)
     end
+  end
+
+  it "sets a uap_lap from an address" do
+    address  = "D5:AD:B5:5F:CA:F5"
+    device = BlueHydra::Device.new
+    device.address = address
+    device.save
+    expect(device.uap_lap).to eq("B5:5F:CA:F5")
+
+    device2 = BlueHydra::Device.find_by_uap_lap("FF:00:B5:5F:CA:F5")
+    expect(device2).to eq(device)
   end
 
   it "serializes some attributes" do
