@@ -20,10 +20,15 @@ DataMapper::Property::String.length(255)
 # The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
 # which the Pwnie chef scripts have been run. Otherwise it will attempt to
 # create a sqlite db whereever the run was initiated.
-DataMapper.setup(
-  :default,
-  Dir.exist?('/opt/pwnix/') ?  "sqlite:/opt/pwnix/blue_hydra.db" : "sqlite:blue_hydra.db"
-)
+if ENV["BLUE_HYDRA"] == "test"
+  DataMapper.setup( :default, 'sqlite::memory:?cache=shared')
+else
+  DataMapper.setup(
+    :default,
+    Dir.exist?('/opt/pwnix/') ?  "sqlite:/opt/pwnix/blue_hydra.db" : "sqlite:blue_hydra.db"
+  )
+end
+
 
 # Helpful Errors to raise in specific cased.
 # TODO perhaps extend and move into another file

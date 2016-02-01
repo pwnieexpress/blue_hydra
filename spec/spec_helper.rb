@@ -5,6 +5,8 @@ require 'pry'
 
 $:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 
+ENV["BLUE_HYDRA"] = "test"
+
 require 'blue_hydra'
 
 RSpec.configure do |config|

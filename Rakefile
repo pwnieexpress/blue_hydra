@@ -20,7 +20,7 @@ task "summary" do
   BlueHydra::Device.all.each do |dev|
     puts "Device -- #{dev.address}"
     dev.attributes.each do |name, val|
-      next if name == :address
+      next if [:address, :classic_rssi, :le_rssi].include?(name)
       if %w{ 
           classic_features le_features le_flags classic_channels
           le_16_bit_service_uuids classic_16_bit_service_uuids
