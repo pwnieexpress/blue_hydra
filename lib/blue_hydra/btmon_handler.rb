@@ -116,8 +116,12 @@ module BlueHydra
           # when we actually want to let it time out.
           #
           # TODO add a positive feed back loop to indicate we have attempted
-          # and failed to ping a device
-          (buffer[0] =~ /Connect Complete/ && buffer[1] =~ /Status: Page Timeout/ )
+          # and failed to ping a device, for now, throw out everything that isn't Success
+          # (l2pinging a down host results in "Page Timeout")
+          # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
+          # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
+          # "Connection Timeout"
+          (buffer[0] =~ /Connect Complete/ && buffer[1] !~ /Status: Success/ )
         )
 
         # log raw btmon output for review if we are in debug mode
