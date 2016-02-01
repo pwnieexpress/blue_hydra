@@ -1,7 +1,6 @@
 # this is the bluetooth Device model stored in the DB
 class BlueHydra::Device
 
-
   # this is a DataMapper model...
   include DataMapper::Resource
 
@@ -10,7 +9,6 @@ class BlueHydra::Device
 
   property :name,                          String
   property :status,                        String
-
   property :address,                       String
   property :uap_lap,                       String
 
@@ -154,9 +152,10 @@ class BlueHydra::Device
         BlueHydra.logger.warn("Duplicate UAP/LAP detected: #{record.uap_lap}.")
       end
     else
-      BlueHydra.logger.warn(
-        "#{address} can not save. attrs: #{ record.attributes.inspect }"
-      )
+      BlueHydra.logger.warn("#{address} can not save.")
+      record.errors.keys.each do |key|
+        BlueHydra.logger.warn("#{key.to_s}: #{record.errors[key].inspect} (#{record[key]})")
+      end
     end
 
     record
