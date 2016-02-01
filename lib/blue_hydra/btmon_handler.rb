@@ -108,7 +108,16 @@ module BlueHydra
           buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
           buffer.first =~ /^Bluetooth monitor ver/ ||
           buffer.first =~ /^= New Index:/ ||
-          ( buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ )
+          (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ ) ||
+
+          # l2ping against a host that is gone will result in a good connect
+          # complete message with a timed out status indicating the ping failed
+          # do not send this to the parser as it will 'online' the record
+          # when we actually want to let it time out.
+          #
+          # TODO add a positive feed back loop to indicate we have attempted
+          # and failed to ping a device
+          (buffer[0] =~ /Connect Complete/ && buffer[1] =~ /Status: Page Timeout/ )
         )
 
         # log raw btmon output for review if we are in debug mode
