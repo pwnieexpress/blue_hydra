@@ -119,6 +119,7 @@ module BlueHydra
           if system("ubertooth-util -v > /dev/null 2>&1") && ::File.executable?("/usr/bin/ubertooth-scan")
             ubertooth_supported = true
             ubertooth_command = "ubertooth-scan -b #{BlueHydra.config[:bt_device]} -t 40 -x"
+            BlueHydra.logger.info("Enabling Ubertooth Support")
           end
 
           next_discovery_type = :test_discovery
