@@ -26,6 +26,12 @@ module BlueHydra
     def start(command=@@command)
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
+
+        BlueHydra.logger.info("Syncing all hosts to Pulse...")
+        BlueHydra::Device.all.each do |dev|
+          dev.sync_to_pulse
+        end
+
         self.command         = command
         self.raw_queue       = Queue.new
         self.chunk_queue     = Queue.new
