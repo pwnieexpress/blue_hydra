@@ -110,6 +110,10 @@ module BlueHydra
             set_attr("#{bt_mode}_features_bitmap".to_sym, [page, bitmap])
             set_attr("#{bt_mode}_features".to_sym, vals.join(", "))
 
+          # Features: 0x07 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+          #   Secure Simple Pairing (Host Support)
+          #   LE Supported (Host)
+          #   Simultaneous LE and BR/EDR (Host)
           when grp[0] =~ /^\s+Features/
             bitmap = grp.shift.split(':')[1].strip
             vals = grp.map(&:strip)
