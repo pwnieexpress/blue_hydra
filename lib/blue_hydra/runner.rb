@@ -27,6 +27,15 @@ module BlueHydra
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
+        # mark hosts as 'offline' if we haven't seen for a while
+        BlueHydra.logger.info("Marking older devices as 'offline'...")
+        BlueHydra::Device.all(status: "online").select{|x|
+          x.last_seen < (Time.now.to_i - (60*60))
+        }.each{|device|
+          device.status = 'offline'
+          device.save
+        }
+
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
         BlueHydra::Device.all.each do |dev|
           dev.sync_to_pulse
