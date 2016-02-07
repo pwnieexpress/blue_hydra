@@ -54,8 +54,9 @@ module BlueHydra
   # TODO document other attributes:
   # - "file"
   DEFAULT_CONFIG = {
-    log_level: "info",
-    bt_device: "hci0"
+    log_level:      "info",
+    bt_device:      "hci0",
+    info_scan_rate: "60"
   }
 
   # Create config file with defaults if missing or load and update.
