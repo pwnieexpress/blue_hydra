@@ -85,13 +85,16 @@ module BlueHydra
     end
 
     def stop
-      BlueHydra.logger.info("Runner exiting...")
+      BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
       self.btmon_thread.kill # stop this first thread so data stops flowing ...
 
       # clear queue...
       until [nil, false].include?(parser_thread.status) || self.result_queue.empty?
-        sleep 1
+        BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
+        sleep 15
       end
+
+      BlueHydra.logger.info("Queue clear! Exiting.")
 
       self.raw_queue       = nil
       self.chunk_queue     = nil
