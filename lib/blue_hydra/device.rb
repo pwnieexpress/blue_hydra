@@ -22,7 +22,7 @@ class BlueHydra::Device
 
   property :classic_mode,                  Boolean
   property :classic_service_uuids,         Text
-  property :classic_channels,              String
+  property :classic_channels,              Text
   property :classic_major_class,           String
   property :classic_minor_class,           String
   property :classic_class,                 Text
@@ -215,7 +215,8 @@ class BlueHydra::Device
     send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)        unless le_service_uuids.nil? || le_service_uuids == "[]"
     send_data[:data][:classic_service_uuids]   = JSON.parse(classic_service_uuids)   unless classic_service_uuids.nil? || classic_service_uuids == "[]"
     send_data[:data][:classic_mode]            = classic_mode                        unless classic_mode.nil?
-    send_data[:data][:classic_channels]        = JSON.parse(classic_channels)        unless classic_channels.nil? || classic_channels == "[]"
+    # inhibit sending this data to pulse until pulse understands the new format
+    #send_data[:data][:classic_channels]        = JSON.parse(classic_channels)        unless classic_channels.nil? || classic_channels == "[]"
     send_data[:data][:classic_major_class]     = classic_major_class                 unless classic_major_class.nil?
     send_data[:data][:classic_minor_class]     = classic_minor_class                 unless classic_minor_class.nil?
     send_data[:data][:classic_class]           = JSON.parse(classic_class)           unless classic_class.nil? || classic_class == "[]"
