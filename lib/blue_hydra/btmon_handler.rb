@@ -41,14 +41,24 @@ module BlueHydra
 
             # strip out color codes
             # TODO prolly a cleaner way to do this
-            line = line.gsub("\e[0;37m", "")
-            line = line.gsub("\e[0;36m", "")
-            line = line.gsub("\e[0;35m", "")
-            line = line.gsub("\e[0;34m", "")
-            line = line.gsub("\e[0;33m", "")
-            line = line.gsub("\e[0;32m", "")
-            line = line.gsub("\e[0m",    "")
+            known_colors = [
+              "\e[0;37m",
+              "\e[0;36m",
+              "\e[0;35m",
+              "\e[0;34m",
+              "\e[0;33m",
+              "\e[0;32m",
+              "\e[0m",
+            ]
 
+            begin
+              known_colors.each do |c|
+                line = line.gsub(c, "")
+              end
+            rescue => ArgumentError
+              BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line}")
+              next
+            end
 
             # Messages are indented under a header as follows
             #
