@@ -89,7 +89,7 @@ module BlueHydra
       self.btmon_thread.kill # stop this first thread so data stops flowing ...
 
       # clear queue...
-      until [nil, false].include?(parser_thread.status) || self.result_queue.empty?
+      until [nil, false].include?(result_thread.status) || [nil, false].include?(parser_thread.status) || self.result_queue.empty?
         BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
         sleep 15
       end
