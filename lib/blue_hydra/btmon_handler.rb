@@ -53,7 +53,7 @@ module BlueHydra
 
             begin
               known_colors.each do |c|
-                line = line.gsub(c, "")
+                line = line.gsub(c, "").strip
               end
             rescue => ArgumentError
               BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line}")
