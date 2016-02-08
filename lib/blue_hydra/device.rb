@@ -210,10 +210,11 @@ class BlueHydra::Device
     send_data[:data][:company_type]            = company_type                        unless company_type.nil?
     send_data[:data][:lmp_version]             = lmp_version                         unless lmp_version.nil?
     send_data[:data][:manufacturer]            = manufacturer                        unless manufacturer.nil?
-    send_data[:data][:le_features_bitmap]      = JSON.parse(le_features_bitmap)      unless le_features_bitmap.nil?
+    # inhibit sending this data to pulse until pulse understands the new format
+    # send_data[:data][:le_features_bitmap]      = JSON.parse(le_features_bitmap)      unless le_features_bitmap.nil?
     send_data[:data][:le_features]             = JSON.parse(le_features)             unless le_features.nil? || le_features == "[]"
     # inhibit sending this data to pulse until pulse understands the new format
-    #send_data[:data][:classic_features_bitmap] = JSON.parse(classic_features_bitmap) unless classic_features_bitmap.nil?
+    # send_data[:data][:classic_features_bitmap] = JSON.parse(classic_features_bitmap) unless classic_features_bitmap.nil?
     send_data[:data][:classic_features]        = JSON.parse(classic_features)        unless classic_features.nil? || classic_features == "[]"
     send_data[:data][:firmware]                = firmware                            unless firmware.nil?
     send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)        unless le_service_uuids.nil? || le_service_uuids == "[]"
