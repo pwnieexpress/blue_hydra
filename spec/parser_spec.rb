@@ -50,7 +50,6 @@ describe BlueHydra::Parser do
 
     chunker = BlueHydra::Chunker.new(queue1, queue2)
 
-
     t = Thread.new do
       chunker.chunk_it_up
     end
@@ -62,7 +61,6 @@ describe BlueHydra::Parser do
     until queue2.empty?
       chunks << queue2.pop
     end
-
 
     parsers = chunks.map do |c|
       p = BlueHydra::Parser.new(c)
