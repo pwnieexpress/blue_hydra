@@ -85,13 +85,16 @@ module BlueHydra
     end
 
     def stop
-      BlueHydra.logger.info("Runner exiting...")
+      BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
       self.btmon_thread.kill # stop this first thread so data stops flowing ...
 
       # clear queue...
-      until [nil, false].include?(parser_thread.status) || self.result_queue.empty?
-        sleep 1
+      until [nil, false].include?(result_thread.status) || [nil, false].include?(parser_thread.status) || self.result_queue.empty?
+        BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
+        sleep 15
       end
+
+      BlueHydra.logger.info("Queue clear! Exiting.")
 
       self.raw_queue       = nil
       self.chunk_queue     = nil
@@ -373,7 +376,7 @@ module BlueHydra
                   if device.le_mode
                     # device.le_mode - this is a le device which has not been queried for >=15m
                     #   if true, add to active_queue to "hcitool leinfo result[:address]"
-                    if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:le].to_i
+                    if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= query_history[device.address][:le].to_i
                       #BlueHydra.logger.debug("device le scan triggered")
                       info_scan_queue.push({command: :leinfo, address: device.address})
                       query_history[device.address][:le] = Time.now.to_i
@@ -383,7 +386,7 @@ module BlueHydra
                   if device.classic_mode
                     # device.classic_mode - this is a classic device which has not been queried for >=15m
                     #   if true, add to active_queue "hcitool info result[:address]"
-                    if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:classic].to_i
+                    if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= query_history[device.address][:classic].to_i
                       #BlueHydra.logger.debug("device classic scan triggered")
                       info_scan_queue.push({command: :info, address: device.address})
                       query_history[device.address][:classic] = Time.now.to_i
