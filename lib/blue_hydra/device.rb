@@ -164,11 +164,11 @@ class BlueHydra::Device
   # look up the vendor for the address in the Louis gem
   # and set it
   def set_vendor
-    vendor = Louis.lookup(address)
     if self.le_address_type == "Random"
       self.vendor = "N/A - Random Address"
     else
       if self.vendor == nil || self.vendor == "Unknown"
+        vendor = Louis.lookup(address)
         self.vendor = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
       end
     end
