@@ -273,7 +273,7 @@ module BlueHydra
       self.query_history[track_addr] ||= {}
       last_info = self.query_history[track_addr][mode].to_i
       if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_info
-        info_scan_queue.push({command: info, address: address})
+        info_scan_queue.push({command: command, address: address})
         self.query_history[track_addr][mode] = Time.now.to_i
       end
     end
