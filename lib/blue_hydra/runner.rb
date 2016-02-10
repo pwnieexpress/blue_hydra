@@ -160,7 +160,14 @@ module BlueHydra
                   command = info_scan_queue.pop
                   case command[:command]
                   when :info
-                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
+                    # TODO: because ubertooth thread will be adding things to this queue we need to take :last_classic_info
+                    # and track it here as only the result thread can read the db
+                    # description/protocode::
+                    # take command[:address] and command[:last_classic_info] and put it in some kind of hash
+                    # then check it like this except actually check the in memory hash
+                    #if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_classic_info
+                      BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
+                    #end
                   when :leinfo
                     BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}")
                   else
@@ -399,9 +406,10 @@ module BlueHydra
                   if device.classic_mode
                     # device.classic_mode - this is a classic device which has not been queried for >=info_scan_rate (default 60 min)
                     #   if true, add to active_queue "hcitool info result[:address]"
-                    if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= query_history[device.address][:classic].to_i
-                      #BlueHydra.logger.debug("device classic scan triggered")
-                      info_scan_queue.push({command: :info, address: device.address})
+                    last_classic_info = query_history[device.address][:classic].to_i
+                    if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_classic_info
+                      BlueHydra.logger.debug("device classic scan triggered from result thread")
+                      info_scan_queue.push({command: :info, address: device.address, last_classic_info: last_classic_info})
                       query_history[device.address][:classic] = Time.now.to_i
                     end
                   end
