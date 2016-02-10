@@ -414,7 +414,7 @@ module BlueHydra
                   end
 
                   if device.classic_mode
-                    push_to_queue(:info, device.address)
+                    push_to_queue(:classic, device.address)
                   end
                 end
 
