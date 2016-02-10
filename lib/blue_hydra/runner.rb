@@ -11,6 +11,7 @@ module BlueHydra
                   :chunker_thread,
                   :parser_thread,
                   :info_scan_queue,
+                  :query_history,
                   :l2ping_queue,
                   :result_thread
 
@@ -42,6 +43,7 @@ module BlueHydra
           dev.sync_to_pulse
         end
 
+        self.query_history   = {}
         self.command         = command
         self.raw_queue       = Queue.new
         self.chunk_queue     = Queue.new
@@ -160,14 +162,7 @@ module BlueHydra
                   command = info_scan_queue.pop
                   case command[:command]
                   when :info
-                    # TODO: because ubertooth thread will be adding things to this queue we need to take :last_classic_info
-                    # and track it here as only the result thread can read the db
-                    # description/protocode::
-                    # take command[:address] and command[:last_classic_info] and put it in some kind of hash
-                    # then check it like this except actually check the in memory hash
-                    #if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_classic_info
-                      BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
-                    #end
+                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
                   when :leinfo
                     BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}")
                   else
@@ -251,7 +246,7 @@ module BlueHydra
                     address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
                     BlueHydra.logger.debug("device classic scan triggered from ubertooth thread")
                     BlueHydra.logger.debug("adding address(#{address}) from line(#{line})")
-                    info_scan_queue.push({command: :info, address: address})
+                    push_to_queue(:classic, address)
                   end
                 end
               end
@@ -261,6 +256,25 @@ module BlueHydra
             end
           end
         end
+      end
+    end
+
+    def push_to_queue(mode, address)
+      last_classic_info = self.query_history[device.address][mode].to_i
+      if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_classic_info
+
+        case mode
+        when :classic
+          command = :info
+          # use uap_lap for tracking classic devices
+          track_addr = address.split(":")[2,4].join(":")
+        when :le
+          command = :leinfo
+          track_addr = address
+        end
+        info_scan_queue.push({command: info, address: address})
+
+        self.query_history[track_addr][mode] = Time.now.to_i
       end
     end
 
@@ -313,7 +327,6 @@ module BlueHydra
                     case
                     when k == :last_seen
                       if (attrs[k].first - 600) >= scan_results[address][k].first
-                        # BlueHydra.logger.debug("syncing #{k} for #{address} last sync was #{attrs[k].first - scan_results[address][k].first}s ago...")
                         scan_results[address][k] = attrs[k]
                         needs_push = true
                       end
@@ -355,7 +368,6 @@ module BlueHydra
       BlueHydra.logger.info("Result thread starting")
       self.result_thread = Thread.new do
         begin
-          query_history = {}
 
           #debugging
           maxdepth = 0
@@ -368,14 +380,14 @@ module BlueHydra
               BlueHydra::Device.all(classic_mode: true).select{|x|
                 x.last_seen < (Time.now.to_i - (60 * 15)) && x.last_seen > (Time.now.to_i - (60*60))
               }.each{|device|
-                query_history[device.address] ||= {}
-                if (Time.now.to_i - (15 * 60)) >= query_history[device.address][:l2ping].to_i
+                self.query_history[device.address] ||= {}
+                if (Time.now.to_i - (15 * 60)) >= self.query_history[device.address][:l2ping].to_i
                   # BlueHydra.logger.debug("device l2ping scan triggered")
                   l2ping_queue.push({
                     command: :l2ping,
                     address: device.address
                   })
-                  query_history[device.address][:l2ping] = Time.now.to_i
+                  self.query_history[device.address][:l2ping] = Time.now.to_i
                 end
               }
             end
@@ -395,30 +407,16 @@ module BlueHydra
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
-                query_history[device.address] ||= {}
+                self.query_history[device.address] ||= {}
 
                 unless BlueHydra.config[:file]
-                  # BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
 
                   if device.le_mode
-                    # device.le_mode - this is a le device which has not been queried for >=info_scan_rate (default 60 min)
-                    #   if true, add to active_queue to "hcitool leinfo result[:address]"
-                    if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= query_history[device.address][:le].to_i
-                      #BlueHydra.logger.debug("device le scan triggered")
-                      info_scan_queue.push({command: :leinfo, address: device.address})
-                      query_history[device.address][:le] = Time.now.to_i
-                    end
+                    push_to_queue(:le, address)
                   end
 
                   if device.classic_mode
-                    # device.classic_mode - this is a classic device which has not been queried for >=info_scan_rate (default 60 min)
-                    #   if true, add to active_queue "hcitool info result[:address]"
-                    last_classic_info = query_history[device.address][:classic].to_i
-                    if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_classic_info
-                      BlueHydra.logger.debug("device classic scan triggered from result thread")
-                      info_scan_queue.push({command: :info, address: device.address, last_classic_info: last_classic_info})
-                      query_history[device.address][:classic] = Time.now.to_i
-                    end
+                    push_to_queue(:info, address)
                   end
                 end
 
