@@ -260,20 +260,20 @@ module BlueHydra
     end
 
     def push_to_queue(mode, address)
-      last_classic_info = self.query_history[device.address][mode].to_i
-      if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_classic_info
+      case mode
+      when :classic
+        command = :info
+        # use uap_lap for tracking classic devices
+        track_addr = address.split(":")[2,4].join(":")
+      when :le
+        command = :leinfo
+        track_addr = address
+      end
 
-        case mode
-        when :classic
-          command = :info
-          # use uap_lap for tracking classic devices
-          track_addr = address.split(":")[2,4].join(":")
-        when :le
-          command = :leinfo
-          track_addr = address
-        end
+      self.query_history[track_addr] ||= {}
+      last_info = self.query_history[track_addr][mode].to_i
+      if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_info
         info_scan_queue.push({command: info, address: address})
-
         self.query_history[track_addr][mode] = Time.now.to_i
       end
     end
@@ -379,7 +379,8 @@ module BlueHydra
               #   l2ping them :  "l2ping -c 3 result[:address]"
               BlueHydra::Device.all(classic_mode: true).select{|x|
                 x.last_seen < (Time.now.to_i - (60 * 15)) && x.last_seen > (Time.now.to_i - (60*60))
-              }.each{|device|
+              }.each do |device|
+
                 self.query_history[device.address] ||= {}
                 if (Time.now.to_i - (15 * 60)) >= self.query_history[device.address][:l2ping].to_i
                   # BlueHydra.logger.debug("device l2ping scan triggered")
@@ -389,7 +390,7 @@ module BlueHydra
                   })
                   self.query_history[device.address][:l2ping] = Time.now.to_i
                 end
-              }
+              end
             end
 
             until result_queue.empty?
@@ -407,10 +408,7 @@ module BlueHydra
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
-                self.query_history[device.address] ||= {}
-
                 unless BlueHydra.config[:file]
-
                   if device.le_mode
                     push_to_queue(:le, device.address)
                   end
