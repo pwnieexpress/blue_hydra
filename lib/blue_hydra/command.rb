@@ -7,22 +7,33 @@ module BlueHydra::Command
   #
   # == Returns
   #   Hash containing :stdout, :stderr, :exit_code from the command
-  def execute3(command)
+  def execute3(command, timeout=false)
     BlueHydra.logger.debug("Executing Command: #{command}")
     output = {}
-
-    Open3.popen3(command) do |stdin, stdout, stderr, thread|
-      stdin.close
-      if (out = stdout.read.chomp) != ""
-        output[:stdout]    = out
-      end
-
-      if (err = stderr.read.chomp) != ""
-        output[:stderr]    = err
-      end
-
-      output[:exit_code] = thread.value.exitstatus
+    if timeout
+      stop_time = Time.now.to_i + timeout.to_i
     end
+
+    stdin, stdout, stderr, thread = Open3.popen3(command)
+    stdin.close
+
+    if timeout
+      until Time.now > stop_time || thread.status == false
+        sleep 1
+      end
+
+      Process.kill("SIGINT", thread.pid) unless thread.status == false
+    end
+
+    if (out = stdout.read.chomp) != ""
+      output[:stdout]    = out
+    end
+
+    if (err = stderr.read.chomp) != ""
+      output[:stderr]    = err
+    end
+
+    output[:exit_code] = thread.value.exitstatus
 
     output
   end
