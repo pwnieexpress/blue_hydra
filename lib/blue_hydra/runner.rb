@@ -7,6 +7,7 @@ module BlueHydra
                   :result_queue,
                   :btmon_thread,
                   :discovery_thread,
+                  :ubertooth_thread,
                   :chunker_thread,
                   :parser_thread,
                   :info_scan_queue,
@@ -54,6 +55,15 @@ module BlueHydra
         start_parser_thread
         start_result_thread
 
+        unless BlueHydra.config[:file]
+          # Handle ubertooth
+          @ubertooth_supported = false
+          if system("ubertooth-util -v > /dev/null 2>&1") && ::File.executable?("/usr/bin/ubertooth-scan")
+            @ubertooth_supported = true
+            start_ubertooth_thread
+          end
+        end
+
         sleep 5 # allow it start up
 
       rescue => e
@@ -79,6 +89,7 @@ module BlueHydra
 
       unless BlueHydra.config[:file]
         x[:discovery_thread] = self.discovery_thread.status
+        x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_supported
       end
 
       x
@@ -102,7 +113,10 @@ module BlueHydra
       self.info_scan_queue = nil
       self.l2ping_queue    = nil
 
-      self.discovery_thread.kill unless BlueHydra.config[:file]
+      unless BlueHydra.config[:file]
+        self.discovery_thread.kill
+        self.ubertooth_thread.kill if ubertooth_thread
+      end
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
@@ -132,15 +146,6 @@ module BlueHydra
       self.discovery_thread = Thread.new do
         begin
 
-          # Handle ubertooth
-          ubertooth_supported = false
-          if system("ubertooth-util -v > /dev/null 2>&1") && ::File.executable?("/usr/bin/ubertooth-scan")
-            ubertooth_supported = true
-            ubertooth_command = "ubertooth-scan -b #{BlueHydra.config[:bt_device]} -t 40 -x"
-            BlueHydra.logger.info("Enabling Ubertooth Support")
-          end
-
-          next_discovery_type = :test_discovery
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
 
           loop do
@@ -179,42 +184,19 @@ module BlueHydra
                 end
               end
 
-              case next_discovery_type
-              when :test_discovery
-                if ubertooth_supported
-                  next_discovery_type = :ubertooth
-                end
+              # hot loop avoidance, but run right before discovery to avoid any delay between discovery and info scan
+              sleep 1
 
-                # run test-discovery
-                # do a discovery
-                discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
-                last_discover_time = Time.now.to_i
-                if discovery_errors
-                  BlueHydra.logger.error("Error with test-discovery script..")
-                  discovery_errors.split("\n").each do |ln|
-                    BlueHydra.logger.error(ln)
-                  end
-                end
-
-              when :ubertooth
-                # Do a scan with ubertooth
-                ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")[:stderr]
-                if ubertooth_reset
-                  BlueHydra.logger.error("Error with ubertooth-util -r...")
-                  ubertooth_reset.split("\n").each do |ln|
-                    BlueHydra.logger.error(ln)
-                  end
-                end
-                ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
-                last_ubertooth_time = Time.now.to_i
-                if ubertooth_errors
-                  BlueHydra.logger.error("Error with ubertooth_scan..")
-                  ubertooth_errors.split("\n").each do |ln|
-                    BlueHydra.logger.error(ln)
-                  end
+              # run test-discovery
+              # do a discovery
+              discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
+              last_discover_time = Time.now.to_i
+              if discovery_errors
+                BlueHydra.logger.error("Error with test-discovery script..")
+                discovery_errors.split("\n").each do |ln|
+                  BlueHydra.logger.error(ln)
                 end
               end
-
 
             rescue => e
               BlueHydra.logger.error("Discovery loop crashed: #{e.message}")
@@ -224,14 +206,45 @@ module BlueHydra
               BlueHydra.logger.error("Sleeping 20s...")
               sleep 20
             end
-
-            # sleep
-            sleep 1
           end
         rescue => e
           BlueHydra.logger.error("Discovery thread #{e.message}")
           e.backtrace.each do |x|
             BlueHydra.logger.error("#{x}")
+          end
+        end
+      end
+    end
+
+    def start_ubertooth_thread
+      BlueHydra.logger.info("Ubertooth thread starting")
+      self.ubertooth_thread = Thread.new do
+        begin
+          ubertooth_command = "ubertooth-scan -t 40"
+          loop do
+            begin
+              # Do a scan with ubertooth
+              ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")[:stderr]
+              if ubertooth_reset
+                BlueHydra.logger.error("Error with ubertooth-util -r...")
+                ubertooth_reset.split("\n").each do |ln|
+                  BlueHydra.logger.error(ln)
+                end
+              end
+              # TODO: for this to work we need to capture stdout and parse it for 
+              # ??:??:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]
+              # and push that onto the info scan queue
+              ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
+              last_ubertooth_time = Time.now.to_i
+              if ubertooth_errors
+                BlueHydra.logger.error("Error with ubertooth_scan..")
+                ubertooth_errors.split("\n").each do |ln|
+                  BlueHydra.logger.error(ln)
+                end
+              end
+              # scan with ubertooth for 40 seconds, sleep for 1, reset, repeat
+              sleep 1
+            end
           end
         end
       end
