@@ -245,7 +245,7 @@ module BlueHydra
                   if line =~ /^[\?:]{6}[0-9a-f:]{11}/i
                     address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
                     BlueHydra.logger.debug("device classic scan triggered from ubertooth thread")
-                    BlueHydra.logger.debug("adding address(#{address}) from line(#{line})")
+                    BlueHydra.logger.debug("adding address(#{address}) from line(#{line.chomp})")
                     push_to_queue(:classic, address)
                   end
                 end
@@ -265,9 +265,13 @@ module BlueHydra
         command = :info
         # use uap_lap for tracking classic devices
         track_addr = address.split(":")[2,4].join(":")
+
+        return if track_addr == BlueHydra::LOCAL_ADAPTER_ADDRESS.split(":")[2,4].join(":")
       when :le
         command = :leinfo
         track_addr = address
+
+        return if address == BlueHydra::LOCAL_ADAPTER_ADDRESS
       end
 
       self.query_history[track_addr] ||= {}

@@ -70,6 +70,7 @@ module BlueHydra
                DEFAULT_CONFIG
              end
 
+
   # Logs willbe written to /var/log/pwnix/blue_hydra.log on a sensor or
   # in the local directory as blue_hydra.log if on a non-Pwnie system
   LOGFILE = if Dir.exists?('/var/log/pwnix')
@@ -115,6 +116,11 @@ require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 require 'blue_hydra/command'
 require 'blue_hydra/device'
+
+BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
+  "hciconfig #{BlueHydra.config[:bt_device]}")[:stdout].scan(
+    /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
+  ).flatten.first
 
 # DB Migration and upgrade logic
 begin
