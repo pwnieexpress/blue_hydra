@@ -131,7 +131,8 @@ module BlueHydra
           # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
           # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
           # "Connection Timeout"
-          (buffer[0] =~ /Connect Complete/ && buffer[1] !~ /Status: Success/ )
+          (buffer[0] =~ /(Connect Complete|Remote Name Req)/ && buffer[1] !~ /Status: Success/ )
+
         )
 
         # log raw btmon output for review if we are in debug mode

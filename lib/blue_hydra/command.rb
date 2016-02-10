@@ -18,7 +18,7 @@ module BlueHydra::Command
     stdin.close
 
     if timeout
-      until Time.now > stop_time || thread.status == false
+      until Time.now.to_i > stop_time || thread.status == false
         sleep 1
       end
 

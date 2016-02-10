@@ -233,7 +233,7 @@ module BlueHydra
                 end
               end
 
-              ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40")
+              ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40",60)
               last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
                 BlueHydra.logger.error("Error with ubertooth_scan..")
@@ -244,6 +244,8 @@ module BlueHydra
                 ubertooth_output[:stdout].each_line do |line|
                   if line =~ /^[\?:]{6}[0-9a-f:]{11}/i
                     address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
+                    BlueHydra.logger.debug("Ubertooth line #{line.strip}")
+                    BlueHydra.logger.debug("Ubertooth pushing #{address} to queue")
                     push_to_queue(:classic, address)
                   end
                 end
