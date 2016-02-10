@@ -227,28 +227,35 @@ module BlueHydra
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
         begin
-          ubertooth_command = "ubertooth-scan -t 40"
           loop do
             begin
               # Do a scan with ubertooth
-              ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")[:stderr]
-              if ubertooth_reset
+              ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")
+              if ubertooth_reset[:stderr]
                 BlueHydra.logger.error("Error with ubertooth-util -r...")
                 ubertooth_reset.split("\n").each do |ln|
                   BlueHydra.logger.error(ln)
                 end
               end
-              # TODO: for this to work we need to capture stdout and parse it for 
-              # ??:??:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]
-              # and push that onto the info scan queue
-              ubertooth_errors = BlueHydra::Command.execute3(ubertooth_command)[:stderr]
+
+              ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40")
               last_ubertooth_time = Time.now.to_i
-              if ubertooth_errors
+              if ubertooth_output[:stderr]
                 BlueHydra.logger.error("Error with ubertooth_scan..")
-                ubertooth_errors.split("\n").each do |ln|
+                ubertooth_output[:stderr].split("\n").each do |ln|
                   BlueHydra.logger.error(ln)
                 end
+              else
+                ubertooth_output[:stdout].each_line do |line|
+                  if line =~ /^[\?:]{6}[0-9a-f:]{11}/i
+                    address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
+                    BlueHydra.logger.debug("device classic scan triggered from ubertooth thread")
+                    BlueHydra.logger.debug("adding address(#{address}) from line(#{line})")
+                    info_scan_queue.push({command: :info, address: address})
+                  end
+                end
               end
+
               # scan with ubertooth for 40 seconds, sleep for 1, reset, repeat
               sleep 1
             end
