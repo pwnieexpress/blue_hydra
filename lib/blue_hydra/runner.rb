@@ -387,7 +387,7 @@ module BlueHydra
                   # BlueHydra.logger.debug("#{device.address} | le: #{device.le_mode.inspect}| classic: #{device.classic_mode.inspect} | hist: #{query_history[device.address]}")
 
                   if device.le_mode
-                    # device.le_mode - this is a le device which has not been queried for >=15m
+                    # device.le_mode - this is a le device which has not been queried for >=info_scan_rate (default 60 min)
                     #   if true, add to active_queue to "hcitool leinfo result[:address]"
                     if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= query_history[device.address][:le].to_i
                       #BlueHydra.logger.debug("device le scan triggered")
@@ -397,7 +397,7 @@ module BlueHydra
                   end
 
                   if device.classic_mode
-                    # device.classic_mode - this is a classic device which has not been queried for >=15m
+                    # device.classic_mode - this is a classic device which has not been queried for >=info_scan_rate (default 60 min)
                     #   if true, add to active_queue "hcitool info result[:address]"
                     if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= query_history[device.address][:classic].to_i
                       #BlueHydra.logger.debug("device classic scan triggered")
