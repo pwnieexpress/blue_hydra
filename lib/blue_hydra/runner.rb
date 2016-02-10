@@ -244,8 +244,6 @@ module BlueHydra
                 ubertooth_output[:stdout].each_line do |line|
                   if line =~ /^[\?:]{6}[0-9a-f:]{11}/i
                     address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
-                    BlueHydra.logger.debug("device classic scan triggered from ubertooth thread")
-                    BlueHydra.logger.debug("adding address(#{address}) from line(#{line.chomp})")
                     push_to_queue(:classic, address)
                   end
                 end
