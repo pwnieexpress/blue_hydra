@@ -115,7 +115,7 @@ module BlueHydra
 
       unless BlueHydra.config[:file]
         self.discovery_thread.kill
-        self.ubertooth_thread.kill if ubertooth_thread
+        self.ubertooth_thread.kill if self.ubertooth_thread
       end
       self.chunker_thread.kill
       self.parser_thread.kill
