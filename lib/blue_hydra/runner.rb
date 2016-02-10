@@ -412,11 +412,11 @@ module BlueHydra
                 unless BlueHydra.config[:file]
 
                   if device.le_mode
-                    push_to_queue(:le, address)
+                    push_to_queue(:le, device.address)
                   end
 
                   if device.classic_mode
-                    push_to_queue(:info, address)
+                    push_to_queue(:info, device.address)
                   end
                 end
 
