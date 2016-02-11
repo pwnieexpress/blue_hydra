@@ -118,6 +118,7 @@ module BlueHydra
           buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
           buffer.first =~ /^Bluetooth monitor ver/ ||
           buffer.first =~ /^= New Index:/ ||
+          buffer.first =~ /^= Delete Index:/ ||
           (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ ) ||
 
           # l2ping against a host that is gone will result in a good connect
