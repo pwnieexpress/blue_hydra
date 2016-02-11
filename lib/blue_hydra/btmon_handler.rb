@@ -116,6 +116,7 @@ module BlueHydra
           buffer.first =~ /^@/ ||
           buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/ ||
           buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
+          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/ ||
           buffer.first =~ /^Bluetooth monitor ver/ ||
           buffer.first =~ /^= New Index:/ ||
           buffer.first =~ /^= Delete Index:/ ||
