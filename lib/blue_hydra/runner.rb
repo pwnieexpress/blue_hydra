@@ -31,7 +31,13 @@ module BlueHydra
 
         # mark hosts as 'offline' if we haven't seen for a while
         BlueHydra.logger.info("Marking older devices as 'offline'...")
-        BlueHydra::Device.all(status: "online").select{|x|
+        BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
+          x.last_seen < (Time.now.to_i - (15*60))
+        }.each{|device|
+          device.status = 'offline'
+          device.save
+        }
+        BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
           x.last_seen < (Time.now.to_i - (60*60))
         }.each{|device|
           device.status = 'offline'
@@ -383,14 +389,13 @@ module BlueHydra
           loop do
 
             unless BlueHydra.config[:file]
-              # if their last_seen value is > 15 minutes ago and not > 1 hour ago
+              # if their last_seen value is > 7 minutes ago and not > 15 hour ago
               #   l2ping them :  "l2ping -c 3 result[:address]"
               BlueHydra::Device.all(classic_mode: true).select{|x|
-                x.last_seen < (Time.now.to_i - (60 * 15)) && x.last_seen > (Time.now.to_i - (60*60))
+                x.last_seen < (Time.now.to_i - (60 * 7)) && x.last_seen > (Time.now.to_i - (60*15))
               }.each do |device|
-
                 self.query_history[device.address] ||= {}
-                if (Time.now.to_i - (15 * 60)) >= self.query_history[device.address][:l2ping].to_i
+                if (Time.now.to_i - (60 * 7)) >= self.query_history[device.address][:l2ping].to_i
                   # BlueHydra.logger.debug("device l2ping scan triggered")
                   l2ping_queue.push({
                     command: :l2ping,
@@ -431,8 +436,13 @@ module BlueHydra
               end
             end
 
-            # mark hosts as 'offline' if we haven't seen for a while
-            BlueHydra::Device.all(status: "online").select{|x|
+            BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
+              x.last_seen < (Time.now.to_i - (15*60))
+            }.each{|device|
+              device.status = 'offline'
+              device.save
+            }
+            BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
               x.last_seen < (Time.now.to_i - (60*60))
             }.each{|device|
               device.status = 'offline'
