@@ -163,11 +163,11 @@ class BlueHydra::Device
 
   # look up the vendor for the address in the Louis gem
   # and set it
-  def set_vendor
+  def set_vendor(force=false)
     if self.le_address_type == "Random"
       self.vendor = "N/A - Random Address"
     else
-      if self.vendor == nil || self.vendor == "Unknown"
+      if self.vendor == nil || self.vendor == "Unknown" || force
         vendor = Louis.lookup(address)
         self.vendor = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
       end
@@ -210,18 +210,15 @@ class BlueHydra::Device
     send_data[:data][:company_type]            = company_type                        unless company_type.nil?
     send_data[:data][:lmp_version]             = lmp_version                         unless lmp_version.nil?
     send_data[:data][:manufacturer]            = manufacturer                        unless manufacturer.nil?
-    # inhibit sending this data to pulse until pulse understands the new format
-    # send_data[:data][:le_features_bitmap]      = JSON.parse(le_features_bitmap)      unless le_features_bitmap.nil?
+    send_data[:data][:le_features_bitmap]      = le_features_bitmap                  unless le_features_bitmap.nil?
     send_data[:data][:le_features]             = JSON.parse(le_features)             unless le_features.nil? || le_features == "[]"
-    # inhibit sending this data to pulse until pulse understands the new format
-    # send_data[:data][:classic_features_bitmap] = JSON.parse(classic_features_bitmap) unless classic_features_bitmap.nil?
+    send_data[:data][:classic_features_bitmap] = classic_features_bitmap             unless classic_features_bitmap.nil?
     send_data[:data][:classic_features]        = JSON.parse(classic_features)        unless classic_features.nil? || classic_features == "[]"
     send_data[:data][:firmware]                = firmware                            unless firmware.nil?
     send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)        unless le_service_uuids.nil? || le_service_uuids == "[]"
     send_data[:data][:classic_service_uuids]   = JSON.parse(classic_service_uuids)   unless classic_service_uuids.nil? || classic_service_uuids == "[]"
     send_data[:data][:classic_mode]            = classic_mode                        unless classic_mode.nil?
-    # inhibit sending this data to pulse until pulse understands the new format
-    #send_data[:data][:classic_channels]        = JSON.parse(classic_channels)        unless classic_channels.nil? || classic_channels == "[]"
+    send_data[:data][:classic_channels]        = JSON.parse(classic_channels)        unless classic_channels.nil? || classic_channels == "[]"
     send_data[:data][:classic_major_class]     = classic_major_class                 unless classic_major_class.nil?
     send_data[:data][:classic_minor_class]     = classic_minor_class                 unless classic_minor_class.nil?
     send_data[:data][:classic_class]           = JSON.parse(classic_class)           unless classic_class.nil? || classic_class == "[]"
@@ -473,6 +470,7 @@ class BlueHydra::Device
 
     if current.nil? || current =~ /^00:00/
       self[:address] = new
+      set_vendor(true)
     end
   end
 

@@ -42,12 +42,13 @@ module BlueHydra
             # strip out color codes
             # TODO prolly a cleaner way to do this
             known_colors = [
-              "\e[0;37m",
-              "\e[0;36m",
-              "\e[0;35m",
-              "\e[0;34m",
-              "\e[0;33m",
+              "\e[0;31m",
               "\e[0;32m",
+              "\e[0;33m",
+              "\e[0;34m",
+              "\e[0;35m",
+              "\e[0;36m",
+              "\e[0;37m",
               "\e[0m",
             ]
 
@@ -116,8 +117,10 @@ module BlueHydra
           buffer.first =~ /^@/ ||
           buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/ ||
           buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
+          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/ ||
           buffer.first =~ /^Bluetooth monitor ver/ ||
           buffer.first =~ /^= New Index:/ ||
+          buffer.first =~ /^= Delete Index:/ ||
           (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ ) ||
 
           # l2ping against a host that is gone will result in a good connect
@@ -131,7 +134,8 @@ module BlueHydra
           # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
           # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
           # "Connection Timeout"
-          (buffer[0] =~ /Connect Complete/ && buffer[1] !~ /Status: Success/ )
+          (buffer[0] =~ /(Connect Complete|Remote Name Req)/ && buffer[1] !~ /Status: Success/ )
+
         )
 
         # log raw btmon output for review if we are in debug mode
