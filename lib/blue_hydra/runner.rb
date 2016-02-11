@@ -395,7 +395,7 @@ module BlueHydra
           loop do
 
             unless BlueHydra.config[:file]
-              # if their last_seen value is > 7 minutes ago and not > 15 hour ago
+              # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
               #   l2ping them :  "l2ping -c 3 result[:address]"
               BlueHydra::Device.all(classic_mode: true).select{|x|
                 x.last_seen < (Time.now.to_i - (60 * 7)) && x.last_seen > (Time.now.to_i - (60*15))
