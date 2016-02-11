@@ -5,13 +5,13 @@ source 'http://rubygems.org'
 # these gems should override the gemfile's location by specifying:
 #
 # BUNDLE_GEMFILE="/opt/pwnix/chef/Gemfile"
-#exit 1
+exit 1
 
 
-gem 'data_mapper'
-gem 'dm-sqlite-adapter'
-gem 'pry'
-gem 'louis'
+# gem 'data_mapper'
+# gem 'dm-sqlite-adapter'
+# gem 'pry'
+# gem 'louis'
 # 
-gem 'rake'
-gem 'rspec'
+# gem 'rake'
+# gem 'rspec'
