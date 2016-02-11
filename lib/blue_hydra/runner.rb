@@ -38,7 +38,7 @@ module BlueHydra
           device.save
         }
         BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-          x.last_seen < (Time.now.to_i - (60*60))
+          x.last_seen < (Time.now.to_i - (60*3))
         }.each{|device|
           device.status = 'offline'
           device.save
@@ -442,8 +442,9 @@ module BlueHydra
               device.status = 'offline'
               device.save
             }
+
             BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-              x.last_seen < (Time.now.to_i - (60*60))
+              x.last_seen < (Time.now.to_i - (60*3))
             }.each{|device|
               device.status = 'offline'
               device.save
