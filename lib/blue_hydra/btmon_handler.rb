@@ -42,12 +42,13 @@ module BlueHydra
             # strip out color codes
             # TODO prolly a cleaner way to do this
             known_colors = [
-              "\e[0;37m",
-              "\e[0;36m",
-              "\e[0;35m",
-              "\e[0;34m",
-              "\e[0;33m",
+              "\e[0;31m",
               "\e[0;32m",
+              "\e[0;33m",
+              "\e[0;34m",
+              "\e[0;35m",
+              "\e[0;36m",
+              "\e[0;37m",
               "\e[0m",
             ]
 

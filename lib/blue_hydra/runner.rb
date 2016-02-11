@@ -285,17 +285,21 @@ module BlueHydra
     def start_chunker_thread
       BlueHydra.logger.info("Chunker thread starting")
       self.chunker_thread = Thread.new do
-        begin
-          chunker = BlueHydra::Chunker.new(
-            self.raw_queue,
-            self.chunk_queue
-          )
-          chunker.chunk_it_up
-        rescue => e
-          BlueHydra.logger.error("Chunker thread #{e.message}")
-          e.backtrace.each do |x|
-            BlueHydra.logger.error("#{x}")
+        loop do
+          begin
+            chunker = BlueHydra::Chunker.new(
+              self.raw_queue,
+              self.chunk_queue
+            )
+            chunker.chunk_it_up
+          rescue => e
+            BlueHydra.logger.error("Chunker thread #{e.message}")
+            e.backtrace.each do |x|
+              BlueHydra.logger.error("#{x}")
+            end
+            BlueHydra.logger.warn("Restarting Chunker...")
           end
+          sleep 1
         end
       end
     end
