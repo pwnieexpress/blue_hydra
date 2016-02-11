@@ -70,8 +70,7 @@ module BlueHydra
                DEFAULT_CONFIG
              end
 
-
-  # Logs willbe written to /var/log/pwnix/blue_hydra.log on a sensor or
+  # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
   # in the local directory as blue_hydra.log if on a non-Pwnie system
   LOGFILE = if Dir.exists?('/var/log/pwnix')
               File.expand_path('/var/log/pwnix/blue_hydra.log', __FILE__)
