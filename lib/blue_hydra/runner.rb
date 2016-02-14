@@ -10,8 +10,10 @@ module BlueHydra
                   :ubertooth_thread,
                   :chunker_thread,
                   :parser_thread,
+                  :cui_thread,
                   :info_scan_queue,
                   :query_history,
+                  :scanner_status,
                   :l2ping_queue,
                   :result_thread
 
@@ -58,6 +60,8 @@ module BlueHydra
         self.l2ping_queue    = Queue.new
 
         start_btmon_thread
+        # this should be conditional on !daemon
+        self.scanner_status = { :test_discovery => -1, :ubertooth => -1 }
         start_discovery_thread unless BlueHydra.config[:file]
         start_chunker_thread
         start_parser_thread
@@ -73,6 +77,9 @@ module BlueHydra
         end
 
         sleep 5 # allow it start up
+
+        # this should be conditional on !daemon or something
+        start_cui_thread
 
       rescue => e
         BlueHydra.logger.error("Runner master thread: #{e.message}")
@@ -99,6 +106,9 @@ module BlueHydra
         x[:discovery_thread] = self.discovery_thread.status
         x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_supported
       end
+
+      # should be conditional on !daemon
+      x[:cui_thread] = self.cui_thread.status
 
       x
     end
@@ -128,6 +138,7 @@ module BlueHydra
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
+      self.cui_thread.kill if self.cui_thread.kill
     end
 
     def start_btmon_thread
@@ -197,6 +208,8 @@ module BlueHydra
 
               # run test-discovery
               # do a discovery
+              #make this conditional on !daemon
+              self.scanner_status[:test_discovery] = Time.now.to_i
               discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
               last_discover_time = Time.now.to_i
               if discovery_errors
@@ -239,6 +252,8 @@ module BlueHydra
                 end
               end
 
+              #this should be conditional on !daemon
+              self.scanner_status[:ubertooth] = Time.now.to_i
               ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40",60)
               last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
@@ -264,6 +279,34 @@ module BlueHydra
               end
 
               # scan with ubertooth for 40 seconds, sleep for 1, reset, repeat
+              sleep 1
+            end
+          end
+        end
+      end
+    end
+
+    def start_cui_thread
+      BlueHydra.logger.info("Command Line UI thread starting")
+      self.cui_thread = Thread.new do
+        begin
+          loop do
+            begin
+              if self.scanner_status[:test_discovery] == -1
+                discovery_time = "not started"
+              else
+                discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
+              end
+              if self.scanner_status[:ubertooth] == -1
+                ubertooth_time = "not started"
+              #elsif !!(self.ubertooth_tread)
+              #  ubertooth_time = "not enabled"
+              else
+                ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
+              end
+              puts "\e[H\e[2J"
+              puts "Blue_Hydra: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}"
+              puts "discovery status: #{discovery_time}, ubertooth status: #{ubertooth_time}"
               sleep 1
             end
           end
