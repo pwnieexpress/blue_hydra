@@ -1,0 +1,14 @@
+CUI notes
+
+desired information for each device:
+
+last_seen
+name
+address
+vendor if classic or le public
+company if le random
+classic_rssi || le_rssi
+extra if populated: classic_minor_class, appearance, company_type (company if company_type = Unknown (12))
+
+last_seen will be a decay flag like in kismet.  ! for within 5 seconds . for within 30 seconds, ? for longer than 30 seconds but still online (offline devices 
+are not shown)

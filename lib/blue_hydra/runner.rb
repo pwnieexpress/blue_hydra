@@ -10,6 +10,7 @@ module BlueHydra
                   :ubertooth_thread,
                   :chunker_thread,
                   :parser_thread,
+                  :cui_status
                   :cui_thread,
                   :info_scan_queue,
                   :query_history,
@@ -61,7 +62,8 @@ module BlueHydra
 
         start_btmon_thread
         # this should be conditional on !daemon
-        self.scanner_status = { :test_discovery => -1, :ubertooth => -1 }
+        self.scanner_status  = { :test_discovery => -1, :ubertooth => -1 }
+        self.cui_status      = {}
         start_discovery_thread unless BlueHydra.config[:file]
         start_chunker_thread
         start_parser_thread
