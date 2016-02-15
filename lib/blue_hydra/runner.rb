@@ -468,11 +468,10 @@ module BlueHydra
             if address
 
               cui_status[address] ||= {}
+              cui_status[:lap] = address.split(":")[3,3].join(":") unless cui_status[:lap]
 
               if chunk[0] && chunk[0][0]
                 bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
-                BlueHydra.logger.warn(chunk[0][0])
-                BlueHydra.logger.warn(bt_mode)
               end
 
               [
