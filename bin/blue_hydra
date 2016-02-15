@@ -2,7 +2,21 @@
 # encoding: UTF-8
 $:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 
+require 'optparse'
 require 'blue_hydra'
+
+options = {}
+OptionParser.new do |opts|
+  opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
+    options[:daemonize] = true
+  end
+end.parse!
+
+if options[:daemonize]
+  BlueHydra::DaemonMode = true
+else
+  BlueHydra::DaemonMode = false
+end
 
 # This file is used by the service scan to kill the process and should be
 # cleaned up when this crashes or is killed via the service scan. 
