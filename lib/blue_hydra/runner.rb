@@ -307,7 +307,7 @@ module BlueHydra
                 ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
               end
               puts "\e[H\e[2J"
-              puts "Blue_Hydra: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}"
+              puts "Blue_Hydra: chunk_queue: #{chunk_queue.length}, result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}"
               puts "discovery status: #{discovery_time}, ubertooth status: #{ubertooth_time}"
               sleep 1
             end
