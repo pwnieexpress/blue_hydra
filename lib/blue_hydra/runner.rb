@@ -61,7 +61,6 @@ module BlueHydra
         self.l2ping_queue    = Queue.new
 
         start_btmon_thread
-        # this should be conditional on !daemon
         self.scanner_status  = {}
         self.cui_status      = {}
         start_discovery_thread unless BlueHydra.config[:file]
@@ -78,10 +77,9 @@ module BlueHydra
           end
         end
 
-        start_cui_thread
+        start_cui_thread unless BlueHydra::DaemonMode
 
         sleep 5 # allow it start up
-
 
       rescue => e
         BlueHydra.logger.error("Runner master thread: #{e.message}")
@@ -109,8 +107,7 @@ module BlueHydra
         x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_supported
       end
 
-      # should be conditional on !daemon
-      x[:cui_thread] = self.cui_thread.status
+      x[:cui_thread] = self.cui_thread.status unless BlueHydra::DaemonMode
 
       x
     end
@@ -210,8 +207,7 @@ module BlueHydra
 
               # run test-discovery
               # do a discovery
-              #make this conditional on !daemon
-              self.scanner_status[:test_discovery] = Time.now.to_i
+              self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra::DaemonMode
               discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
               last_discover_time = Time.now.to_i
               if discovery_errors
@@ -255,7 +251,7 @@ module BlueHydra
               end
 
               #this should be conditional on !daemon
-              self.scanner_status[:ubertooth] = Time.now.to_i
+              self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra::DaemonMode
               ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40",60)
               last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
@@ -297,7 +293,7 @@ module BlueHydra
         loop do
           begin
 
-            unless Blue_Hydra.config[:file]
+            unless BlueHydra.config[:file]
               if self.scanner_status[:test_discovery]
                 discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
              else
@@ -324,7 +320,7 @@ module BlueHydra
 
             pbuff <<  "\e[4;34mBlue Hydra\e[0m - "
 
-            unless Blue_Hydra.config[:file]
+            unless BlueHydra.config[:file]
               pbuff <<  "Devices Seen in last #{cui_timout}s\n"
               lines += 1
             end
@@ -332,7 +328,7 @@ module BlueHydra
             pbuff << "Queue status: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
             lines += 1
 
-            unless Blue_Hydra.config[:file]
+            unless BlueHydra.config[:file]
               pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
               lines += 1
             end
@@ -349,7 +345,7 @@ module BlueHydra
               rssi:  :right
             }
 
-            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timout)}.each{|x| cui_status.delete(x)} unless Blue_Hydra.config[:file]
+            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
 
             unless cui_status.empty?
               cui_status.values.each do |hsh|
@@ -470,59 +466,61 @@ module BlueHydra
 
             if address
 
-              cui_status[address] ||= {}
-              cui_status[:lap] = address.split(":")[3,3].join(":") unless cui_status[:lap]
+              unless BlueHydra::DaemonMode
+                cui_status[address] ||= {}
+                cui_status[:lap] = address.split(":")[3,3].join(":") unless cui_status[:lap]
 
-              if chunk[0] && chunk[0][0]
-                bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
-              end
+                if chunk[0] && chunk[0][0]
+                  bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
+                end
 
-              [
-                :last_seen, :name, :address, :classic_rssi,
-                :le_rssi, :classic_minor_class, :appearance
-              ].each do |key|
-                if attrs[key] && attrs[key].first
-                  if cui_status[address][key] != attrs[key].first
-                    if key == :le_rssi || key == :classic_rssi
-                      cui_status[address][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
-                    else
-                      cui_status[address][key] = attrs[key].first
+                [
+                  :last_seen, :name, :address, :classic_rssi,
+                  :le_rssi, :classic_minor_class, :appearance
+                ].each do |key|
+                  if attrs[key] && attrs[key].first
+                    if cui_status[address][key] != attrs[key].first
+                      if key == :le_rssi || key == :classic_rssi
+                        cui_status[address][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
+                      else
+                        cui_status[address][key] = attrs[key].first
+                      end
                     end
                   end
                 end
-              end
 
-              if attrs[:appearance]
-                cui_status[address][:class] = attrs[:appearance].first
-              end
-
-              if attrs[:classic_minor_class]
-                cui_status[address][:class] = attrs[:classic_minor_class].first
-              end
-
-              if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
-                unless cui_status[address][:manuf]
-                  vendor = Louis.lookup(address)
-
-                  cui_status[address][:manuf] = if vendor["short_vendor"]
-                                                  vendor["short_vendor"]
-                                                else
-                                                  vendor["long_vendor"]
-                                                end
+                if attrs[:appearance]
+                  cui_status[address][:class] = attrs[:appearance].first
                 end
-              else
-                cmp = nil
 
-                if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
-                  cmp = attrs[:company_type].first
-                else
-                  if attrs[:company]
-                    cmp = attrs[:company].first
+                if attrs[:classic_minor_class]
+                  cui_status[address][:class] = attrs[:classic_minor_class].first
+                end
+
+                if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
+                  unless cui_status[address][:manuf]
+                    vendor = Louis.lookup(address)
+
+                    cui_status[address][:manuf] = if vendor["short_vendor"]
+                                                    vendor["short_vendor"]
+                                                  else
+                                                    vendor["long_vendor"]
+                                                  end
                   end
-                end
+                else
+                  cmp = nil
 
-                if cmp
-                  cui_status[address][:company] = cmp.split('(').first
+                  if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
+                    cmp = attrs[:company_type].first
+                  else
+                    if attrs[:company]
+                      cmp = attrs[:company].first
+                    end
+                  end
+
+                  if cmp
+                    cui_status[address][:company] = cmp.split('(').first
+                  end
                 end
               end
 
