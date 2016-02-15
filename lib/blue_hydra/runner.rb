@@ -337,7 +337,7 @@ module BlueHydra
             max_lengths = Hash.new(0)
 
             printable_keys = [
-              :_seen, :status, :name, :address, :manuf, :rssi, :class, :company
+              :_seen, :status, :name, :address, :manuf, :rssi, :type
             ]
 
             justifications = {
@@ -475,8 +475,7 @@ module BlueHydra
                 end
 
                 [
-                  :last_seen, :name, :address, :classic_rssi,
-                  :le_rssi, :classic_minor_class, :appearance
+                  :last_seen, :name, :address, :classic_rssi, :le_rssi
                 ].each do |key|
                   if attrs[key] && attrs[key].first
                     if cui_status[address][key] != attrs[key].first
@@ -489,12 +488,20 @@ module BlueHydra
                   end
                 end
 
+                if attrs[:short_name]
+                  unless cui_status[address][:name]
+                    #somehow this is setting name = "[nil]"
+                    cui_status[address][:name] = attrs[:short_name]
+                    BlueHydra.logger.warn("short name found: #{attrs[:short_name]}")
+                  end
+                end
+
                 if attrs[:appearance]
-                  cui_status[address][:class] = attrs[:appearance].first
+                  cui_status[address][:type] = attrs[:appearance].first.split('(').first
                 end
 
                 if attrs[:classic_minor_class]
-                  cui_status[address][:class] = attrs[:classic_minor_class].first
+                  cui_status[address][:type] = attrs[:classic_minor_class].first.split('(').first
                 end
 
                 if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
@@ -512,14 +519,14 @@ module BlueHydra
 
                   if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
                     cmp = attrs[:company_type].first
-                  else
-                    if attrs[:company]
+                  elsif attrs[:company] && attrs[:company].first !~ /not assigned/i
                       cmp = attrs[:company].first
-                    end
+                  else
+                      cmp = "Unknown"
                   end
 
                   if cmp
-                    cui_status[address][:company] = cmp.split('(').first
+                    cui_status[address][:manuf] = cmp.split('(').first
                   end
                 end
               end
