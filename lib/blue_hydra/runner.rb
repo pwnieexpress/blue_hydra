@@ -443,7 +443,6 @@ module BlueHydra
               # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
               #   l2ping them :  "l2ping -c 3 result[:address]"
               BlueHydra::Device.all(classic_mode: true).select{|x|
-                ## TODO: explain to Zero how this math works
                 x.last_seen < (Time.now.to_i - (60 * 7)) && x.last_seen > (Time.now.to_i - (60*15))
               }.each do |device|
                 self.query_history[device.address] ||= {}
