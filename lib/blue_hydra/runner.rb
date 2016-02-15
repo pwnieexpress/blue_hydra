@@ -78,10 +78,10 @@ module BlueHydra
           end
         end
 
+        start_cui_thread
+
         sleep 5 # allow it start up
 
-        # this should be conditional on !daemon or something
-        start_cui_thread
 
       rescue => e
         BlueHydra.logger.error("Runner master thread: #{e.message}")
@@ -291,27 +291,109 @@ module BlueHydra
     def start_cui_thread
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
-        begin
-          loop do
-            begin
-              unless self.scanner_status[:test_discovery]
-                discovery_time = "not started"
+        loop do
+          begin
+
+            unless self.scanner_status[:test_discovery]
+              discovery_time = "not started"
+            else
+              discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
+            end
+
+            if self.ubertooth_thread
+              unless self.scanner_status[:ubertooth]
+                ubertooth_time = "not started"
               else
-                discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
+                ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
               end
-              if self.ubertooth_thread
-                unless self.scanner_status[:ubertooth]
-                  ubertooth_time = "not started"
-                else
-                  ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
+            else
+              ubertooth_time = "not enabled"
+            end
+
+            pbuff = ""
+            max_height = `tput lines`.chomp.to_i
+            lines = 0
+
+            pbuff << "\e[H\e[2J\n"
+            lines += 1
+
+            pbuff <<  "\e[4;34mBlu3 Hydr4\e[0m - "
+            pbuff <<  "Devices Seen in last 60s\n"
+            lines += 1
+
+            pbuff << "Queue status: chunk_queue: #{chunk_queue.length}, result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
+            lines += 1
+
+            pbuff <<  "Discovery status: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
+            lines += 1
+
+
+            max_lengths = Hash.new(0)
+
+            printable_keys = [
+              :_seen, :status, :name, :address, :vendor, :rssi, :class,
+              :appearance, :company
+            ]
+
+            justifications = {
+              _seen: :right,
+              rssi:  :right
+            }
+
+            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - 60)}.each{|x| cui_status.delete(x)}
+
+            unless cui_status.empty?
+              cui_status.values.each do |hsh|
+                hsh[:_seen] = " +#{Time.now.to_i - hsh[:last_seen]}s"
+                printable_keys.each do |key|
+                  key_length = key.to_s.length
+                  if v = hsh[key].to_s
+                    if v.length > max_lengths[key]
+                      if v.length > key_length
+                        max_lengths[key] = v.length
+                      else
+                        max_lengths[key] = key_length
+                      end
+                    end
+                  end
                 end
-              else
-                ubertooth_time = "not enabled"
               end
-              puts "\e[H\e[2J"
-              puts "Blue_Hydra: chunk_queue: #{chunk_queue.length}, result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}"
-              puts "discovery status: #{discovery_time}, ubertooth status: #{ubertooth_time}"
-              sleep 1
+
+              keys = printable_keys.select{|k| max_lengths[k] > 0}
+              header = keys.map{|k| k.to_s.ljust(max_lengths[k]).gsub("_"," ")}.join(' | ')
+
+              pbuff << "\e[0;4m#{header}\e[0m\n"
+              lines += 1
+
+              d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
+              d.each do |data|
+
+                next if lines >= max_height
+                x = keys.map do |k|
+                  if data[k]
+                    if justifications[k] == :right
+                      data[k].to_s.rjust(max_lengths[k])
+                    else
+                      data[k].to_s.ljust(max_lengths[k])
+                    end
+                  else
+                    ''.ljust(max_lengths[k])
+                  end
+                end
+                pbuff <<  (x.join(' | ') + "\n")
+                lines += 1
+              end
+            else
+              pbuff <<  "No recent devices..."
+            end
+
+            puts pbuff
+
+            sleep 0.1
+          rescue => e
+            BlueHydra.logger.error("CUI thread #{e.message}")
+            e.backtrace.each do |x|
+              BlueHydra.logger.error("#{x}")
             end
           end
         end
@@ -378,6 +460,35 @@ module BlueHydra
             address = (attrs[:address]||[]).uniq.first
 
             if address
+              [
+                :last_seen, :name, :address, :vendor, :classic_rssi,
+                :le_rssi, :classic_minor_class, :appearance, :company_type
+              ].each do |key|
+
+                cui_status[address] ||= {}
+                if attrs[key] && attrs[key].first
+                  if cui_status[address][key] != attrs[key].first
+                    if key == :classic_minor_class
+                      cui_status[address][:class] = attrs[key].first
+                    elsif key == :le_rssi || key == :classic_rssi
+                      cui_status[address][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
+
+                    elsif key == :company_type
+                      if attrs[key] =~ /unknown/i
+                        if attrs[:company] && attrs[:company].first
+                          cui_status[address][:company] = attrs[:company].first
+                        end
+                      else
+                        cui_status[address][:company] = attrs[:company_type].first
+                      end
+
+                    else
+                      cui_status[address][key] = attrs[key].first
+                    end
+                  end
+                end
+              end
+
               if scan_results[address]
                 needs_push = false
 
