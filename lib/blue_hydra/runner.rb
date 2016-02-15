@@ -288,7 +288,7 @@ module BlueHydra
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
         #this is only to cut down on ram usage really, so 5 minutes seems reasonably sane
-        cui_timout = 300
+        cui_timeout = 300
 
         loop do
           begin
@@ -321,7 +321,7 @@ module BlueHydra
             pbuff <<  "\e[4;34mBlue Hydra\e[0m - "
 
             unless BlueHydra.config[:file]
-              pbuff <<  "Devices Seen in last #{cui_timout}s\n"
+              pbuff <<  "Devices Seen in last #{cui_timeout}s\n"
               lines += 1
             end
 
@@ -345,7 +345,8 @@ module BlueHydra
               rssi:  :right
             }
 
-            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
+            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout.to_i)}.each{|x| cui_status.delete(x)} unless 
+BlueHydra.config[:file]
 
             unless cui_status.empty?
               cui_status.values.each do |hsh|
