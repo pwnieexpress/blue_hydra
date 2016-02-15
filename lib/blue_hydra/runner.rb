@@ -296,20 +296,22 @@ module BlueHydra
         loop do
           begin
 
-            if self.scanner_status[:test_discovery]
-              discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
-            else
-              discovery_time = "not started"
-            end
-
-            if self.ubertooth_thread
-              if self.scanner_status[:ubertooth]
-                ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
-              else
-                ubertooth_time = "not started"
+            unless Blue_Hydra.config[:file]
+              if self.scanner_status[:test_discovery]
+                discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
+             else
+                discovery_time = "not started"
               end
-            else
-              ubertooth_time = "not enabled"
+
+              if self.ubertooth_thread
+                if self.scanner_status[:ubertooth]
+                  ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
+                else
+                  ubertooth_time = "not started"
+                end
+              else
+                ubertooth_time = "not enabled"
+              end
             end
 
             pbuff = ""
@@ -319,15 +321,20 @@ module BlueHydra
             pbuff << "\e[H\e[2J\n"
             lines += 1
 
-            pbuff <<  "\e[4;34mBlu3 Hydr4\e[0m - "
-            pbuff <<  "Devices Seen in last #{cui_timout}s\n"
+            pbuff <<  "\e[4;34mBlue Hydra\e[0m - "
+
+            unless Blue_Hydra.config[:file]
+              pbuff <<  "Devices Seen in last #{cui_timout}s\n"
+              lines += 1
+            end
+
+            pbuff << "Queue status: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
             lines += 1
 
-            pbuff << "Queue status: chunk_queue: #{chunk_queue.length}, result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
-            lines += 1
-
-            pbuff <<  "Discovery status: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
-            lines += 1
+            unless Blue_Hydra.config[:file]
+              pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
+              lines += 1
+            end
 
 
             max_lengths = Hash.new(0)
@@ -341,12 +348,7 @@ module BlueHydra
               rssi:  :right
             }
 
-            begin
-              cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timout)}.each{|x| cui_status.delete(x)}
-            rescue => e
-              require 'pry'
-              binding.pry
-            end
+            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timout)}.each{|x| cui_status.delete(x)} unless Blue_Hydra.config[:file]
 
             unless cui_status.empty?
               cui_status.values.each do |hsh|
