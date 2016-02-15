@@ -15,8 +15,7 @@ module BlueHydra
                   :info_scan_queue,
                   :query_history,
                   :scanner_status,
-                  :l2ping_queue,
-                  :result_thread
+                  :l2ping_queue, :result_thread
 
     if BlueHydra.config[:file]
       if BlueHydra.config[:file] =~ /\.xz$/
@@ -331,8 +330,7 @@ module BlueHydra
             max_lengths = Hash.new(0)
 
             printable_keys = [
-              :_seen, :status, :name, :address, :vendor, :rssi, :class,
-              :appearance, :company
+              :_seen, :status, :name, :address, :manuf, :rssi, :class, :company
             ]
 
             justifications = {
@@ -340,7 +338,12 @@ module BlueHydra
               rssi:  :right
             }
 
-            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - 60)}.each{|x| cui_status.delete(x)}
+            begin
+              cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - 60)}.each{|x| cui_status.delete(x)}
+            rescue => e
+              require 'pry'
+              binding.pry
+            end
 
             unless cui_status.empty?
               cui_status.values.each do |hsh|
@@ -455,37 +458,64 @@ module BlueHydra
           while chunk = chunk_queue.pop do
             p = BlueHydra::Parser.new(chunk)
             p.parse
-
             attrs = p.attributes
+
             address = (attrs[:address]||[]).uniq.first
 
             if address
-              [
-                :last_seen, :name, :address, :vendor, :classic_rssi,
-                :le_rssi, :classic_minor_class, :appearance, :company_type
-              ].each do |key|
 
-                cui_status[address] ||= {}
+              cui_status[address] ||= {}
+
+              if chunk[0] && chunk[0][1]
+                bt_mode = chunk[0][1] =~ /^\s+LE/ ? "le" : "classic"
+              end
+
+              [
+                :last_seen, :name, :address, :classic_rssi,
+                :le_rssi, :classic_minor_class, :appearance
+              ].each do |key|
                 if attrs[key] && attrs[key].first
                   if cui_status[address][key] != attrs[key].first
-                    if key == :classic_minor_class
-                      cui_status[address][:class] = attrs[key].first
-                    elsif key == :le_rssi || key == :classic_rssi
+                    if key == :le_rssi || key == :classic_rssi
                       cui_status[address][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
-
-                    elsif key == :company_type
-                      if attrs[key] =~ /unknown/i
-                        if attrs[:company] && attrs[:company].first
-                          cui_status[address][:company] = attrs[:company].first
-                        end
-                      else
-                        cui_status[address][:company] = attrs[:company_type].first
-                      end
-
                     else
                       cui_status[address][key] = attrs[key].first
                     end
                   end
+                end
+              end
+
+              if attrs[:appearance]
+                cui_status[address][:class] = attrs[:appearance].first
+              end
+
+              if attrs[:classic_minor_class]
+                cui_status[address][:class] = attrs[:classic_minor_class].first
+              end
+
+              if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
+                unless cui_status[address][:manuf]
+                  vendor = Louis.lookup(address)
+
+                  cui_status[address][:manuf] = if vendor["short_vendor"]
+                                                  vendor["short_vendor"]
+                                                else
+                                                  vendor["long_vendor"]
+                                                end
+                end
+              else
+                cmp = nil
+
+                unless attrs[:company_type] && attrs[:company_type].first =~ /unknonw/i
+                  cmp = attrs[:company_type].first
+                else
+                  unless attrs[:company]
+                    cmp = attrs[:company].first
+                  end
+                end
+
+                if cmp
+                  cui_status[address][:company] = cmp.split('(').first
                 end
               end
 
