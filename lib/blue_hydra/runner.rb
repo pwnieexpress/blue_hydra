@@ -140,7 +140,7 @@ module BlueHydra
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
-      self.cui_thread.kill if self.cui_thread.kill
+      self.cui_thread.kill if self.cui_thread
     end
 
     def start_btmon_thread
