@@ -345,7 +345,7 @@ module BlueHydra
               rssi:  :right
             }
 
-            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout.to_i)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
+            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
 
             unless cui_status.empty?
               cui_status.values.each do |hsh|
