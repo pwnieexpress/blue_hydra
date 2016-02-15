@@ -296,17 +296,17 @@ module BlueHydra
         loop do
           begin
 
-            unless self.scanner_status[:test_discovery]
-              discovery_time = "not started"
-            else
+            if self.scanner_status[:test_discovery]
               discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
+            else
+              discovery_time = "not started"
             end
 
             if self.ubertooth_thread
-              unless self.scanner_status[:ubertooth]
-                ubertooth_time = "not started"
-              else
+              if self.scanner_status[:ubertooth]
                 ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
+              else
+                ubertooth_time = "not started"
               end
             else
               ubertooth_time = "not enabled"
