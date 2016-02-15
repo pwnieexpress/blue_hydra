@@ -10,7 +10,7 @@ module BlueHydra
                   :ubertooth_thread,
                   :chunker_thread,
                   :parser_thread,
-                  :cui_status
+                  :cui_status,
                   :cui_thread,
                   :info_scan_queue,
                   :query_history,
@@ -62,7 +62,7 @@ module BlueHydra
 
         start_btmon_thread
         # this should be conditional on !daemon
-        self.scanner_status  = { :test_discovery => -1, :ubertooth => -1 }
+        self.scanner_status  = {}
         self.cui_status      = {}
         start_discovery_thread unless BlueHydra.config[:file]
         start_chunker_thread
@@ -294,17 +294,19 @@ module BlueHydra
         begin
           loop do
             begin
-              if self.scanner_status[:test_discovery] == -1
+              unless self.scanner_status[:test_discovery]
                 discovery_time = "not started"
               else
                 discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
               end
-              if self.scanner_status[:ubertooth] == -1
-                ubertooth_time = "not started"
-              #elsif !!(self.ubertooth_tread)
-              #  ubertooth_time = "not enabled"
+              if self.ubertooth_thread
+                unless self.scanner_status[:ubertooth]
+                  ubertooth_time = "not started"
+                else
+                  ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
+                end
               else
-                ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
+                ubertooth_time = "not enabled"
               end
               puts "\e[H\e[2J"
               puts "Blue_Hydra: chunk_queue: #{chunk_queue.length}, result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}"
