@@ -290,6 +290,9 @@ module BlueHydra
     def start_cui_thread
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
+        #this is only to cut down on ram usage really, so 5 minutes seems reasonably sane
+        cui_timout = 300
+
         loop do
           begin
 
@@ -317,7 +320,7 @@ module BlueHydra
             lines += 1
 
             pbuff <<  "\e[4;34mBlu3 Hydr4\e[0m - "
-            pbuff <<  "Devices Seen in last 60s\n"
+            pbuff <<  "Devices Seen in last #{cui_timout}s\n"
             lines += 1
 
             pbuff << "Queue status: chunk_queue: #{chunk_queue.length}, result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
@@ -339,7 +342,7 @@ module BlueHydra
             }
 
             begin
-              cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - 60)}.each{|x| cui_status.delete(x)}
+              cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timout)}.each{|x| cui_status.delete(x)}
             rescue => e
               require 'pry'
               binding.pry
@@ -456,7 +459,7 @@ module BlueHydra
           scan_results = {}
 
           while chunk = chunk_queue.pop do
-            p = BlueHydra::Parser.new(chunk)
+            p = BlueHydra::Parser.new(chunk.dup)
             p.parse
             attrs = p.attributes
 
@@ -466,8 +469,10 @@ module BlueHydra
 
               cui_status[address] ||= {}
 
-              if chunk[0] && chunk[0][1]
-                bt_mode = chunk[0][1] =~ /^\s+LE/ ? "le" : "classic"
+              if chunk[0] && chunk[0][0]
+                bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
+                BlueHydra.logger.warn(chunk[0][0])
+                BlueHydra.logger.warn(bt_mode)
               end
 
               [
@@ -506,10 +511,10 @@ module BlueHydra
               else
                 cmp = nil
 
-                unless attrs[:company_type] && attrs[:company_type].first =~ /unknonw/i
+                if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
                   cmp = attrs[:company_type].first
                 else
-                  unless attrs[:company]
+                  if attrs[:company]
                     cmp = attrs[:company].first
                   end
                 end
