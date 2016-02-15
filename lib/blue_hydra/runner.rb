@@ -15,7 +15,8 @@ module BlueHydra
                   :info_scan_queue,
                   :query_history,
                   :scanner_status,
-                  :l2ping_queue, :result_thread
+                  :l2ping_queue,
+                  :result_thread
 
     if BlueHydra.config[:file]
       if BlueHydra.config[:file] =~ /\.xz$/
