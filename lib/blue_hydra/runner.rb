@@ -250,7 +250,6 @@ module BlueHydra
                 end
               end
 
-              #this should be conditional on !daemon
               self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra::DaemonMode
               ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40",60)
               last_ubertooth_time = Time.now.to_i
@@ -269,8 +268,6 @@ module BlueHydra
                       last_seen: [Time.now.to_i]
                     })
 
-                    BlueHydra.logger.debug("Ubertooth line #{line.strip}")
-                    BlueHydra.logger.debug("Ubertooth pushing #{address} to queue")
                     push_to_queue(:classic, address)
                   end
                 end
