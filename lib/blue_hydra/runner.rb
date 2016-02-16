@@ -295,8 +295,7 @@ Welcome to \e[34;1mBlue Hydra\e[0m
 This will display live information about Bluetooth devices seen in the area.
 Devices in this display will time out after #{cui_timeout}s but will still be
 available in the BlueHydra Database or synced to pulse if you chose that
-option.
-#{ BlueHydra.config[:file] ? "\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
+option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
 
 The "M" column in the following table is the mode (L)ow energy or (C)lassic.
 
@@ -333,12 +332,13 @@ HELP
             lines = 0
 
             pbuff << "\e[H\e[2J"
-            lines += 1
 
+            pbuff << "\e[34;1mBlue Hydra\e[0m"
             if BlueHydra.config[:file]
-              pbuff <<  "Devices Seen in last #{cui_timeout}s\n"
-              lines += 1
+              pbuff <<  "Devices Seen in last #{cui_timeout}s"
             end
+            pbuff << "\n"
+            lines += 1
 
             pbuff << "Queue status: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
             lines += 1
