@@ -329,7 +329,7 @@ HELP
 
             pbuff = ""
             max_height = `tput lines`.chomp.to_i
-            lines = 0
+            lines = 1
 
             pbuff << "\e[H\e[2J"
 
