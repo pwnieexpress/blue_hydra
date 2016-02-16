@@ -296,6 +296,7 @@ This will display live information about Bluetooth devices seen in the area.
 Devices in this display will time out after #{cui_timeout}s but will still be
 available in the BlueHydra Database or synced to pulse if you chose that
 option.
+#{ BlueHydra.config[:file] ? "\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
 
 The "M" column in the following table is the mode (L)ow energy or (C)lassic.
 
@@ -393,7 +394,7 @@ HELP
                           "\e[0;32m" # green
                         when data[:created] > Time.now.to_i - 30  # in last 30 seconds
                           "\e[0;33m" # yellow
-                        when data[:last_seen] < (Time.now.to_i - cui_timeout - 10) # within 10 seconds expiring
+                        when data[:last_seen] < (Time.now.to_i - cui_timeout + 10) # within 10 seconds expiring
                           "\e[0;31m" # red
                         else
                           ""
