@@ -491,8 +491,7 @@ module BlueHydra
                 end
 
                 if attrs[:short_name]
-                  unless cui_status[address][:name]
-                    #somehow this is setting name = "[nil]"
+                  unless attrs[:short_name] == [nil] || cui_status[address][:name]
                     cui_status[address][:name] = attrs[:short_name]
                     BlueHydra.logger.warn("short name found: #{attrs[:short_name]}")
                   end
@@ -504,7 +503,7 @@ module BlueHydra
 
                 if attrs[:classic_minor_class]
                   if attrs[:classic_minor_class].first =~ /Uncategorized/i
-                    cui_status[address[:type] = "Uncategorized"
+                    cui_status[address][:type] = "Uncategorized"
                   else
                     cui_status[address][:type] = attrs[:classic_minor_class].first.split('(').first
                   end
@@ -621,13 +620,15 @@ module BlueHydra
             end
 
             until result_queue.empty?
-              queue_depth = result_queue.length
-              if queue_depth > 250
-                if (maxdepth < queue_depth)
-                  maxdepth = result_queue.length
-                  BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
-                else
-                  BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
+              if BlueHydra::DaemonMode
+                queue_depth = result_queue.length
+                if queue_depth > 250
+                  if (maxdepth < queue_depth)
+                    maxdepth = result_queue.length
+                    BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
+                  else
+                    BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
+                  end
                 end
               end
 
