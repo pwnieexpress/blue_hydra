@@ -358,6 +358,8 @@ class BlueHydra::Device
   #     new flags
   def le_flags=(flags)
     new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.le_flags || '[]')
+    self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
   # set the :le_service_uuids attribute by merging with previously seen values
