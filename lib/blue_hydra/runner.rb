@@ -376,11 +376,13 @@ module BlueHydra
 
                 color = case
                         when data[:created] > Time.now.to_i - 5  # in last 5 seconds
-                          "\e[0;31m"
+                          "\e[0;32m" # green
                         when data[:created] > Time.now.to_i - 30  # in last 30 seconds
-                          "\e[0;33m"
+                          "\e[0;33m" # yellow
+                        when data[:last_seen] < (Time.now.to_i - cui_timeout - 10) # within 10 seconds expiring
+                          "\e[0;31m" # red
                         else
-                          "\e[0m"
+                          ""
                         end
 
                 x = keys.map do |k|
