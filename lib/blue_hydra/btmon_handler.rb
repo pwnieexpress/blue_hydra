@@ -139,7 +139,7 @@ module BlueHydra
         )
 
         # log raw btmon output for review if we are in debug mode
-        if BlueHydra.config[:log_level] == "debug"
+        if BlueHydra.config[:btmon_log] && !BlueHydra.config[:file]
           buffer.each do |line|
             @log_file.puts(line.chomp)
           end
