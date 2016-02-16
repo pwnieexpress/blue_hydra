@@ -351,7 +351,7 @@ HELP
             max_lengths = Hash.new(0)
 
             printable_keys = [
-              :_seen, :m, :address, :rssi, :name, :manuf, :type
+              :_seen, :vers, :address, :rssi, :name, :manuf, :type
             ]
 
             justifications = {
@@ -500,7 +500,16 @@ HELP
                   bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
                 end
 
-                cui_status[address][:m] = bt_mode == "le" ? "L" : "C"
+                if bt_mode == "le"
+                  cui_status[address][:vers] = "btle"
+                else
+                  if attrs[:lmp_version]
+                    cui_status[address][:vers] = "#{attrs[:lmp_version].first.split(" ")[1]}C"
+                    BlueHydra.logger.info("setting vers to #{attrs[:lmp_version].first.split(" ")[1]}C")
+                  elsif !cui_status[address][:vers]
+                    cui_status[address][:vers] = "C/BR"
+                  end
+                end
 
                 [
                   :last_seen, :name, :address, :classic_rssi, :le_rssi
