@@ -333,9 +333,9 @@ HELP
 
             pbuff << "\e[H\e[2J"
 
-            pbuff << "\e[34;1mBlue Hydra\e[0m"
+            pbuff << "\e[34;1mBlue Hydra\e[0m :"
             if BlueHydra.config[:file]
-              pbuff <<  "Devices Seen in last #{cui_timeout}s"
+              pbuff <<  " Devices Seen in last #{cui_timeout}s"
             end
             pbuff << "\n"
             lines += 1
