@@ -332,11 +332,12 @@ module BlueHydra
               lines += 1
             end
 
+            pbuff << "Key: 'm' column is BT mode (L)ow Energy / (C)lassic\n"
 
             max_lengths = Hash.new(0)
 
             printable_keys = [
-              :_seen, :status, :name, :address, :manuf, :rssi, :type
+              :_seen, :m, :status, :name, :address, :manuf, :rssi, :type
             ]
 
             justifications = {
@@ -484,6 +485,8 @@ module BlueHydra
                 if chunk[0] && chunk[0][0]
                   bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
                 end
+
+                cui_status[address][:m] = bt_mode == "le" ? "L" : "C"
 
                 [
                   :last_seen, :name, :address, :classic_rssi, :le_rssi
