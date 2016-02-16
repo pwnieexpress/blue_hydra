@@ -375,9 +375,9 @@ module BlueHydra
                 next if lines >= max_height
 
                 color = case
-                        when data[:created] > Time.now.to_i - 5  # in last 3 seconds
+                        when data[:created] > Time.now.to_i - 5  # in last 5 seconds
                           "\e[0;31m"
-                        when data[:created] > Time.now.to_i - 30  # in last 3 seconds
+                        when data[:created] > Time.now.to_i - 30  # in last 30 seconds
                           "\e[0;33m"
                         else
                           "\e[0m"
