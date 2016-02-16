@@ -503,7 +503,11 @@ module BlueHydra
                 end
 
                 if attrs[:classic_minor_class]
-                  cui_status[address][:type] = attrs[:classic_minor_class].first.split('(').first
+                  if attrs[:classic_minor_class].first =~ /Uncategorized/i
+                    cui_status[address[:type] = "Uncategorized"
+                  else
+                    cui_status[address][:type] = attrs[:classic_minor_class].first.split('(').first
+                  end
                 end
 
                 if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
