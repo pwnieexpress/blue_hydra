@@ -318,12 +318,14 @@ module BlueHydra
             pbuff << "\e[H\e[2J\n"
             lines += 1
 
-            pbuff <<  "\e[4;34mBlue Hydra\e[0m - "
+            pbuff <<  "\e[34;1mBlue Hydra\e[0m : "
 
-            unless BlueHydra.config[:file]
+            if BlueHydra.config[:file]
+              pbuff << "\n"
+            else
               pbuff <<  "Devices Seen in last #{cui_timeout}s\n"
-              lines += 1
             end
+              lines += 1
 
             pbuff << "Queue status: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
             lines += 1
