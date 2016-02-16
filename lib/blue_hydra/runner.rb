@@ -351,7 +351,7 @@ HELP
             max_lengths = Hash.new(0)
 
             printable_keys = [
-              :_seen, :m, :status, :name, :address, :manuf, :rssi, :type
+              :_seen, :m, :address, :rssi, :name, :manuf, :type
             ]
 
             justifications = {
