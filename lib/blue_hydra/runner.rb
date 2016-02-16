@@ -373,6 +373,16 @@ module BlueHydra
               d.each do |data|
 
                 next if lines >= max_height
+
+                color = case
+                        when data[:created] > Time.now.to_i - 5  # in last 3 seconds
+                          "\e[0;31m"
+                        when data[:created] > Time.now.to_i - 30  # in last 3 seconds
+                          "\e[0;33m"
+                        else
+                          "\e[0m"
+                        end
+
                 x = keys.map do |k|
                   if data[k]
                     if justifications[k] == :right
@@ -384,7 +394,7 @@ module BlueHydra
                     ''.ljust(max_lengths[k])
                   end
                 end
-                pbuff <<  (x.join(' | ') + "\n")
+                pbuff <<  "#{color}#{x.join(' | ')}\e[0m\n"
                 lines += 1
               end
             else
@@ -466,7 +476,7 @@ module BlueHydra
             if address
 
               unless BlueHydra::DaemonMode
-                cui_status[address] ||= {}
+                cui_status[address] ||= {created: Time.now.to_i}
                 cui_status[address][:lap] = address.split(":")[3,3].join(":") unless cui_status[address][:lap]
 
                 if chunk[0] && chunk[0][0]
