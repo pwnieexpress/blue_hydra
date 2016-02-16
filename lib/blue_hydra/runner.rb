@@ -287,6 +287,25 @@ module BlueHydra
         #this is only to cut down on ram usage really, so 5 minutes seems reasonably sane
         cui_timeout = 300
 
+        puts "\e[H\e[2J"
+
+        help =  <<HELP
+Welcome to \e[34;1mBlue Hydra\e[0m
+
+This will display live information about Bluetooth devices seen in the area.
+Devices in this display will time out after #{cui_timeout}s but will still be
+available in the BlueHydra Database or synced to pulse if you chose that
+option.
+
+The "M" column in the following table is the mode (L)ow energy or (C)lassic.
+
+press [Enter] key to continue....
+HELP
+
+        puts help
+
+        gets.chomp
+
         loop do
           begin
 
@@ -315,14 +334,10 @@ module BlueHydra
             pbuff << "\e[H\e[2J"
             lines += 1
 
-            pbuff <<  "\e[34;1mBlue Hydra\e[0m : "
-
             if BlueHydra.config[:file]
-              pbuff << "\n"
-            else
               pbuff <<  "Devices Seen in last #{cui_timeout}s\n"
-            end
               lines += 1
+            end
 
             pbuff << "Queue status: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
             lines += 1
@@ -331,8 +346,6 @@ module BlueHydra
               pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
               lines += 1
             end
-
-            pbuff << "Key: 'm' column is BT mode (L)ow Energy / (C)lassic\n"
 
             max_lengths = Hash.new(0)
 
@@ -365,7 +378,7 @@ module BlueHydra
               end
 
               keys = printable_keys.select{|k| max_lengths[k] > 0}
-              header = keys.map{|k| k.to_s.ljust(max_lengths[k]).gsub("_"," ")}.join(' | ')
+              header = keys.map{|k| k.to_s.ljust(max_lengths[k]).gsub("_"," ")}.join(' | ').upcase
 
               pbuff << "\e[0;4m#{header}\e[0m\n"
               lines += 1
