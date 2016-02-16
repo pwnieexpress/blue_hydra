@@ -50,7 +50,7 @@ module BlueHydra
 
       # if the first line of the message chunk matches one of these patterns
       # it indicates a start chunk
-      if chunk[0] =~ /Connect Complete|Role Change|Extended Inqu|Inquiry Result|Remote Name Req|Remote Host Supported|Connect Request/
+      if chunk[0] =~ /Connect Complete|Role Change|Extended Inqu|Inquiry Result|Remote Name|Remote Host Supported|Connect Request/
         true
 
       # LE start chunks are identified by patterns in their first and second

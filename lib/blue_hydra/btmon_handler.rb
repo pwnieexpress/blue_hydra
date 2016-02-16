@@ -57,7 +57,7 @@ module BlueHydra
                 line = line.gsub(c, "")
               end
             rescue ArgumentError
-              BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line.strip}")
+              BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line.chomp}")
               next
             end
 
