@@ -315,7 +315,7 @@ module BlueHydra
             max_height = `tput lines`.chomp.to_i
             lines = 0
 
-            pbuff << "\e[H\e[2J\n"
+            pbuff << "\e[H\e[2J"
             lines += 1
 
             pbuff <<  "\e[34;1mBlue Hydra\e[0m : "
