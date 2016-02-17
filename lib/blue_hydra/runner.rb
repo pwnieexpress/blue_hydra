@@ -286,6 +286,7 @@ module BlueHydra
       self.cui_thread = Thread.new do
         #this is only to cut down on ram usage really, so 5 minutes seems reasonably sane
         cui_timeout = 300
+        l2ping_threshold = (cui_timeout - 45)
 
         puts "\e[H\e[2J"
 
@@ -390,14 +391,29 @@ HELP
               d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
               d.each do |data|
 
+                #prevent classic devices from expiring by forcing them onto the l2ping queue
+                unless  data[:vers] == "btle"
+                  ping_time = (Time.now.to_i - l2ping_threshold)
+                  self.query_history[data[:address]] ||= {}
+                  if (self.query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
+                    BlueHydra.logger.info("l2ping #{data[:address]} query: #{self.query_history[data[:address]][:l2ping].to_i} seen: #{data[:last_seen]}")
+                    l2ping_queue.push({
+                      command: :l2ping,
+                      address: data[:address]
+                    })
+
+                    self.query_history[data[:address]][:l2ping] = Time.now.to_i
+                  end
+                end
+
                 next if lines >= max_height
 
                 color = case
-                        when data[:created] > Time.now.to_i - 5  # in last 5 seconds
+                        when data[:created] > Time.now.to_i - 10  # in last 10 seconds
                           "\e[0;32m" # green
                         when data[:created] > Time.now.to_i - 30  # in last 30 seconds
                           "\e[0;33m" # yellow
-                        when data[:last_seen] < (Time.now.to_i - cui_timeout + 10) # within 10 seconds expiring
+                        when data[:last_seen] < (Time.now.to_i - cui_timeout + 20) # within 20 seconds expiring
                           "\e[0;31m" # red
                         else
                           ""
