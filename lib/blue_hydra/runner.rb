@@ -396,7 +396,6 @@ HELP
                   ping_time = (Time.now.to_i - l2ping_threshold)
                   self.query_history[data[:address]] ||= {}
                   if (self.query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
-                    BlueHydra.logger.info("l2ping #{data[:address]} query: #{self.query_history[data[:address]][:l2ping].to_i} seen: #{data[:last_seen]}")
                     l2ping_queue.push({
                       command: :l2ping,
                       address: data[:address]
@@ -524,7 +523,6 @@ HELP
                 else
                   if attrs[:lmp_version]
                     cui_status[address][:vers] = "#{attrs[:lmp_version].first.split(" ")[1]}C"
-                    BlueHydra.logger.info("setting vers to #{attrs[:lmp_version].first.split(" ")[1]}C")
                   elsif !cui_status[address][:vers]
                     cui_status[address][:vers] = "C/BR"
                   end
