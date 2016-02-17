@@ -243,6 +243,7 @@ class BlueHydra::Device
       File.write(file_path, json)
     end
 
+    return if BlueHydra::NoPulse
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
       sock.write(json)
@@ -357,6 +358,8 @@ class BlueHydra::Device
   #     new flags
   def le_flags=(flags)
     new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.le_flags || '[]')
+    self[:le_flags] = JSON.generate((new + current).uniq)
   end
 
   # set the :le_service_uuids attribute by merging with previously seen values

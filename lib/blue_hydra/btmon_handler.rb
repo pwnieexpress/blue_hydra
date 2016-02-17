@@ -17,8 +17,8 @@ module BlueHydra
       @command = command
       @parse_queue = parse_queue
 
-      # # log raw btmon output for review if we are debug mode
-      if BlueHydra.config[:log_level] == "debug"
+      # # log raw btmon output for review if requested
+      if BlueHydra.config[:btmon_log]
         @log_file = File.open('btmon.log','a')
       end
 
@@ -57,7 +57,7 @@ module BlueHydra
                 line = line.gsub(c, "")
               end
             rescue ArgumentError
-              BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line.strip}")
+              BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line.chomp}")
               next
             end
 
@@ -139,7 +139,7 @@ module BlueHydra
         )
 
         # log raw btmon output for review if we are in debug mode
-        if BlueHydra.config[:log_level] == "debug"
+        if BlueHydra.config[:btmon_log] && !BlueHydra.config[:file]
           buffer.each do |line|
             @log_file.puts(line.chomp)
           end
