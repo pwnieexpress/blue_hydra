@@ -49,7 +49,7 @@ module BlueHydra
 
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
         BlueHydra::Device.all.each do |dev|
-          dev.sync_to_pulse
+          dev.sync_to_pulse(true)
         end
 
         self.query_history   = {}
@@ -649,6 +649,8 @@ HELP
           #debugging
           maxdepth = 0
 
+          last_status_sync = Time.now.to_i
+
           loop do
 
             unless BlueHydra.config[:file]
@@ -716,6 +718,14 @@ HELP
               device.status = 'offline'
               device.save
             }
+
+            if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
+              BlueHydra.logger.info("Syncing all hosts to Pulse...")
+              BlueHydra::Device.all.each do |dev|
+                dev.instance_variable_set(:@filthy_attributes, [:status])
+                dev.sync_to_pulse(false)
+              end
+            end
 
             sleep 1
           end

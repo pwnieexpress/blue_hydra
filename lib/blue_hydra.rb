@@ -56,7 +56,8 @@ module BlueHydra
   DEFAULT_CONFIG = {
     log_level:      "info",
     bt_device:      "hci0",
-    info_scan_rate: "60"
+    info_scan_rate: "60",
+    status_sync_rate: (60 * 60 * 24) #seconds
   }
 
   # Create config file with defaults if missing or load and update.
