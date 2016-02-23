@@ -7,7 +7,10 @@ require 'optparse'
 module BlueHydra
 end
 
+require 'blue_hydra'
+
 options = {}
+
 OptionParser.new do |opts|
   opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
     options[:daemonize] = true
@@ -18,18 +21,13 @@ OptionParser.new do |opts|
 end.parse!
 
 if options[:daemonize]
-  BlueHydra::DaemonMode = true
-else
-  BlueHydra::DaemonMode = false
+  BlueHydra.daemon_mode = true
 end
 
 if options[:nopulse]
-  BlueHydra::NoPulse = true
-else
-  BlueHydra::NoPulse = false
+  BlueHydra.no_pulse = true
 end
 
-require 'blue_hydra'
 
 # This file is used by the service scan to kill the process and should be
 # cleaned up when this crashes or is killed via the service scan. 

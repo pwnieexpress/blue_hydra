@@ -105,7 +105,24 @@ module BlueHydra
     @@config
   end
 
-  module_function :logger, :config
+  def daemon_mode
+    @@daemon_mode ||= false
+  end
+
+  def no_pulse
+    @@no_pulse ||= false
+  end
+
+  def daemon_mode=(setting)
+    @@daemon_mode = setting
+  end
+
+  def no_pulse=(setting)
+    @@no_pulse = setting
+  end
+
+  module_function :logger, :config, :daemon_mode, :daemon_mode=, :no_pulse,
+                  :no_pulse=
 end
 
 # require the code

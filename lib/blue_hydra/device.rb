@@ -243,7 +243,7 @@ class BlueHydra::Device
       File.write(file_path, json)
     end
 
-    return if BlueHydra::NoPulse
+    return if BlueHydra.no_pulse
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
       sock.write(json)
