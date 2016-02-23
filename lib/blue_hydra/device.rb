@@ -243,7 +243,7 @@ class BlueHydra::Device
     # log raw results into device files for review in debugmode
     if BlueHydra.config[:log_level] == "debug"
       file_path = File.expand_path(
-        "../../../devices/synced_#{Time.now.to_i}_#{address.gsub(':', '-')}.json", __FILE__
+        "../../../devices/synced_#{address.gsub(':', '-')}_#{Time.now.to_i}.json", __FILE__
       )
       File.write(file_path, json)
     end
