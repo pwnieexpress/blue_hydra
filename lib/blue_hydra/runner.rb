@@ -649,6 +649,8 @@ HELP
           #debugging
           maxdepth = 0
 
+          start_time = Time.now.to_i
+
           loop do
 
             unless BlueHydra.config[:file]
@@ -716,6 +718,14 @@ HELP
               device.status = 'offline'
               device.save
             }
+
+            if (Time.now.to_i - BlueHydra.config["sync_period"]) > start_time
+              start_time = Time.now.to_i
+              BlueHydra.logger.info("Triggering hourly sync of all hosts to Pulse...")
+              BlueHydra::Device.all.each do |dev|
+                dev.sync_to_pulse
+              end
+            end
 
             sleep 1
           end
