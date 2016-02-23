@@ -49,7 +49,7 @@ module BlueHydra
 
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
         BlueHydra::Device.all.each do |dev|
-          dev.sync_to_pulse
+          dev.sync_to_pulse(true)
         end
 
         self.query_history   = {}
