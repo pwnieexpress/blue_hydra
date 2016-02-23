@@ -1,7 +1,7 @@
 # this is the bluetooth Device model stored in the DB
 class BlueHydra::Device
 
-  attr_accesor :filthy_attributes
+  attr_accessor :filthy_attributes
 
   # this is a DataMapper model...
   include DataMapper::Resource
@@ -194,9 +194,7 @@ class BlueHydra::Device
     self.all(uap_lap: uap_lap).first
   end
 
-
-  def prepare_the_filth
-    @filthy_attributes ||= []
+  def syncable_attributes
     [
       :name, :status, :vendor, :appearance, :company, :company_type, :lmp_version,
       :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
@@ -205,7 +203,13 @@ class BlueHydra::Device
       :last_seen, :classic_tx_power, :le_features, :classic_features,
       :le_service_uuids, :classic_service_uuids, :classic_channels,
       :classic_class, :classic_rssi, :le_flags, :le_rssi
-    ].each do |attr|
+    ]
+  end
+
+
+  def prepare_the_filth
+    @filthy_attributes ||= []
+    syncable_attributes.each do |attr|
       @filthy_attributes << attr if self.attribute_dirty?(attr)
     end
   end
@@ -223,15 +227,7 @@ class BlueHydra::Device
     # always include address
     send_data[:data][:address] = address
 
-    [
-      :name, :status, :vendor, :appearance, :company, :company_type, :lmp_version,
-      :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
-      :classic_features_bitmap, :classic_major_class, :classic_minor_class,
-      :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
-      :last_seen, :classic_tx_power, :le_features, :classic_features,
-      :le_service_uuids, :classic_service_uuids, :classic_channels,
-      :classic_class, :classic_rssi, :le_flags, :le_rssi
-    ].each do |attr|
+    syncable_attributes.each do |attr|
       # ignore nil value attributes
       if @filthy_attributes.include?(attr) || sync_all
         val = self.send(attr)
@@ -247,7 +243,7 @@ class BlueHydra::Device
     # log raw results into device files for review in debugmode
     if BlueHydra.config[:log_level] == "debug"
       file_path = File.expand_path(
-        "../../../devices/synced_#{address.gsub(':', '-')}.json", __FILE__
+        "../../../devices/synced_#{Time.now.to_i}_#{address.gsub(':', '-')}.json", __FILE__
       )
       File.write(file_path, json)
     end

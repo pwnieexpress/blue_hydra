@@ -719,7 +719,7 @@ HELP
               device.save
             }
 
-            if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > start_time
+            if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
               BlueHydra.logger.info("Syncing all hosts to Pulse...")
               BlueHydra::Device.all.each do |dev|
                 dev.instance_variable_set(:@filthy_attributes, [:status])
