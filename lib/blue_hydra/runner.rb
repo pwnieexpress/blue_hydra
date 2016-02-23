@@ -719,7 +719,7 @@ HELP
               device.save
             }
 
-            if (Time.now.to_i - 3600) > start_time
+            if (Time.now.to_i - BlueHydra.config["sync_period"]) > start_time
               start_time = Time.now.to_i
               BlueHydra.logger.info("Triggering hourly sync of all hosts to Pulse...")
               BlueHydra::Device.all.each do |dev|
