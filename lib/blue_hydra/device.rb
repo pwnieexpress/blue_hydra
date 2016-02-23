@@ -1,6 +1,8 @@
 # this is the bluetooth Device model stored in the DB
 class BlueHydra::Device
 
+  attr_accesor :filthy_attributes
+
   # this is a DataMapper model...
   include DataMapper::Resource
 
@@ -55,6 +57,7 @@ class BlueHydra::Device
   before :save, :set_vendor
   before :save, :set_uap_lap
   before :save, :set_mode_flags
+  before :save, :prepare_the_filth
 
   # after saving send up to pulse
   after  :save, :sync_to_pulse
@@ -191,6 +194,23 @@ class BlueHydra::Device
     self.all(uap_lap: uap_lap).first
   end
 
+
+  def prepare_the_filth
+    @filthy_attributes ||= []
+    [
+      :name, :status, :vendor, :appearance, :company, :company_type, :lmp_version,
+      :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
+      :classic_features_bitmap, :classic_major_class, :classic_minor_class,
+      :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
+      :last_seen, :classic_tx_power, :le_features, :classic_features,
+      :le_service_uuids, :classic_service_uuids, :classic_channels,
+      :classic_class, :classic_rssi, :le_flags, :le_rssi
+    ].each do |attr|
+      @filthy_attributes << attr if self.attribute_dirty?(attr)
+    end
+  end
+
+
   # sync record to pulse
   def sync_to_pulse(sync_all=false)
     send_data = {
@@ -213,7 +233,7 @@ class BlueHydra::Device
       :classic_class, :classic_rssi, :le_flags, :le_rssi
     ].each do |attr|
       # ignore nil value attributes
-      if self.attribute_dirty?(attr) || sync_all
+      if @filthy_attributes.include?(attr) || sync_all
         val = self.send(attr)
         unless [nil, "[]"].include?(val)
           send_data[:data][attr] = val
