@@ -227,6 +227,8 @@ class BlueHydra::Device
     # always include address
     send_data[:data][:address] = address
 
+    @filthy_attributes ||= []
+
     syncable_attributes.each do |attr|
       # ignore nil value attributes
       if @filthy_attributes.include?(attr) || sync_all
