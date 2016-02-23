@@ -77,7 +77,7 @@ module BlueHydra
           end
         end
 
-        start_cui_thread unless BlueHydra::DaemonMode
+        start_cui_thread unless BlueHydra.daemon_mode
 
         sleep 5 # allow it start up
 
@@ -107,7 +107,7 @@ module BlueHydra
         x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_supported
       end
 
-      x[:cui_thread] = self.cui_thread.status unless BlueHydra::DaemonMode
+      x[:cui_thread] = self.cui_thread.status unless BlueHydra.daemon_mode
 
       x
     end
@@ -207,7 +207,7 @@ module BlueHydra
 
               # run test-discovery
               # do a discovery
-              self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra::DaemonMode
+              self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra.daemon_mode
               discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
               last_discover_time = Time.now.to_i
               if discovery_errors
@@ -250,7 +250,7 @@ module BlueHydra
                 end
               end
 
-              self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra::DaemonMode
+              self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra.daemon_mode
               ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40",60)
               last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
@@ -510,7 +510,7 @@ HELP
 
             if address
 
-              unless BlueHydra::DaemonMode
+              unless BlueHydra.daemon_mode
                 cui_status[address] ||= {created: Time.now.to_i}
                 cui_status[address][:lap] = address.split(":")[3,3].join(":") unless cui_status[address][:lap]
 
@@ -672,7 +672,7 @@ HELP
             end
 
             until result_queue.empty?
-              if BlueHydra::DaemonMode
+              if BlueHydra.daemon_mode
                 queue_depth = result_queue.length
                 if queue_depth > 250
                   if (maxdepth < queue_depth)
