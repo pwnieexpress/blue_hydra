@@ -1,5 +1,7 @@
 module BlueHydra
   class CliUserInterfaceTracker
+    attr_accessor :runner, :chunk, :attrs, :address
+
     def initialize(run, chnk, attrs, addr)
       @runner = run
       @chunk = chnk
@@ -7,24 +9,8 @@ module BlueHydra
       @address = addr
     end
 
-    def runner
-      @runner
-    end
-
-    def chunk
-      @chunk
-    end
-
-    def attrs
-      @attrs
-    end
-
-    def address
-      @address
-    end
-
     def cui_status
-      @runner.cui_status
+      runner.cui_status
     end
 
     def update_cui_status

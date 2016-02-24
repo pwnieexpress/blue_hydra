@@ -1,9 +1,39 @@
 module BlueHydra
   class CliUserInterface
+    attr_accessor :runner, :cui_timeout, :l2ping_threshold
+
     def initialize(runner, cui_timeout=300)
       @runner = runner
       @cui_timeout = cui_timeout
       @l2ping_threshold = (@cui_timeout - 45)
+    end
+
+    def cui_status
+      @runner.cui_status
+    end
+
+    def scanner_status
+      @runner.scanner_status
+    end
+
+    def ubertooth_thread
+      @runner.ubertooth_thread
+    end
+
+    def result_queue
+      @runner.result_queue
+    end
+
+    def info_scan_queue
+      @runner.info_scan_queue
+    end
+
+    def l2ping_queue
+      @runner.l2ping_queue
+    end
+
+    def query_history
+      @runner.query_history
     end
 
     def help_message
@@ -13,7 +43,7 @@ module BlueHydra
 Welcome to \e[34;1mBlue Hydra\e[0m
 
 This will display live information about Bluetooth devices seen in the area.
-Devices in this display will time out after #{@cui_timeout}s but will still be
+Devices in this display will time out after #{cui_timeout}s but will still be
 available in the BlueHydra Database or synced to pulse if you chose that
 option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
 
@@ -35,15 +65,15 @@ HELP
         begin
 
           unless BlueHydra.config[:file]
-            if @runner.scanner_status[:test_discovery]
-              discovery_time = Time.now.to_i - @runner.scanner_status[:test_discovery]
+            if scanner_status[:test_discovery]
+              discovery_time = Time.now.to_i - scanner_status[:test_discovery]
             else
               discovery_time = "not started"
             end
 
-            if @runner.ubertooth_thread
-              if @runner.scanner_status[:ubertooth]
-                ubertooth_time = Time.now.to_i - @runner.scanner_status[:ubertooth]
+            if ubertooth_thread
+              if scanner_status[:ubertooth]
+                ubertooth_time = Time.now.to_i - scanner_status[:ubertooth]
               else
                 ubertooth_time = "not started"
               end
@@ -60,12 +90,12 @@ HELP
 
           pbuff << "\e[34;1mBlue Hydra\e[0m :"
           if BlueHydra.config[:file]
-            pbuff <<  " Devices Seen in last #{@cui_timeout}s"
+            pbuff <<  " Devices Seen in last #{cui_timeout}s"
           end
           pbuff << "\n"
           lines += 1
 
-          pbuff << "Queue status: result_queue: #{@runner.result_queue.length}, info_scan_queue: #{@runner.info_scan_queue.length}, l2ping_queue: #{@runner.l2ping_queue.length}\n"
+          pbuff << "Queue status: result_queue: #{result_queue.length}, info_scan_queue: #{info_scan_queue.length}, l2ping_queue: #{l2ping_queue.length}\n"
           lines += 1
 
           unless BlueHydra.config[:file]
@@ -84,10 +114,10 @@ HELP
             rssi:  :right
           }
 
-          @runner.cui_status.keys.select{|x| @runner.cui_status[x][:last_seen] < (Time.now.to_i - @cui_timeout)}.each{|x| @runner.cui_status.delete(x)} unless BlueHydra.config[:file]
+          cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
 
-          unless @runner.cui_status.empty?
-            @runner.cui_status.values.each do |hsh|
+          unless cui_status.empty?
+            cui_status.values.each do |hsh|
               hsh[:_seen] = " +#{Time.now.to_i - hsh[:last_seen]}s"
               printable_keys.each do |key|
                 key_length = key.to_s.length
@@ -109,20 +139,20 @@ HELP
             pbuff << "\e[0;4m#{header}\e[0m\n"
             lines += 1
 
-            d = @runner.cui_status.values.sort_by{|x| x[:last_seen]}.reverse
+            d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
             d.each do |data|
 
               #prevent classic devices from expiring by forcing them onto the l2ping queue
               unless  data[:vers] == "btle"
-                ping_time = (Time.now.to_i - @l2ping_threshold)
-                @runner.query_history[data[:address]] ||= {}
-                if (@runner.query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
-                  @runner.l2ping_queue.push({
+                ping_time = (Time.now.to_i - l2ping_threshold)
+                query_history[data[:address]] ||= {}
+                if (query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
+                  l2ping_queue.push({
                     command: :l2ping,
                     address: data[:address]
                   })
 
-                  @runner.query_history[data[:address]][:l2ping] = Time.now.to_i
+                  query_history[data[:address]][:l2ping] = Time.now.to_i
                 end
               end
 
@@ -133,7 +163,7 @@ HELP
                         "\e[0;32m" # green
                       when data[:created] > Time.now.to_i - 30  # in last 30 seconds
                         "\e[0;33m" # yellow
-                      when data[:last_seen] < (Time.now.to_i - @cui_timeout + 20) # within 20 seconds expiring
+                      when data[:last_seen] < (Time.now.to_i - cui_timeout + 20) # within 20 seconds expiring
                         "\e[0;31m" # red
                       else
                         ""
