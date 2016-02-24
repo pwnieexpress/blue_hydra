@@ -28,24 +28,12 @@ module BlueHydra
       @@command = "btmon -T -i #{BlueHydra.config[:bt_device]}"
     end
 
+
     def start(command=@@command)
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
-        # mark hosts as 'offline' if we haven't seen for a while
-        BlueHydra.logger.info("Marking older devices as 'offline'...")
-        BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-          x.last_seen < (Time.now.to_i - (15*60))
-        }.each{|device|
-          device.status = 'offline'
-          device.save
-        }
-        BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-          x.last_seen < (Time.now.to_i - (60*3))
-        }.each{|device|
-          device.status = 'offline'
-          device.save
-        }
+        BlueHydra::Device.mark_old_devices_offline
 
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
         BlueHydra::Device.all.each do |dev|
@@ -695,6 +683,7 @@ HELP
               end
 
               result = result_queue.pop
+
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
@@ -713,19 +702,7 @@ HELP
               end
             end
 
-            BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-              x.last_seen < (Time.now.to_i - (15*60))
-            }.each{|device|
-              device.status = 'offline'
-              device.save
-            }
-
-            BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-              x.last_seen < (Time.now.to_i - (60*3))
-            }.each{|device|
-              device.status = 'offline'
-              device.save
-            }
+            BlueHydra::Device.mark_old_devices_offline
 
             if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
               BlueHydra.logger.info("Syncing all hosts to Pulse...")
