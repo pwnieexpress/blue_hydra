@@ -40,15 +40,15 @@ module BlueHydra
           stdout.each do |line|
 
             # strip out color codes
-            # TODO prolly a cleaner way to do this
             known_colors = [
-              "\e[0;31m",
-              "\e[0;32m",
-              "\e[0;33m",
-              "\e[0;34m",
-              "\e[0;35m",
-              "\e[0;36m",
-              "\e[0;37m",
+              "\e[0;30m", "\e[1;30m",
+              "\e[0;31m", "\e[1;31m",
+              "\e[0;32m", "\e[1;32m",
+              "\e[0;33m", "\e[1;33m",
+              "\e[0;34m", "\e[1;34m",
+              "\e[0;35m", "\e[1;35m",
+              "\e[0;36m", "\e[1;36m",
+              "\e[0;37m", "\e[1;37m",
               "\e[0m",
             ]
 
@@ -113,15 +113,15 @@ module BlueHydra
       # also discard anything prefixed with @ (local events)
       # drop command complete messages and similar messages that do not seem to be useful
       unless(
-          buffer.first =~ /^</ ||
-          buffer.first =~ /^@/ ||
-          buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/ ||
-          buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/ ||
-          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/ ||
-          buffer.first =~ /^Bluetooth monitor ver/ ||
-          buffer.first =~ /^= New Index:/ ||
-          buffer.first =~ /^= Delete Index:/ ||
-          (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ ) ||
+          buffer.first =~ /^</                                                                ||
+          buffer.first =~ /^@/                                                                ||
+          buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/                             ||
+          buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/                   ||
+          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/                                    ||
+          buffer.first =~ /^Bluetooth monitor ver/                                            ||
+          buffer.first =~ /^= New Index:/                                                     ||
+          buffer.first =~ /^= Delete Index:/                                                  ||
+          (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ )  ||
 
           # l2ping against a host that is gone will result in a good connect
           # complete message with a timed out status indicating the ping failed

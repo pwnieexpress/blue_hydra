@@ -28,29 +28,16 @@ module BlueHydra
       @@command = "btmon -T -i #{BlueHydra.config[:bt_device]}"
     end
 
+
     def start(command=@@command)
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
-        # mark hosts as 'offline' if we haven't seen for a while
         BlueHydra.logger.info("Marking older devices as 'offline'...")
-        BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-          x.last_seen < (Time.now.to_i - (15*60))
-        }.each{|device|
-          device.status = 'offline'
-          device.save
-        }
-        BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-          x.last_seen < (Time.now.to_i - (60*3))
-        }.each{|device|
-          device.status = 'offline'
-          device.save
-        }
+        BlueHydra::Device.mark_old_devices_offline
 
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
-        BlueHydra::Device.all.each do |dev|
-          dev.sync_to_pulse(true)
-        end
+        BlueHydra::Device.sync_all_to_pulse
 
         self.query_history   = {}
         self.command         = command
@@ -116,8 +103,14 @@ module BlueHydra
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
       self.btmon_thread.kill # stop this first thread so data stops flowing ...
 
+      stop_condition = Proc.new do
+        [nil, false].include?(result_thread.status) ||
+        [nil, false].include?(parser_thread.status) ||
+        self.result_queue.empty?
+      end
+
       # clear queue...
-      until [nil, false].include?(result_thread.status) || [nil, false].include?(parser_thread.status) || self.result_queue.empty?
+      until stop_condition.call
         BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
         sleep 15
       end
@@ -134,6 +127,7 @@ module BlueHydra
         self.discovery_thread.kill
         self.ubertooth_thread.kill if self.ubertooth_thread
       end
+
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
@@ -226,6 +220,7 @@ module BlueHydra
               sleep 20
             end
           end
+
         rescue => e
           BlueHydra.logger.error("Discovery thread #{e.message}")
           e.backtrace.each do |x|
@@ -284,168 +279,9 @@ module BlueHydra
     def start_cui_thread
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
-        #this is only to cut down on ram usage really, so 5 minutes seems reasonably sane
-        cui_timeout = 300
-        l2ping_threshold = (cui_timeout - 45)
-
-        puts "\e[H\e[2J"
-
-        help =  <<HELP
-Welcome to \e[34;1mBlue Hydra\e[0m
-
-This will display live information about Bluetooth devices seen in the area.
-Devices in this display will time out after #{cui_timeout}s but will still be
-available in the BlueHydra Database or synced to pulse if you chose that
-option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
-
-The "VERS" column in the following table shows mode and version if available
-	C/BR = Classic mode
-        4.0C = Classic mode, version 4.0
-        btle = Bluetooth Low Energy mode (4.0 and higher only)
-
-press [Enter] key to continue....
-HELP
-
-        puts help
-
-        gets.chomp
-
-        loop do
-          begin
-
-            unless BlueHydra.config[:file]
-              if self.scanner_status[:test_discovery]
-                discovery_time = Time.now.to_i - self.scanner_status[:test_discovery]
-             else
-                discovery_time = "not started"
-              end
-
-              if self.ubertooth_thread
-                if self.scanner_status[:ubertooth]
-                  ubertooth_time = Time.now.to_i - self.scanner_status[:ubertooth]
-                else
-                  ubertooth_time = "not started"
-                end
-              else
-                ubertooth_time = "not enabled"
-              end
-            end
-
-            pbuff = ""
-            max_height = `tput lines`.chomp.to_i
-            lines = 1
-
-            pbuff << "\e[H\e[2J"
-
-            pbuff << "\e[34;1mBlue Hydra\e[0m :"
-            if BlueHydra.config[:file]
-              pbuff <<  " Devices Seen in last #{cui_timeout}s"
-            end
-            pbuff << "\n"
-            lines += 1
-
-            pbuff << "Queue status: result_queue: #{self.result_queue.length}, info_scan_queue: #{self.info_scan_queue.length}, l2ping_queue: #{self.l2ping_queue.length}\n"
-            lines += 1
-
-            unless BlueHydra.config[:file]
-              pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
-              lines += 1
-            end
-
-            max_lengths = Hash.new(0)
-
-            printable_keys = [
-              :_seen, :vers, :address, :rssi, :name, :manuf, :type
-            ]
-
-            justifications = {
-              _seen: :right,
-              rssi:  :right
-            }
-
-            cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
-
-            unless cui_status.empty?
-              cui_status.values.each do |hsh|
-                hsh[:_seen] = " +#{Time.now.to_i - hsh[:last_seen]}s"
-                printable_keys.each do |key|
-                  key_length = key.to_s.length
-                  if v = hsh[key].to_s
-                    if v.length > max_lengths[key]
-                      if v.length > key_length
-                        max_lengths[key] = v.length
-                      else
-                        max_lengths[key] = key_length
-                      end
-                    end
-                  end
-                end
-              end
-
-              keys = printable_keys.select{|k| max_lengths[k] > 0}
-              header = keys.map{|k| k.to_s.ljust(max_lengths[k]).gsub("_"," ")}.join(' | ').upcase
-
-              pbuff << "\e[0;4m#{header}\e[0m\n"
-              lines += 1
-
-              d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
-              d.each do |data|
-
-                #prevent classic devices from expiring by forcing them onto the l2ping queue
-                unless  data[:vers] == "btle"
-                  ping_time = (Time.now.to_i - l2ping_threshold)
-                  self.query_history[data[:address]] ||= {}
-                  if (self.query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
-                    l2ping_queue.push({
-                      command: :l2ping,
-                      address: data[:address]
-                    })
-
-                    self.query_history[data[:address]][:l2ping] = Time.now.to_i
-                  end
-                end
-
-                next if lines >= max_height
-
-                color = case
-                        when data[:created] > Time.now.to_i - 10  # in last 10 seconds
-                          "\e[0;32m" # green
-                        when data[:created] > Time.now.to_i - 30  # in last 30 seconds
-                          "\e[0;33m" # yellow
-                        when data[:last_seen] < (Time.now.to_i - cui_timeout + 20) # within 20 seconds expiring
-                          "\e[0;31m" # red
-                        else
-                          ""
-                        end
-
-                x = keys.map do |k|
-                  if data[k]
-                    if justifications[k] == :right
-                      data[k].to_s.rjust(max_lengths[k])
-                    else
-                      data[k].to_s.ljust(max_lengths[k])
-                    end
-                  else
-                    ''.ljust(max_lengths[k])
-                  end
-                end
-                pbuff <<  "#{color}#{x.join(' | ')}\e[0m\n"
-                lines += 1
-              end
-            else
-              pbuff <<  "No recent devices..."
-            end
-
-            puts pbuff
-
-            sleep 0.1
-          rescue => e
-            BlueHydra.logger.error("CUI thread #{e.message}")
-            e.backtrace.each do |x|
-              BlueHydra.logger.error("#{x}")
-            end
-          end
-        end
+        cui  = BlueHydra::CliUserInterface.new(self)
+        cui.help_message
+        cui.cui_loop
       end
     end
 
@@ -504,6 +340,7 @@ HELP
           while chunk = chunk_queue.pop do
             p = BlueHydra::Parser.new(chunk.dup)
             p.parse
+
             attrs = p.attributes
 
             address = (attrs[:address]||[]).uniq.first
@@ -511,81 +348,8 @@ HELP
             if address
 
               unless BlueHydra.daemon_mode
-                cui_status[address] ||= {created: Time.now.to_i}
-                cui_status[address][:lap] = address.split(":")[3,3].join(":") unless cui_status[address][:lap]
-
-                if chunk[0] && chunk[0][0]
-                  bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
-                end
-
-                if bt_mode == "le"
-                  cui_status[address][:vers] = "btle"
-                else
-                  if attrs[:lmp_version]
-                    cui_status[address][:vers] = "#{attrs[:lmp_version].first.split(" ")[1]}C"
-                  elsif !cui_status[address][:vers]
-                    cui_status[address][:vers] = "C/BR"
-                  end
-                end
-
-                [
-                  :last_seen, :name, :address, :classic_rssi, :le_rssi
-                ].each do |key|
-                  if attrs[key] && attrs[key].first
-                    if cui_status[address][key] != attrs[key].first
-                      if key == :le_rssi || key == :classic_rssi
-                        cui_status[address][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
-                      else
-                        cui_status[address][key] = attrs[key].first
-                      end
-                    end
-                  end
-                end
-
-                if attrs[:short_name]
-                  unless attrs[:short_name] == [nil] || cui_status[address][:name]
-                    cui_status[address][:name] = attrs[:short_name].first
-                    BlueHydra.logger.warn("short name found: #{attrs[:short_name]}")
-                  end
-                end
-
-                if attrs[:appearance]
-                  cui_status[address][:type] = attrs[:appearance].first.split('(').first
-                end
-
-                if attrs[:classic_minor_class]
-                  if attrs[:classic_minor_class].first =~ /Uncategorized/i
-                    cui_status[address][:type] = "Uncategorized"
-                  else
-                    cui_status[address][:type] = attrs[:classic_minor_class].first.split('(').first
-                  end
-                end
-
-                if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
-                  unless cui_status[address][:manuf]
-                    vendor = Louis.lookup(address)
-
-                    cui_status[address][:manuf] = if vendor["short_vendor"]
-                                                    vendor["short_vendor"]
-                                                  else
-                                                    vendor["long_vendor"]
-                                                  end
-                  end
-                else
-                  cmp = nil
-
-                  if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
-                    cmp = attrs[:company_type].first
-                  elsif attrs[:company] && attrs[:company].first !~ /not assigned/i
-                      cmp = attrs[:company].first
-                  else
-                      cmp = "Unknown"
-                  end
-
-                  if cmp
-                    cui_status[address][:manuf] = cmp.split('(').first
-                  end
-                end
+                tracker = CliUserInterfaceTracker.new(self, chunk, attrs, address)
+                tracker.update_cui_status
               end
 
               if scan_results[address]
@@ -687,6 +451,7 @@ HELP
               end
 
               result = result_queue.pop
+
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
@@ -705,26 +470,11 @@ HELP
               end
             end
 
-            BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-              x.last_seen < (Time.now.to_i - (15*60))
-            }.each{|device|
-              device.status = 'offline'
-              device.save
-            }
-
-            BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-              x.last_seen < (Time.now.to_i - (60*3))
-            }.each{|device|
-              device.status = 'offline'
-              device.save
-            }
+            BlueHydra::Device.mark_old_devices_offline
 
             if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
-              BlueHydra.logger.info("Syncing all hosts to Pulse...")
-              BlueHydra::Device.all.each do |dev|
-                dev.instance_variable_set(:@filthy_attributes, [:status])
-                dev.sync_to_pulse(false)
-              end
+              BlueHydra.logger.info("Syncing all host statuses to Pulse...")
+              BlueHydra::Device.sync_statuses_to_pulse
             end
 
             sleep 1
