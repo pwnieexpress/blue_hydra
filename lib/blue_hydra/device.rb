@@ -62,30 +62,33 @@ class BlueHydra::Device
   # after saving send up to pulse
   after  :save, :sync_to_pulse
 
-  # this method only gets called in debug mode and will write out device files to
-  # the devices local dir to be reviewed. These files will be raw data from the parser
-  # before being converted to a model
-  #
-  # == Parameters :
-  #   result ::
-  #     Hash of results from parser
-  def self.update_device_file(result)
-    address = result[:address].first
-    file_path = File.expand_path(
-      "../../../devices/raw_#{address.gsub(':', '-')}_device_info.json", __FILE__
-    )
-    base = if File.exists?(file_path)
-             JSON.parse( File.read(file_path), symbolize_names: true) else
-             {}
-             end
-    result.each do |key, values|
-      if base[key]
-        base[key] = (base[key] + values).uniq
-      else
-        base[key] = values.uniq
-      end
+  def self.sync_all_to_pulse
+    BlueHydra::Device.all.each do |dev|
+      dev.sync_to_pulse(true)
     end
-    File.write(file_path, JSON.pretty_generate(base))
+  end
+
+  def self.sync_statuses_to_pulse
+    BlueHydra::Device.all.each do |dev|
+      dev.instance_variable_set(:@filthy_attributes, [:status])
+      dev.sync_to_pulse(false)
+    end
+  end
+
+  def self.mark_old_devices_offline
+    # mark hosts as 'offline' if we haven't seen for a while
+    BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (15*60))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+    BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (60*3))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
   end
 
   # this class method is take a result Hash and convert it into a new or update
@@ -95,11 +98,6 @@ class BlueHydra::Device
   #   result ::
   #     Hash of results from parser
   def self.update_or_create_from_result(result)
-
-     # log raw results into device files for review in debug mode
-     if BlueHydra.config[:log_level] == "debug"
-       update_device_file(result.dup)
-     end
 
     result = result.dup
 

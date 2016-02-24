@@ -285,37 +285,6 @@ module BlueHydra
           rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
         })
 
-      # unused lines which we will exclude from the :unknown key manually
-      when line =~ /^Status:/
-      when line =~ /^Encryption:/
-      when line =~ /^Handle range:/
-      when line =~ /^(Attribute (data length|group list)|Reason|Result):/
-      when line =~ /^Num responses/
-      when line =~ /^Error:/
-      when line =~ /^Read By Group Type Request/
-      when line =~ /^Read By Type Request/
-      when line =~ /^Attribute type:/
-      when line =~ /^Min interval:/
-      when line =~ /^Max interval:/
-      when line =~ /^Slave latency:/
-      when line =~ /^Timeout multiplier:/
-      when line =~ /^Attribute group type:/
-      when line =~ /^Max slots:/
-      when line =~ /^Page period mode:/
-      when line =~ /^Page scan repetition mode:/
-      when line =~ /^Type:/
-      when line =~ /^Connection interval:/
-      when line =~ /^Connection latency:/
-      when line =~ /^Supervision timeout:/
-      when line =~ /^Master clock accuracy:/
-      when line =~ /^Server RX MTU:/
-      when line =~ /^Link type:/
-      when line =~ /^Clock offset:/
-      when line =~ /^Num reports:/
-      when line =~ /^Event type:/
-      when line =~ /^Data length:/
-      when line =~ /^Peer address type:/
-      when line =~ /^Role:/
       else
         set_attr("#{bt_mode}_unknown".to_sym, line)
       end
