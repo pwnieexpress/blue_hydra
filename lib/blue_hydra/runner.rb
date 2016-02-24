@@ -208,7 +208,7 @@ module BlueHydra
               # run test-discovery
               # do a discovery
               self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra.daemon_mode
-              discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
+              discovery_errors = BlueHydra::Command.execute3(discovery_command,45)[:stderr]
               last_discover_time = Time.now.to_i
               if discovery_errors
                 BlueHydra.logger.error("Error with test-discovery script..")
