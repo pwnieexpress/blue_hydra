@@ -138,6 +138,7 @@ require 'blue_hydra/runner'
 require 'blue_hydra/command'
 require 'blue_hydra/device'
 require 'blue_hydra/cli_user_interface'
+require 'blue_hydra/cli_user_interface_tracker'
 
 BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
   "hciconfig #{BlueHydra.config[:bt_device]}")[:stdout].scan(
