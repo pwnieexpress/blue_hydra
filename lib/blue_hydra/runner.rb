@@ -33,12 +33,11 @@ module BlueHydra
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
+        BlueHydra.logger.info("Marking older devices as 'offline'...")
         BlueHydra::Device.mark_old_devices_offline
 
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
-        BlueHydra::Device.all.each do |dev|
-          dev.sync_to_pulse(true)
-        end
+        BlueHydra::Device.sync_all_to_pulse
 
         self.query_history   = {}
         self.command         = command
@@ -705,11 +704,8 @@ HELP
             BlueHydra::Device.mark_old_devices_offline
 
             if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
-              BlueHydra.logger.info("Syncing all hosts to Pulse...")
-              BlueHydra::Device.all.each do |dev|
-                dev.instance_variable_set(:@filthy_attributes, [:status])
-                dev.sync_to_pulse(false)
-              end
+              BlueHydra.logger.info("Syncing all host statuses to Pulse...")
+              BlueHydra::Device.sync_statuses_to_pulse
             end
 
             sleep 1
