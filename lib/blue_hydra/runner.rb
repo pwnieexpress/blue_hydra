@@ -544,7 +544,7 @@ HELP
 
                 if attrs[:short_name]
                   unless attrs[:short_name] == [nil] || cui_status[address][:name]
-                    cui_status[address][:name] = attrs[:short_name]
+                    cui_status[address][:name] = attrs[:short_name].first
                     BlueHydra.logger.warn("short name found: #{attrs[:short_name]}")
                   end
                 end
