@@ -56,7 +56,8 @@ module BlueHydra
   DEFAULT_CONFIG = {
     log_level:      "info",
     bt_device:      "hci0",
-    info_scan_rate: "60"
+    info_scan_rate: "60",
+    status_sync_rate: (60 * 60 * 24) #seconds
   }
 
   # Create config file with defaults if missing or load and update.
@@ -105,7 +106,24 @@ module BlueHydra
     @@config
   end
 
-  module_function :logger, :config
+  def daemon_mode
+    @@daemon_mode ||= false
+  end
+
+  def no_pulse
+    @@no_pulse ||= false
+  end
+
+  def daemon_mode=(setting)
+    @@daemon_mode = setting
+  end
+
+  def no_pulse=(setting)
+    @@no_pulse = setting
+  end
+
+  module_function :logger, :config, :daemon_mode, :daemon_mode=, :no_pulse,
+                  :no_pulse=
 end
 
 # require the code

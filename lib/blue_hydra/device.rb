@@ -1,6 +1,8 @@
 # this is the bluetooth Device model stored in the DB
 class BlueHydra::Device
 
+  attr_accessor :filthy_attributes
+
   # this is a DataMapper model...
   include DataMapper::Resource
 
@@ -55,6 +57,7 @@ class BlueHydra::Device
   before :save, :set_vendor
   before :save, :set_uap_lap
   before :save, :set_mode_flags
+  before :save, :prepare_the_filth
 
   # after saving send up to pulse
   after  :save, :sync_to_pulse
@@ -191,8 +194,29 @@ class BlueHydra::Device
     self.all(uap_lap: uap_lap).first
   end
 
+  def syncable_attributes
+    [
+      :name, :status, :vendor, :appearance, :company, :company_type, :lmp_version,
+      :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
+      :classic_features_bitmap, :classic_major_class, :classic_minor_class,
+      :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
+      :last_seen, :classic_tx_power, :le_features, :classic_features,
+      :le_service_uuids, :classic_service_uuids, :classic_channels,
+      :classic_class, :classic_rssi, :le_flags, :le_rssi
+    ]
+  end
+
+
+  def prepare_the_filth
+    @filthy_attributes ||= []
+    syncable_attributes.each do |attr|
+      @filthy_attributes << attr if self.attribute_dirty?(attr)
+    end
+  end
+
+
   # sync record to pulse
-  def sync_to_pulse
+  def sync_to_pulse(sync_all=false)
     send_data = {
       type:   "bluetooth",
       source: "blue-hydra",
@@ -200,37 +224,20 @@ class BlueHydra::Device
       data: {}
     }
 
-    # ignore nil value attributes
-    send_data[:data][:name]                    = name                                unless name.nil?
-    send_data[:data][:status]                  = status                              unless status.nil?
-    send_data[:data][:address]                 = address                             unless address.nil?
-    send_data[:data][:vendor]                  = vendor                              unless vendor.nil?
-    send_data[:data][:appearance]              = appearance                          unless appearance.nil?
-    send_data[:data][:company]                 = company                             unless company.nil?
-    send_data[:data][:company_type]            = company_type                        unless company_type.nil?
-    send_data[:data][:lmp_version]             = lmp_version                         unless lmp_version.nil?
-    send_data[:data][:manufacturer]            = manufacturer                        unless manufacturer.nil?
-    send_data[:data][:le_features_bitmap]      = le_features_bitmap                  unless le_features_bitmap.nil?
-    send_data[:data][:le_features]             = JSON.parse(le_features)             unless le_features.nil? || le_features == "[]"
-    send_data[:data][:classic_features_bitmap] = classic_features_bitmap             unless classic_features_bitmap.nil?
-    send_data[:data][:classic_features]        = JSON.parse(classic_features)        unless classic_features.nil? || classic_features == "[]"
-    send_data[:data][:firmware]                = firmware                            unless firmware.nil?
-    send_data[:data][:le_service_uuids]        = JSON.parse(le_service_uuids)        unless le_service_uuids.nil? || le_service_uuids == "[]"
-    send_data[:data][:classic_service_uuids]   = JSON.parse(classic_service_uuids)   unless classic_service_uuids.nil? || classic_service_uuids == "[]"
-    send_data[:data][:classic_mode]            = classic_mode                        unless classic_mode.nil?
-    send_data[:data][:classic_channels]        = JSON.parse(classic_channels)        unless classic_channels.nil? || classic_channels == "[]"
-    send_data[:data][:classic_major_class]     = classic_major_class                 unless classic_major_class.nil?
-    send_data[:data][:classic_minor_class]     = classic_minor_class                 unless classic_minor_class.nil?
-    send_data[:data][:classic_class]           = JSON.parse(classic_class)           unless classic_class.nil? || classic_class == "[]"
-    send_data[:data][:classic_rssi]            = JSON.parse(classic_rssi)            unless classic_rssi.nil? || classic_rssi == "[]"
-    send_data[:data][:classic_tx_power]        = classic_tx_power                    unless classic_tx_power.nil?
-    send_data[:data][:le_flags]                = JSON.parse(le_flags)                unless le_flags.nil? || le_flags == "[]"
-    send_data[:data][:le_mode]                 = le_mode                             unless le_mode.nil?
-    send_data[:data][:le_address_type]         = le_address_type                     unless le_address_type.nil?
-    send_data[:data][:le_random_address_type]  = le_random_address_type              unless le_random_address_type.nil?
-    send_data[:data][:le_rssi]                 = JSON.parse(le_rssi)                 unless le_rssi.nil? || le_rssi == "[]"
-    send_data[:data][:le_tx_power]             = le_tx_power                         unless le_tx_power.nil?
-    send_data[:data][:last_seen]               = last_seen                           unless last_seen.nil?
+    # always include address
+    send_data[:data][:address] = address
+
+    @filthy_attributes ||= []
+
+    syncable_attributes.each do |attr|
+      # ignore nil value attributes
+      if @filthy_attributes.include?(attr) || sync_all
+        val = self.send(attr)
+        unless [nil, "[]"].include?(val)
+          send_data[:data][attr] = val
+        end
+      end
+    end
 
     # create the json
     json = JSON.generate(send_data)
@@ -238,12 +245,12 @@ class BlueHydra::Device
     # log raw results into device files for review in debugmode
     if BlueHydra.config[:log_level] == "debug"
       file_path = File.expand_path(
-        "../../../devices/synced_#{address.gsub(':', '-')}.json", __FILE__
+        "../../../devices/synced_#{address.gsub(':', '-')}_#{Time.now.to_i}.json", __FILE__
       )
       File.write(file_path, json)
     end
 
-    return if BlueHydra::NoPulse
+    return if BlueHydra.no_pulse
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
       sock.write(json)

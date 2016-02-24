@@ -49,7 +49,7 @@ module BlueHydra
 
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
         BlueHydra::Device.all.each do |dev|
-          dev.sync_to_pulse
+          dev.sync_to_pulse(true)
         end
 
         self.query_history   = {}
@@ -77,7 +77,7 @@ module BlueHydra
           end
         end
 
-        start_cui_thread unless BlueHydra::DaemonMode
+        start_cui_thread unless BlueHydra.daemon_mode
 
         sleep 5 # allow it start up
 
@@ -107,7 +107,7 @@ module BlueHydra
         x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_supported
       end
 
-      x[:cui_thread] = self.cui_thread.status unless BlueHydra::DaemonMode
+      x[:cui_thread] = self.cui_thread.status unless BlueHydra.daemon_mode
 
       x
     end
@@ -207,8 +207,8 @@ module BlueHydra
 
               # run test-discovery
               # do a discovery
-              self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra::DaemonMode
-              discovery_errors = BlueHydra::Command.execute3(discovery_command)[:stderr]
+              self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra.daemon_mode
+              discovery_errors = BlueHydra::Command.execute3(discovery_command,45)[:stderr]
               last_discover_time = Time.now.to_i
               if discovery_errors
                 BlueHydra.logger.error("Error with test-discovery script..")
@@ -250,7 +250,7 @@ module BlueHydra
                 end
               end
 
-              self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra::DaemonMode
+              self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra.daemon_mode
               ubertooth_output = BlueHydra::Command.execute3("ubertooth-scan -t 40",60)
               last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
@@ -510,7 +510,7 @@ HELP
 
             if address
 
-              unless BlueHydra::DaemonMode
+              unless BlueHydra.daemon_mode
                 cui_status[address] ||= {created: Time.now.to_i}
                 cui_status[address][:lap] = address.split(":")[3,3].join(":") unless cui_status[address][:lap]
 
@@ -544,7 +544,7 @@ HELP
 
                 if attrs[:short_name]
                   unless attrs[:short_name] == [nil] || cui_status[address][:name]
-                    cui_status[address][:name] = attrs[:short_name]
+                    cui_status[address][:name] = attrs[:short_name].first
                     BlueHydra.logger.warn("short name found: #{attrs[:short_name]}")
                   end
                 end
@@ -649,6 +649,8 @@ HELP
           #debugging
           maxdepth = 0
 
+          last_status_sync = Time.now.to_i
+
           loop do
 
             unless BlueHydra.config[:file]
@@ -672,7 +674,7 @@ HELP
             end
 
             until result_queue.empty?
-              if BlueHydra::DaemonMode
+              if BlueHydra.daemon_mode
                 queue_depth = result_queue.length
                 if queue_depth > 250
                   if (maxdepth < queue_depth)
@@ -716,6 +718,14 @@ HELP
               device.status = 'offline'
               device.save
             }
+
+            if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
+              BlueHydra.logger.info("Syncing all hosts to Pulse...")
+              BlueHydra::Device.all.each do |dev|
+                dev.instance_variable_set(:@filthy_attributes, [:status])
+                dev.sync_to_pulse(false)
+              end
+            end
 
             sleep 1
           end
