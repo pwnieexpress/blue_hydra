@@ -116,8 +116,14 @@ module BlueHydra
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
       self.btmon_thread.kill # stop this first thread so data stops flowing ...
 
+      stop_condition = Proc.new do
+        [nil, false].include?(result_thread.status) ||
+        [nil, false].include?(parser_thread.status) ||
+        self.result_queue.empty?
+      end
+
       # clear queue...
-      until [nil, false].include?(result_thread.status) || [nil, false].include?(parser_thread.status) || self.result_queue.empty?
+      until stop_condition.call
         BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
         sleep 15
       end
@@ -134,6 +140,7 @@ module BlueHydra
         self.discovery_thread.kill
         self.ubertooth_thread.kill if self.ubertooth_thread
       end
+
       self.chunker_thread.kill
       self.parser_thread.kill
       self.result_thread.kill
@@ -226,6 +233,7 @@ module BlueHydra
               sleep 20
             end
           end
+
         rescue => e
           BlueHydra.logger.error("Discovery thread #{e.message}")
           e.backtrace.each do |x|

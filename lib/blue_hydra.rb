@@ -20,15 +20,15 @@ DataMapper::Property::String.length(255)
 # The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
 # which the Pwnie chef scripts have been run. Otherwise it will attempt to
 # create a sqlite db whereever the run was initiated.
-if ENV["BLUE_HYDRA"] == "test"
-  DataMapper.setup( :default, 'sqlite::memory:?cache=shared')
-else
-  DataMapper.setup(
-    :default,
-    Dir.exist?('/opt/pwnix/') ?  "sqlite:/opt/pwnix/blue_hydra.db" : "sqlite:blue_hydra.db"
-  )
-end
+db_path = if ENV["BLUE_HYDRA"] == "test"
+            'sqlite::memory:?cache=shared'
+          elsif  Dir.exist?('/opt/pwnix/')
+            "sqlite:/opt/pwnix/blue_hydra.db"
+          else
+            "sqlite:blue_hydra.db"
+          end
 
+DataMapper.setup(:default, db_path)
 
 # Helpful Errors to raise in specific cased.
 # TODO perhaps extend and move into another file
@@ -40,7 +40,8 @@ module BlueHydra
   # 0.0.1 first stable verison
   # 0.0.2 timestamps, feedback loop for info scans, l2ping
   # 0.1.0 first working version with frozen models for pulse
-  VERSION = '0.1.0'
+  # 1.0.0 many refactors, already in stable sensor release as per 1.7.2
+  VERSION = '1.0.0'
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
   # or in the local directory if run on a non-Pwnie device.
@@ -51,13 +52,14 @@ module BlueHydra
             end
 
   # Default configuration values
-  # TODO document other attributes:
-  # - "file"
+  #
+  # Note: "file" can also be set but has no default value
   DEFAULT_CONFIG = {
-    log_level:      "info",
-    bt_device:      "hci0",
-    info_scan_rate: "60",
-    status_sync_rate: (60 * 60 * 24) #seconds
+    log_level:         "info",
+    bt_device:         "hci0",       # change for external ud100
+    info_scan_rate:    60,           # 1 minute in seconds
+    status_sync_rate:  60 * 60 * 24, # 1 day in seconds
+    file:              false         # if set will read from file, not hci dev
   }
 
   # Create config file with defaults if missing or load and update.
@@ -79,6 +81,8 @@ module BlueHydra
               File.expand_path('../../blue_hydra.log', __FILE__)
             end
 
+  # TODO convert to safe logger
+  #
   # set log level from config
   @@logger = Logger.new(LOGFILE)
   @@logger.level = case @@config[:log_level]

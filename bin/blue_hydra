@@ -3,10 +3,6 @@
 $:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 
 require 'optparse'
-
-module BlueHydra
-end
-
 require 'blue_hydra'
 
 options = {}
@@ -15,7 +11,7 @@ OptionParser.new do |opts|
   opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
     options[:daemonize] = true
   end
-  opts.on("--nopulse", "Do not try to send results to hermes") do |v|
+  opts.on("-n", "--nopulse", "Do not send results to hermes") do |v|
     options[:nopulse] = true
   end
 end.parse!
@@ -27,7 +23,6 @@ end
 if options[:nopulse]
   BlueHydra.no_pulse = true
 end
-
 
 # This file is used by the service scan to kill the process and should be
 # cleaned up when this crashes or is killed via the service scan. 
@@ -56,6 +51,7 @@ begin
         raise FailedThreadError, thread_key
       end
     end
+
     sleep 1
   end
 
