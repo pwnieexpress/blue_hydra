@@ -365,10 +365,17 @@ module BlueHydra
                     case
                     when k == :last_seen
                       # TODO explain 600...
-                      if (attrs[k].first - 600) >= scan_results[address][k].first
+                      current_time = attrs[k].sort.last
+                      last_seen = scan_results[address][k].sort.last
+
+                      if (current_time - last_seen) > 600
+                        attrs[k] = [current_time]
                         scan_results[address][k] = attrs[k]
                         needs_push = true
+                      else
+                        attrs[k] = [last_seen]
                       end
+
                     when [:le_rssi, :classic_rssi].include?(k)
                       current_time = attrs[k][0][:t]
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
