@@ -364,11 +364,11 @@ module BlueHydra
                   else
                     case
                     when k == :last_seen
-                      # TODO explain 600...
+                      # TODO explain 150...
                       current_time = attrs[k].sort.last
                       last_seen = scan_results[address][k].sort.last
 
-                      if (current_time - last_seen) > 600
+                      if (current_time - last_seen) > 150
                         attrs[k] = [current_time]
                         scan_results[address][k] = attrs[k]
                         needs_push = true

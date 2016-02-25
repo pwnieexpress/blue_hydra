@@ -83,6 +83,7 @@ class BlueHydra::Device
       device.status = 'offline'
       device.save
     }
+
     BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (60*3))
     }.each{|device|
