@@ -364,11 +364,12 @@ module BlueHydra
                   else
                     case
                     when k == :last_seen
-                      # TODO explain 150...
                       current_time = attrs[k].sort.last
                       last_seen = scan_results[address][k].sort.last
 
-                      if (current_time - last_seen) > 150
+                      # update this value no more than 1 x / minute to avoid
+                      # flooding pulse with too much noise.
+                      if (current_time - last_seen) > 60
                         attrs[k] = [current_time]
                         scan_results[address][k] = attrs[k]
                         needs_push = true
@@ -380,6 +381,8 @@ module BlueHydra
                       current_time = attrs[k][0][:t]
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
+                      # update this value no more than 1 x / minute to avoid
+                      # flooding pulse with too much noise.
                       if (current_time - last_seen_time) > 60
                         # BlueHydra.logger.debug("syncing #{k} for #{address} last sync was #{attrs[k][0][:t] - last_seen_time}s ago...")
                         scan_results[address][k] = attrs[k]
