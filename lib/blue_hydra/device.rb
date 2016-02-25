@@ -83,6 +83,7 @@ class BlueHydra::Device
       device.status = 'offline'
       device.save
     }
+
     BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (60*3))
     }.each{|device|
@@ -221,6 +222,19 @@ class BlueHydra::Device
       version: BlueHydra::VERSION,
       data: {}
     }
+
+    if BlueHydra.config[:log_level] == 'debug'
+      File.open('/var/log/pwnix/blue_hydra_syncing.log','a') do |f|
+        t = Time.now.to_i
+        u = status
+        a = address
+        s = sync_all ? 'yes' : 'no'
+        f = (@filthy_attributes || 'ALL').to_s
+
+        f.puts("#{t} #{u} #{a} sync_all? #{s}, attrs: #{f}")
+      end
+    end
+
 
     # always include address
     send_data[:data][:address] = address

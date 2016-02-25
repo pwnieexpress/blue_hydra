@@ -28,7 +28,6 @@ module BlueHydra
       @@command = "btmon -T -i #{BlueHydra.config[:bt_device]}"
     end
 
-
     def start(command=@@command)
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
@@ -341,7 +340,7 @@ module BlueHydra
             p = BlueHydra::Parser.new(chunk.dup)
             p.parse
 
-            attrs = p.attributes
+            attrs = p.attributes.dup
 
             address = (attrs[:address]||[]).uniq.first
 
@@ -358,39 +357,49 @@ module BlueHydra
                 attrs.each do |k,v|
 
                   unless [:last_seen, :le_rssi, :classic_rssi].include? k
-
                     unless attrs[k] == scan_results[address][k]
                       scan_results[address][k] = v
                       needs_push = true
                     end
-
                   else
                     case
                     when k == :last_seen
-                      if (attrs[k].first - 600) >= scan_results[address][k].first
+                      current_time = attrs[k].sort.last
+                      last_seen = scan_results[address][k].sort.last
+
+                      # update this value no more than 1 x / minute to avoid
+                      # flooding pulse with too much noise.
+                      if (current_time - last_seen) > 60
+                        attrs[k] = [current_time]
                         scan_results[address][k] = attrs[k]
                         needs_push = true
+                      else
+                        attrs[k] = [last_seen]
                       end
+
                     when [:le_rssi, :classic_rssi].include?(k)
-                      #   => [{:t=>1452952885, :rssi=>"-51 dBm"}]
-                      threshold_time = attrs[k][0][:t] - 60
+                      current_time = attrs[k][0][:t]
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
-                      if threshold_time > last_seen_time
+                      # update this value no more than 1 x / minute to avoid
+                      # flooding pulse with too much noise.
+                      if (current_time - last_seen_time) > 60
                         # BlueHydra.logger.debug("syncing #{k} for #{address} last sync was #{attrs[k][0][:t] - last_seen_time}s ago...")
                         scan_results[address][k] = attrs[k]
                         needs_push = true
+                      else
+                        attrs.delete(k)
                       end
                     end
                   end
                 end
 
                 if needs_push
-                  result_queue.push(p.attributes)
+                  result_queue.push(attrs)
                 end
               else
                 scan_results[address] = attrs
-                result_queue.push(p.attributes)
+                result_queue.push(attrs)
               end
 
             end
