@@ -205,6 +205,22 @@ class BlueHydra::Device
     ]
   end
 
+  def is_serialized?(attr)
+    [
+      :classic_channels,
+      :classic_class,
+      :classic_features,
+      :le_features,
+      :le_flags,
+      :le_service_uuids,
+      :classic_service_uuids,
+      :classic_rssi,
+      :le_rssi,
+      :le_features_bitmap,
+      :classic_features_bitmap
+    ].include?(attr)
+  end
+
 
   def prepare_the_filth
     @filthy_attributes ||= []
@@ -226,8 +242,8 @@ class BlueHydra::Device
     if BlueHydra.config[:log_level] == 'debug'
       File.open('/var/log/pwnix/blue_hydra_syncing.log','a') do |f|
         time = Time.now.to_i
-        status = status
-        address = address
+        status = self.status
+        address = self.address
         full_sync = sync_all ? 'yes' : 'no'
         attrs = (@filthy_attributes || 'ALL').to_s
 
@@ -246,7 +262,11 @@ class BlueHydra::Device
       if @filthy_attributes.include?(attr) || sync_all
         val = self.send(attr)
         unless [nil, "[]"].include?(val)
-          send_data[:data][attr] = val
+          if is_serialized?(attr)
+            send_data[:data][attr] = JSON.parse(val)
+          else
+            send_data[:data][attr] = val
+          end
         end
       end
     end
