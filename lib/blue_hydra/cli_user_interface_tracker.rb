@@ -68,7 +68,7 @@ module BlueHydra
         end
       end
 
-      unless cui_status[address][:manuf] || cui_status[address][:manuf] == "Unknown"
+      if !cui_status[address][:manuf] || cui_status[address][:manuf] == "Unknown"
         if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
             vendor = Louis.lookup(address)
 
@@ -84,7 +84,7 @@ module BlueHydra
             cmp = attrs[:company_type].first
           elsif attrs[:company] && attrs[:company].first !~ /not assigned/i
             cmp = attrs[:company].first
-          elsif attrs[:manufacturer]
+          elsif attrs[:manufacturer] && attrs[:manufacturer].first !~ /\(65535\)/
             cmp = attrs[:manufacturer].first
           else
             cmp = "Unknown"
