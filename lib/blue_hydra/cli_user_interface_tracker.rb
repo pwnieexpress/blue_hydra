@@ -64,29 +64,29 @@ module BlueHydra
         end
       end
 
-      if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
-        unless cui_status[address][:manuf]
-          vendor = Louis.lookup(address)
+      unless cui_status[address][:manuf]
+        if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
+            vendor = Louis.lookup(address)
 
-          cui_status[address][:manuf] = if vendor["short_vendor"]
-                                          vendor["short_vendor"]
-                                        else
-                                          vendor["long_vendor"]
-                                        end
-        end
-      else
-        cmp = nil
-
-        if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
-          cmp = attrs[:company_type].first
-        elsif attrs[:company] && attrs[:company].first !~ /not assigned/i
-          cmp = attrs[:company].first
+            cui_status[address][:manuf] = if vendor["short_vendor"]
+                                            vendor["short_vendor"]
+                                          else
+                                            vendor["long_vendor"]
+                                          end
         else
-          cmp = "Unknown"
-        end
+          cmp = nil
 
-        if cmp
-          cui_status[address][:manuf] = cmp.split('(').first
+          if attrs[:company_type] && attrs[:company_type].first !~ /unknown/i
+            cmp = attrs[:company_type].first
+          elsif attrs[:company] && attrs[:company].first !~ /not assigned/i
+            cmp = attrs[:company].first
+          else
+            cmp = "Unknown"
+          end
+
+          if cmp
+            cui_status[address][:manuf] = cmp.split('(').first
+          end
         end
       end
     end
