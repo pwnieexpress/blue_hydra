@@ -171,9 +171,9 @@ module BlueHydra
                   command = info_scan_queue.pop
                   case command[:command]
                   when :info
-                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}")
+                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}",3)
                   when :leinfo
-                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}")
+                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}",3)
                   else
                     BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
                   end
@@ -182,7 +182,7 @@ module BlueHydra
                 # is empty
                 unless l2ping_queue.empty?
                   command = l2ping_queue.pop
-                  BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}")
+                  BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}",5)
                 end
               end
 
