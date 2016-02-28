@@ -152,6 +152,18 @@ module BlueHydra
       end
     end
 
+    def hci_reset
+      # interface reset
+      interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")[:stderr]
+      if interface_reset
+        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
+        interface_reset.split("\n").each do |ln|
+          BlueHydra.logger.error(ln)
+        end
+      end
+    end
+
+
     def start_discovery_thread
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
@@ -166,34 +178,58 @@ module BlueHydra
               until info_scan_queue.empty? && l2ping_queue.empty?
                 # clear out entire info scan queue
                 until info_scan_queue.empty?
+                  hci_reset
                   BlueHydra.logger.debug("Popping off info scan queue. Depth: #{ info_scan_queue.length}")
-                  BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")
                   command = info_scan_queue.pop
                   case command[:command]
                   when :info
-                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}",3)
+                    info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}",3)[:stderr]
                   when :leinfo
-                    BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}",3)
+                    info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --random #{command[:address]}",3)[:stderr]
+                    if info_errors == "Could not create connection: Input/output error"
+                      info_errors = nil
+                      BlueHydra.logger.debug("Random leinfo failed against #{command[:address]}")
+                      hci_reset
+                      info2_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --static #{command[:address]}",3)[:stderr]
+                      if info2_errors == "Could not create connection: Input/output error"
+                        BlueHydra.logger.debug("Static leinfo failed against #{command[:address]}")
+                        hci_reset
+                        info3_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}",3)[:stderr]
+                        if info3_errors == "Could not create connection: Input/output error"
+                          BlueHydra.logger.debug("Default leinfo failed against #{command[:address]}")
+                          BlueHydra.logger.debug("Default leinfo failed against #{command[:address]}")
+                          BlueHydra.logger.debug("Default leinfo failed against #{command[:address]}")
+                        end
+                      end
+                    end
                   else
                     BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
+                    info_errors = nil
+                  end
+                  if info_errors
+                    BlueHydra.logger.error("Error with info command... #{command.inspect}")
+                    info_errors.split("\n").each do |ln|
+                      BlueHydra.logger.error(ln)
+                    end
                   end
                 end
                 # run 1 l2ping a time while still checking if info scan queue
                 # is empty
                 unless l2ping_queue.empty?
+                  hci_reset
+                  BlueHydra.logger.debug("Popping off l2ping queue. Depth: #{ l2ping_queue.length}")
                   command = l2ping_queue.pop
-                  BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}",5)
+                  l2ping_errors = BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}",5)[:stderr]
+                  if l2ping_errors
+                    BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
+                    l2ping_errors.split("\n").each do |ln|
+                      BlueHydra.logger.error(ln)
+                    end
+                  end
                 end
               end
 
-              # interface reset
-              interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")[:stderr]
-              if interface_reset
-                BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
-                interface_reset.split("\n").each do |ln|
-                  BlueHydra.logger.error(ln)
-                end
-              end
+              hci_reset
 
               # hot loop avoidance, but run right before discovery to avoid any delay between discovery and info scan
               sleep 1
