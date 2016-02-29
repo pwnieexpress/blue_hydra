@@ -56,14 +56,13 @@ module BlueHydra
 
         unless BlueHydra.config[:file]
           # Handle ubertooth
-          @ubertooth_supported = false
           if system("ubertooth-util -v > /dev/null 2>&1")
             if ::File.executable?("/usr/bin/ubertooth-rx") && `ubertooth-rx -h | grep -q Survey`
-              @ubertooth_supported = "ubertooth-rx -z -t 40"
+              @ubertooth_command = "ubertooth-rx -z -t 40"
             elsif ::File.executable?("/usr/bin/ubertooth-scan")
-              @ubertooth_supported = "ubertooth-scan -t 40"
+              @ubertooth_command = "ubertooth-scan -t 40"
             end
-            start_ubertooth_thread if @ubertooth_supported
+            start_ubertooth_thread if @ubertooth_command
           end
         end
 
@@ -94,7 +93,7 @@ module BlueHydra
 
       unless BlueHydra.config[:file]
         x[:discovery_thread] = self.discovery_thread.status
-        x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_supported
+        x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_command
       end
 
       x[:cui_thread] = self.cui_thread.status unless BlueHydra.daemon_mode
@@ -285,7 +284,7 @@ module BlueHydra
               end
 
               self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra.daemon_mode
-              ubertooth_output = BlueHydra::Command.execute3(@ubertooth_supported,60)
+              ubertooth_output = BlueHydra::Command.execute3(@ubertooth_command,60)
               last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
                 BlueHydra.logger.error("Error with ubertooth_scan..")
