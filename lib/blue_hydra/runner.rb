@@ -93,7 +93,7 @@ module BlueHydra
 
       unless BlueHydra.config[:file]
         x[:discovery_thread] = self.discovery_thread.status
-        x[:ubertooth_thread] = self.ubertooth_thread.status if @ubertooth_command
+        x[:ubertooth_thread] = self.ubertooth_thread.status if self.ubertooth_thread
       end
 
       x[:cui_thread] = self.cui_thread.status unless BlueHydra.daemon_mode
