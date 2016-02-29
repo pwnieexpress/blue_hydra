@@ -68,7 +68,7 @@ module BlueHydra
         end
       end
 
-      if !cui_status[address][:manuf] || cui_status[address][:manuf] == "Unknown"
+      if [nil, "Unknown"].include?(cui_status[address][:manuf]
         if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
             vendor = Louis.lookup(address)
 
