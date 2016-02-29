@@ -35,7 +35,6 @@ build/
 .rvmrc
 
 *.log
-devices/*.json
 *.db
 Gemfile.lock
 blue_hydra.json
