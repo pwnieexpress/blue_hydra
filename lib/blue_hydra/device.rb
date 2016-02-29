@@ -274,15 +274,8 @@ class BlueHydra::Device
     # create the json
     json = JSON.generate(send_data)
 
-    # log raw results into device files for review in debugmode
-    if BlueHydra.config[:log_level] == "debug"
-      file_path = File.expand_path(
-        "../../../devices/synced_#{address.gsub(':', '-')}_#{Time.now.to_i}.json", __FILE__
-      )
-      File.write(file_path, json)
-    end
-
     return if BlueHydra.no_pulse
+
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
       sock.write(json)
