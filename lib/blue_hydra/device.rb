@@ -239,19 +239,6 @@ class BlueHydra::Device
       data: {}
     }
 
-    if BlueHydra.config[:log_level] == 'debug'
-      File.open('/var/log/pwnix/blue_hydra_syncing.log','a') do |f|
-        time = Time.now.to_i
-        status = self.status
-        address = self.address
-        full_sync = sync_all ? 'yes' : 'no'
-        attrs = (@filthy_attributes || 'ALL').to_s
-
-        f.puts("#{time} #{status} #{address} sync_all? #{full_sync}, attrs: #{attrs}")
-      end
-    end
-
-
     # always include address
     send_data[:data][:address] = address
 

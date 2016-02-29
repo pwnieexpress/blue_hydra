@@ -48,9 +48,10 @@ available in the BlueHydra Database or synced to pulse if you chose that
 option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
 
 The "VERS" column in the following table shows mode and version if available
-        C/BR = Classic mode
-        4.0C = Classic mode, version 4.0
-        btle = Bluetooth Low Energy mode (4.0 and higher only)
+        CL/BR = Classic mode
+        CL4.0 = Classic mode, version 4.0
+        BTLE = Bluetooth Low Energy mode
+        LE4.1 = Bluetooth Low Energy mode, version 4.1
 
 press [Enter] key to continue....
 HELP

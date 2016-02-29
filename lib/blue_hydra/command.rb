@@ -7,7 +7,7 @@ module BlueHydra::Command
   #
   # == Returns
   #   Hash containing :stdout, :stderr, :exit_code from the command
-  def execute3(command, timeout=false, timeout_signal="SIGTERM")
+  def execute3(command, timeout=false, timeout_signal="SIGKILL")
     BlueHydra.logger.debug("Executing Command: #{command}")
     output = {}
     if timeout
