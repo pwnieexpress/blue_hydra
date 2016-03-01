@@ -195,7 +195,7 @@ class BlueHydra::Device
 
   def syncable_attributes
     [
-      :name, :status, :vendor, :appearance, :company, :company_type, :lmp_version,
+      :name, :vendor, :appearance, :company, :company_type, :lmp_version,
       :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
       :classic_features_bitmap, :classic_major_class, :classic_minor_class,
       :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
@@ -238,7 +238,8 @@ class BlueHydra::Device
     }
 
     # always include address
-    send_data[:data][:address] = address
+    send_data[:data][:address] = self.address
+    send_data[:data][:status] = self.status
 
     @filthy_attributes ||= []
 
