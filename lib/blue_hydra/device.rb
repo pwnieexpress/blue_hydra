@@ -124,7 +124,7 @@ class BlueHydra::Device
       address name manufacturer short_name lmp_version firmware
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
-      le_random_address_type
+      le_random_address_type le_features_bitmap classic_features_bitmap
     }.map(&:to_sym).each do |attr|
       if result[attr]
         # we should only get a single value for these so we need to warn if
@@ -141,7 +141,7 @@ class BlueHydra::Device
     # update array attributes
     %w{
       classic_features le_features le_flags classic_channels classic_class le_rssi
-      classic_rssi le_service_uuids classic_service_uuids le_features_bitmap classic_features_bitmap
+      classic_rssi le_service_uuids classic_service_uuids
     }.map(&:to_sym).each do |attr|
       if result[attr]
         record.send("#{attr.to_s}=", result.delete(attr))
