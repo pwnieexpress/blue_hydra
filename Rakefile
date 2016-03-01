@@ -11,7 +11,7 @@ desc "Sync all records to pulse"
 task "sync_all" do 
   BlueHydra::Device.all.each do |dev|
     puts "Syncing #{dev.address}" 
-    dev.sync_to_pulse
+    dev.sync_to_pulse(true)
   end
 end
 
