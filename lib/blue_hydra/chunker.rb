@@ -37,7 +37,7 @@ module BlueHydra
 
         # inject a timestamp onto the message parsed out of the first line of
         # btmon output
-        ts = Time.parse(current_msg.first.split(/\[hci[0-9]\] /)[-1]).to_i
+        ts = Time.parse(current_msg.first.strip.scan(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d*$/)[0]).to_i
         current_msg << "last_seen: #{ts}"
 
         # add the current message to the working set
