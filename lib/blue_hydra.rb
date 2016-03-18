@@ -41,7 +41,8 @@ module BlueHydra
   # 0.0.2 timestamps, feedback loop for info scans, l2ping
   # 0.1.0 first working version with frozen models for pulse
   # 1.0.0 many refactors, already in stable sensor release as per 1.7.2
-  VERSION = '1.0.0'
+  # 1.1.0 CUI, readability refactor, many small improvements
+  VERSION = '1.1.0'
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
   # or in the local directory if run on a non-Pwnie device.
