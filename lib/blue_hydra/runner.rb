@@ -527,6 +527,7 @@ module BlueHydra
             if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
               BlueHydra.logger.info("Syncing all host statuses to Pulse...")
               BlueHydra::Device.sync_statuses_to_pulse
+              last_status_sync = Time.now.to_i
             end
 
             sleep 1
