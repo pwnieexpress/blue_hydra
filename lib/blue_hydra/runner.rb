@@ -461,7 +461,6 @@ module BlueHydra
           #debugging
           maxdepth = 0
 
-          last_status_sync = Time.now.to_i
 
           loop do
 
@@ -519,11 +518,6 @@ module BlueHydra
             end
 
             BlueHydra::Device.mark_old_devices_offline
-
-            if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
-              BlueHydra.logger.info("Syncing all host statuses to Pulse...")
-              BlueHydra::Device.sync_statuses_to_pulse
-            end
 
             sleep 1
           end

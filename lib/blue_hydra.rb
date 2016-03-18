@@ -58,7 +58,6 @@ module BlueHydra
     log_level:         "info",
     bt_device:         "hci0",       # change for external ud100
     info_scan_rate:    60,           # 1 minute in seconds
-    status_sync_rate:  60 * 60 * 24, # 1 day in seconds
     file:              false         # if set will read from file, not hci dev
   }
 
