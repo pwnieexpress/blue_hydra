@@ -224,9 +224,13 @@ module BlueHydra
                   command = l2ping_queue.pop
                   l2ping_errors = BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}",5)[:stderr]
                   if l2ping_errors
-                    BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
-                    l2ping_errors.split("\n").each do |ln|
-                      BlueHydra.logger.error(ln)
+                    if l2ping_errors.chomp == "Can't connect: No route to host"
+                      # We could handle this as negative feedback if we want
+                    else
+                      BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
+                      l2ping_errors.split("\n").each do |ln|
+                        BlueHydra.logger.error(ln)
+                      end
                     end
                   end
                 end
