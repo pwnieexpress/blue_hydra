@@ -210,9 +210,15 @@ module BlueHydra
                     info_errors = nil
                   end
                   if info_errors
-                    BlueHydra.logger.error("Error with info command... #{command.inspect}")
-                    info_errors.split("\n").each do |ln|
-                      BlueHydra.logger.error(ln)
+                    if info_errors.chomp == "Can't connect: No route to host"
+                      # We could handle this as negative feedback if we want
+                    elsif info_errors.chomp == "Could not create connection: Input/output error"
+                      # We failed to connect, not sure why, not sure we care
+                    else
+                      BlueHydra.logger.error("Error with info command... #{command.inspect}")
+                      info_errors.split("\n").each do |ln|
+                        BlueHydra.logger.error(ln)
+                      end
                     end
                   end
                 end
@@ -226,6 +232,8 @@ module BlueHydra
                   if l2ping_errors
                     if l2ping_errors.chomp == "Can't connect: No route to host"
                       # We could handle this as negative feedback if we want
+                    elsif l2ping_errors.chomp == "Could not create connection: Input/output error"
+                      # We failed to connect, not sure why, not sure we care
                     else
                       BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
                       l2ping_errors.split("\n").each do |ln|
