@@ -236,6 +236,8 @@ module BlueHydra
                       # Same as above
                     elsif l2ping_errors.chomp =~ /create connection: Input\/output error/i
                       # We failed to connect, not sure why, not sure we care
+                    elsif l2ping_errors.chomp =~ /connect: Connection refused/i
+                      #maybe we do care about this one? if it refused, it was there
                     else
                       BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
                       l2ping_errors.split("\n").each do |ln|
