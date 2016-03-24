@@ -210,9 +210,9 @@ module BlueHydra
                     info_errors = nil
                   end
                   if info_errors
-                    if info_errors.chomp == "Can't connect: No route to host"
+                    if info_errors.chomp =~ /connect: No route to host/i
                       # We could handle this as negative feedback if we want
-                    elsif info_errors.chomp == "Could not create connection: Input/output error"
+                    elsif info_errors.chomp =~ /create connection: Input\/output error/i
                       # We failed to connect, not sure why, not sure we care
                     else
                       BlueHydra.logger.error("Error with info command... #{command.inspect}")
@@ -230,10 +230,14 @@ module BlueHydra
                   command = l2ping_queue.pop
                   l2ping_errors = BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}",5)[:stderr]
                   if l2ping_errors
-                    if l2ping_errors.chomp == "Can't connect: No route to host"
+                    if l2ping_errors.chomp =~ /connect: No route to host/i
                       # We could handle this as negative feedback if we want
-                    elsif l2ping_errors.chomp == "Could not create connection: Input/output error"
+                    elsif l2ping_errors.chomp =~ /connect: Host is down/i
+                      # Same as above
+                    elsif l2ping_errors.chomp =~ /create connection: Input\/output error/i
                       # We failed to connect, not sure why, not sure we care
+                    elsif l2ping_errors.chomp =~ /connect: Connection refused/i
+                      #maybe we do care about this one? if it refused, it was there
                     else
                       BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
                       l2ping_errors.split("\n").each do |ln|
