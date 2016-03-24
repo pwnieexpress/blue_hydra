@@ -214,6 +214,8 @@ module BlueHydra
                       # We could handle this as negative feedback if we want
                     elsif info_errors.chomp == "Could not create connection: Input/output error"
                       # We failed to connect, not sure why, not sure we care
+                    elsif info_errors.chomp == "Can't create connection: Input/output error"
+                      # We failed to connect, not sure why, not sure we care
                     else
                       BlueHydra.logger.error("Error with info command... #{command.inspect}")
                       info_errors.split("\n").each do |ln|
@@ -232,6 +234,8 @@ module BlueHydra
                   if l2ping_errors
                     if l2ping_errors.chomp == "Can't connect: No route to host"
                       # We could handle this as negative feedback if we want
+                    elsif l2ping_errors.chomp == "Can't connect: Host is down"
+                      # Same as above
                     elsif l2ping_errors.chomp == "Could not create connection: Input/output error"
                       # We failed to connect, not sure why, not sure we care
                     else
