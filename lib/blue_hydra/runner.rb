@@ -57,7 +57,7 @@ module BlueHydra
         unless BlueHydra.config[:file]
           # Handle ubertooth
           if system("ubertooth-util -v > /dev/null 2>&1")
-            if ::File.executable?("/usr/bin/ubertooth-rx") && `ubertooth-rx -h | grep -q Survey`
+            if ::File.executable?("/usr/bin/ubertooth-rx") && system("ubertooth-rx -h | grep -q Survey")
               @ubertooth_command = "ubertooth-rx -z -t 40"
             elsif ::File.executable?("/usr/bin/ubertooth-scan")
               @ubertooth_command = "ubertooth-scan -t 40"
