@@ -42,7 +42,8 @@ module BlueHydra
   # 0.1.0 first working version with frozen models for pulse
   # 1.0.0 many refactors, already in stable sensor release as per 1.7.2
   # 1.1.0 CUI, readability refactor, many small improvements
-  VERSION = '1.1.0'
+  # 1.1.1 Bug fixes, add digested, configurable rssi flush
+  VERSION = '1.1.1'
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
   # or in the local directory if run on a non-Pwnie device.
@@ -60,7 +61,8 @@ module BlueHydra
     bt_device:         "hci0",       # change for external ud100
     info_scan_rate:    60,           # 1 minute in seconds
     status_sync_rate:  60 * 60 * 24, # 1 day in seconds
-    file:              false         # if set will read from file, not hci dev
+    file:              false,        # if set will read from file, not hci dev
+    rssi_precision:    1             # seconds to buffer rssis uniquely
   }
 
   # Create config file with defaults if missing or load and update.

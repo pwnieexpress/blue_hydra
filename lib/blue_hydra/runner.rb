@@ -390,6 +390,12 @@ module BlueHydra
         begin
 
           scan_results = {}
+          rssi_buff = {
+            type:     "rssi",
+            source:   "blue-hydra",
+            version:  BlueHydra::VERSION,
+            data:     {time: 0, values: []}
+          }
 
           while chunk = chunk_queue.pop do
             p = BlueHydra::Parser.new(chunk.dup)
@@ -435,6 +441,44 @@ module BlueHydra
                     when [:le_rssi, :classic_rssi].include?(k)
                       current_time = attrs[k][0][:t]
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
+
+                      unless BlueHydra.no_pulse
+                        rssi_ts = attrs[k][0][:t]
+
+                        if rssi_ts - rssi_buff[:data][:time] > BlueHydra.config[:rssi_precision]
+                          unless rssi_buff[:data][:values].empty?
+
+                            begin
+                              # write json data to result socket
+                              TCPSocket.open('127.0.0.1', 8244) do |sock|
+                                sock.write(JSON.generate(rssi_buff))
+                                sock.write("\n")
+                                sock.flush
+                              end
+                            rescue => e
+                              BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
+                            end
+
+                            # TODO sync to pulse
+                            BlueHydra.logger.debug(rssi_buff.inspect)
+
+                            rssi_buff[:data][:values] = []
+                          end
+                          rssi_buff[:data][:time] = rssi_ts
+                        end
+
+                        existing = rssi_buff[:data][:values].select do |x|
+                          x[:address] == address && x[:type] == k
+                        end
+
+                        unless existing.count > 0
+                          rssi_buff[:data][:values] << {
+                            address: address,
+                            type: k,
+                            rssi: attrs[k][0][:rssi]
+                          }
+                        end
+                      end
 
                       # update this value no more than 1 x / minute to avoid
                       # flooding pulse with too much noise.
