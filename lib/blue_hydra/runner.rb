@@ -459,7 +459,6 @@ module BlueHydra
                               BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
                             end
 
-                            # TODO sync to pulse
                             BlueHydra.logger.debug(rssi_buff.inspect)
 
                             rssi_buff[:data][:values] = []
