@@ -442,7 +442,7 @@ module BlueHydra
                       current_time = attrs[k][0][:t]
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
-                      unless BlueHydra.no_pulse
+                      unless BlueHydra.no_pulse || ( BlueHydra.config[:rssi_precision] < 1 || BlueHydra.config[:rssi_precision] > 59 )
                         rssi_ts = attrs[k][0][:t]
 
                         if rssi_ts - rssi_buff[:data][:time] > BlueHydra.config[:rssi_precision]
