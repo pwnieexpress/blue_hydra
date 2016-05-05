@@ -61,7 +61,7 @@ module BlueHydra
     info_scan_rate:    60,           # 1 minute in seconds
     status_sync_rate:  60 * 60 * 24, # 1 day in seconds
     file:              false,        # if set will read from file, not hci dev
-    log_rssi:          false         # if set will log rssi
+    rssi_log:          false         # if set will log rssi
   }
 
   # Create config file with defaults if missing or load and update.
@@ -71,9 +71,10 @@ module BlueHydra
                  symbolize_names: true
                ))
              else
-               File.write(CONFIG_FILE, JSON.generate(DEFAULT_CONFIG))
                DEFAULT_CONFIG
              end
+
+  File.write(CONFIG_FILE, JSON.pretty_generate(@@config))
 
   # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
   # in the local directory as blue_hydra.log if on a non-Pwnie system
@@ -102,8 +103,8 @@ module BlueHydra
                      Logger::INFO
                    end
 
-  # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
-  # in the local directory as blue_hydra.log if on a non-Pwnie system
+  # Logs will be written to /var/log/pwnix/blue_hydra_rssi.log on a sensor or
+  # in the local directory as blue_hydra_rssi.log if on a non-Pwnie system
   RSSI_LOGFILE = if Dir.exists?('/var/log/pwnix')
               File.expand_path('/var/log/pwnix/blue_hydra_rssi.log', __FILE__)
             else
