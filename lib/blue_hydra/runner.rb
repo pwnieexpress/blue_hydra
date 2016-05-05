@@ -436,6 +436,15 @@ module BlueHydra
                       current_time = attrs[k][0][:t]
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
+                      # if log_rssi is set log all values
+                      if BlueHydra.config[:log_rssi]
+                        ts = attrs[k][0][:t]
+                        type = k.to_s.gsub('_rssi', '').upcase
+                        rssi = attrs[k][0][:rssi]
+                        msg = [ts, type, address, rssi].join(' ')
+                        BlueHydra.rssi_logger.info(msg)
+                      end
+
                       # update this value no more than 1 x / minute to avoid
                       # flooding pulse with too much noise.
                       if (current_time - last_seen_time) > 60

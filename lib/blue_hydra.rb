@@ -60,7 +60,8 @@ module BlueHydra
     bt_device:         "hci0",       # change for external ud100
     info_scan_rate:    60,           # 1 minute in seconds
     status_sync_rate:  60 * 60 * 24, # 1 day in seconds
-    file:              false         # if set will read from file, not hci dev
+    file:              false,        # if set will read from file, not hci dev
+    log_rssi:          false         # if set will log rssi
   }
 
   # Create config file with defaults if missing or load and update.
@@ -101,9 +102,27 @@ module BlueHydra
                      Logger::INFO
                    end
 
+  # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
+  # in the local directory as blue_hydra.log if on a non-Pwnie system
+  RSSI_LOGFILE = if Dir.exists?('/var/log/pwnix')
+              File.expand_path('/var/log/pwnix/blue_hydra_rssi.log', __FILE__)
+            else
+              File.expand_path('../../blue_hydra_rssi.log', __FILE__)
+            end
+
+  @@rssi_logger = Logger.new(RSSI_LOGFILE)
+  @@rssi_logger.level = Logger::INFO
+  @@rssi_logger.formatter = proc {|s,d,p,m| "#{m}\n"}
+
+
   # expose the logger as a module function
   def logger
     @@logger
+  end
+
+  # expose the logger as a module function
+  def rssi_logger
+    @@rssi_logger
   end
 
   # expose the config as  module function
@@ -128,7 +147,7 @@ module BlueHydra
   end
 
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :no_pulse,
-                  :no_pulse=
+                  :no_pulse=, :rssi_logger
 end
 
 # require the code
