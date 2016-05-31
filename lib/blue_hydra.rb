@@ -61,7 +61,8 @@ module BlueHydra
     info_scan_rate:    60,           # 1 minute in seconds
     status_sync_rate:  60 * 60 * 24, # 1 day in seconds
     file:              false,        # if set will read from file, not hci dev
-    rssi_log:          false         # if set will log rssi
+    rssi_log:          false,        # if set will log rssi
+    aggressive_rssi:   false         # if set will sync all rssi to pulse
   }
 
   # Create config file with defaults if missing or load and update.
