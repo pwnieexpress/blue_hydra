@@ -8,6 +8,7 @@ class BlueHydra::Device
 
   # Attributes for the DB
   property :id,                            Serial
+  property :uuid,                          String
 
   property :name,                          String
   property :status,                        String
@@ -57,6 +58,7 @@ class BlueHydra::Device
   before :save, :set_vendor
   before :save, :set_uap_lap
   before :save, :set_mode_flags
+  before :save, :set_uuid
   before :save, :prepare_the_filth
 
   # after saving send up to pulse
@@ -176,6 +178,13 @@ class BlueHydra::Device
     end
   end
 
+  # set a sync id as a UUID
+  def set_uuid
+    unless self.uuid
+      self.uuid = SecureRandom.uuid
+    end
+  end
+
 
   # set the last 4 octets of the mac as the uap_lap values
   #
@@ -237,7 +246,8 @@ class BlueHydra::Device
       data: {}
     }
 
-    # always include address
+    # always include uuid, address, status
+    send_data[:data][:uuid] = self.uuid
     send_data[:data][:address] = self.address
     send_data[:data][:status] = self.status
 

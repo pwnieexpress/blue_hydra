@@ -40,9 +40,20 @@ describe BlueHydra::Device do
       created_at
       updated_at
       last_seen
+      uuid
     }.each do |attr|
       expect(device.respond_to?(attr)).to eq(true)
     end
+  end
+
+  it "generates a uuid when saving" do
+    d = BlueHydra::Device.new
+    d.address = "DE:AD:BE:EF:CA:FE"
+    expect(d.uuid).to eq(nil)
+    d.save
+    expect(d.uuid.class).to eq(String)
+    uuid_regex = /^[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}$/
+    expect(d.uuid =~ uuid_regex).to eq(0)
   end
 
   it "sets a uap_lap from an address" do

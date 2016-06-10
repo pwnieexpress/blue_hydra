@@ -3,6 +3,7 @@ require 'pty'
 require 'logger'
 require 'json'
 require 'open3'
+require 'securerandom'
 
 # Gems
 require 'data_mapper'
