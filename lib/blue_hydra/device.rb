@@ -5,8 +5,7 @@ class BlueHydra::Device
 
   # this is a DataMapper model...
   include DataMapper::Resource
-
-  # Attributes for the DB
+# Attributes for the DB
   property :id,                            Serial
   property :uuid,                          String
 
@@ -181,7 +180,13 @@ class BlueHydra::Device
   # set a sync id as a UUID
   def set_uuid
     unless self.uuid
-      self.uuid = SecureRandom.uuid
+      new_uuid = SecureRandom.uuid
+
+      until BlueHydra::Device.all(uuid: new_uuid).count == 0
+        new_uuid = SecureRandom.uuid
+      end
+
+      self.uuid = new_uuid
     end
   end
 
@@ -247,9 +252,15 @@ class BlueHydra::Device
     }
 
     # always include uuid, address, status
-    send_data[:data][:uuid] = self.uuid
+    send_data[:data][:uuid]    = self.uuid
+    send_data[:data][:status]  = self.status
+
+    # TODO once pulse is using uuid to lookup records we can move
+    # address into the syncable_attributes list and only include it if
+    # changes, unless of course we want to handle the case where the db gets
+    # reset and we have to resync hosts based on address alone or something
+    # but, like, that'll never happen right?
     send_data[:data][:address] = self.address
-    send_data[:data][:status] = self.status
 
     @filthy_attributes ||= []
 
