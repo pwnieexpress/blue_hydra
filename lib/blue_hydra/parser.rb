@@ -144,6 +144,7 @@ module BlueHydra
            #   UUID: 7988f2b6-dc41-1291-8746-ecf83cc7a06c
            #   Version: 15104.61591
            #   TX power: -56 dB
+           #   Data: 01adddd439aed386c76574e9ab9e11958e25c1f70ae203
            when grp[0] =~ /Company:/
              vals = grp.map(&:strip)
 
@@ -154,9 +155,11 @@ module BlueHydra
                when line =~ /^Type:/
                  set_attr(:company_type, line.split(': ')[1])
                when line =~ /^UUID:/
-                 set_attr("#{bt_mode}_service_uuids".to_sym, line.split(': ')[1])
+                 set_attr("#{bt_mode}_company_uuid".to_sym, line.split(': ')[1])
                when line =~ /^TX power:/
                  set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
+               when line =~ /^Data:/
+                 set_attr("#{bt_mode}_company_data".to_sym, line.split(': ')[1])
                end
              end
 
