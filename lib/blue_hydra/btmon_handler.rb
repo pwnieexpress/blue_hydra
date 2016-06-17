@@ -23,12 +23,17 @@ module BlueHydra
       end
       # # log raw btmon output for review if requested
       if BlueHydra.config[:btmon_rawlog]
-        @rawlog_file = File.open('btmon_raw.log','a')
+        @rawlog_file = File.open("btmon_raw_#{Time.now.to_i}.log.gz",'w+')
+        @rawlog_writer = Zlib::GzipWriter.wrap(@rawlog_file)
       end
 
-      # initialize itself calls the method that spanws the PTY which runst the
+      # initialize itself calls the method that spanws the PTY which runs the
       # command
-      spawn
+      begin
+        spawn
+      ensure
+        @rawlog_writer.close
+      end
     end
 
     # spawn a PTY to run @command
@@ -42,6 +47,11 @@ module BlueHydra
         begin
           # handle the streaming output line by line
           stdout.each do |line|
+
+            # log used btmon output for review if we are in debug mode
+            if BlueHydra.config[:btmon_rawlog] && !BlueHydra.config[:file]
+              @rawlog_writer.puts(line.chomp)
+            end
 
             # strip out color codes
             known_colors = [
@@ -111,13 +121,6 @@ module BlueHydra
 
     # filter and then push an array of lines into the @parse_queue
     def enqueue(buffer)
-
-        # log used btmon output for review if we are in debug mode
-        if BlueHydra.config[:btmon_rawlog] && !BlueHydra.config[:file]
-          buffer.each do |line|
-            @rawlog_file.puts(line.chomp)
-          end
-        end
 
       # discard anything which we sent to the modem as those lines
       # will start with <

@@ -4,6 +4,7 @@ require 'logger'
 require 'json'
 require 'open3'
 require 'securerandom'
+require 'zlib'
 
 # Gems
 require 'data_mapper'
