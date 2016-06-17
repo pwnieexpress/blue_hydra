@@ -17,9 +17,13 @@ module BlueHydra
       @command = command
       @parse_queue = parse_queue
 
-      # # log raw btmon output for review if requested
+      # # log used btmon output for review if requested
       if BlueHydra.config[:btmon_log]
         @log_file = File.open('btmon.log','a')
+      end
+      # # log raw btmon output for review if requested
+      if BlueHydra.config[:btmon_rawlog]
+        @rawlog_file = File.open('btmon_raw.log','a')
       end
 
       # initialize itself calls the method that spanws the PTY which runst the
@@ -108,6 +112,13 @@ module BlueHydra
     # filter and then push an array of lines into the @parse_queue
     def enqueue(buffer)
 
+        # log used btmon output for review if we are in debug mode
+        if BlueHydra.config[:btmon_rawlog] && !BlueHydra.config[:file]
+          buffer.each do |line|
+            @rawlog_file.puts(line.chomp)
+          end
+        end
+
       # discard anything which we sent to the modem as those lines
       # will start with <
       # also discard anything prefixed with @ (local events)
@@ -138,8 +149,8 @@ module BlueHydra
 
         )
 
-        # log raw btmon output for review if we are in debug mode
-        if BlueHydra.config[:btmon_log] && !BlueHydra.config[:file]
+        # log used btmon output for review if we are in debug mode
+        if BlueHydra.config[:btmon_log] && !BlueHydra.config[:file] && !BlueHydra.config[:btmon_rawlog]
           buffer.each do |line|
             @log_file.puts(line.chomp)
           end
