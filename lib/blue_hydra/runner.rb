@@ -293,7 +293,7 @@ module BlueHydra
           loop do
             begin
               # Do a scan with ubertooth
-              ubertooth_reset = BlueHydra::Command.execute3("ubertooth-util -r")
+              ubertooth_reset = BlueHydra::Command.execute3("/usr/bin/ubertooth-util -r")
               if ubertooth_reset[:stderr]
                 BlueHydra.logger.error("Error with ubertooth-util -r...")
                 ubertooth_reset.split("\n").each do |ln|
