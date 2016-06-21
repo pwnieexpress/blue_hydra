@@ -260,7 +260,6 @@ module BlueHydra
               # do a discovery
               self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra.daemon_mode
               discovery_errors = BlueHydra::Command.execute3(discovery_command,45)[:stderr]
-              last_discover_time = Time.now.to_i
               if discovery_errors
                 BlueHydra.logger.error("Error with test-discovery script..")
                 discovery_errors.split("\n").each do |ln|
@@ -304,7 +303,6 @@ module BlueHydra
 
               self.scanner_status[:ubertooth] = Time.now.to_i unless BlueHydra.daemon_mode
               ubertooth_output = BlueHydra::Command.execute3(@ubertooth_command,60)
-              last_ubertooth_time = Time.now.to_i
               if ubertooth_output[:stderr]
                 BlueHydra.logger.error("Error with ubertooth_scan..")
                 ubertooth_output[:stderr].split("\n").each do |ln|
