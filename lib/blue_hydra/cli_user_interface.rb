@@ -104,7 +104,7 @@ gets.chomp
         pbuff << "\e[H\e[2J"
 
         pbuff << "\e[34;1mBlue Hydra\e[0m :"
-        if BlueHydra.config[:file]
+        unless BlueHydra.config[:file]
           pbuff <<  " Devices Seen in last #{cui_timeout}s"
         end
         pbuff << "\n"
