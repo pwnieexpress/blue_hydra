@@ -104,7 +104,7 @@ gets.chomp
         pbuff << "\e[H\e[2J"
 
         pbuff << "\e[34;1mBlue Hydra\e[0m :"
-        if BlueHydra.config[:file]
+        unless BlueHydra.config[:file]
           pbuff <<  " Devices Seen in last #{cui_timeout}s"
         end
         pbuff << "\n"
@@ -158,7 +158,7 @@ gets.chomp
           d.each do |data|
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
-            unless  data[:vers] == "btle"
+            unless BlueHydra.config[:file] || data[:vers] == "btle"
               ping_time = (Time.now.to_i - l2ping_threshold)
               query_history[data[:address]] ||= {}
               if (query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
