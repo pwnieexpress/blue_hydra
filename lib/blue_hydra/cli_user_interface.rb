@@ -159,7 +159,7 @@ gets.chomp
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
             unless BlueHydra.config[:file]
-              unless data[:vers] =~ /le/i
+              if data[:vers] =~ /cl/i
                 ping_time = (Time.now.to_i - l2ping_threshold)
                 query_history[data[:address]] ||= {}
                 if (query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
