@@ -158,16 +158,18 @@ gets.chomp
           d.each do |data|
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
-            unless BlueHydra.config[:file] || data[:vers] == "btle"
-              ping_time = (Time.now.to_i - l2ping_threshold)
-              query_history[data[:address]] ||= {}
-              if (query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
-                l2ping_queue.push({
-                  command: :l2ping,
-                  address: data[:address]
-                })
+            unless BlueHydra.config[:file]
+              unless data[:vers] =~ /le/i
+                ping_time = (Time.now.to_i - l2ping_threshold)
+                query_history[data[:address]] ||= {}
+                if (query_history[data[:address]][:l2ping].to_i < ping_time) && (data[:last_seen] < ping_time)
+                  l2ping_queue.push({
+                    command: :l2ping,
+                    address: data[:address]
+                  })
 
-                query_history[data[:address]][:l2ping] = Time.now.to_i
+                  query_history[data[:address]][:l2ping] = Time.now.to_i
+                end
               end
             end
 
