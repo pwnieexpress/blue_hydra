@@ -117,11 +117,11 @@ class BlueHydra::Device
 
     record = self.all(address: address).first ||
              self.find_by_uap_lap(address) ||
-             self.all(
+             (lpu && lmn && lmn2 && self.all(
                le_proximity_uuid: lpu,
                le_major_num: lmn,
                le_minor_num: lmn2
-             ).first ||
+             ).first) ||
              self.new
 
     # if we are processing things here we have, implicitly seen them so
