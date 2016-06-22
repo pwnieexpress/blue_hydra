@@ -150,12 +150,27 @@ module BlueHydra
 
              set_attr(:company, vals.shift.split(': ')[1])
 
+             company_type = nil
              vals.each do |line|
                case
                when line =~ /^Type:/
-                 set_attr(:company_type, line.split(': ')[1])
+                 company_type = line.split(': ')[1]
+                 set_attr(:company_type, company_type)
                when line =~ /^UUID:/
-                 set_attr("#{bt_mode}_company_uuid".to_sym, line.split(': ')[1])
+                 if company_type && company_type =~ /\(2\)/
+                   set_attr("#{bt_mode}_proximity_uuid".to_sym, line.split(': ')[1])
+                 else
+                   set_attr("#{bt_mode}_company_uuid".to_sym, line.split(': ')[1])
+                 end
+               when line =~/^Version:/
+                 if company_type && company_type =~ /\(2\)/
+                   major = line.split(': ')[1].split('.')[0].to_i.to_s(16).scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
+                   minor = line.split(': ')[1].split('.')[1].to_i.to_s(16).scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
+                   set_attr("#{bt_mode}_major_num".to_sym, major)
+                   set_attr("#{bt_mode}_minor_num".to_sym, minor)
+                 else
+                   set_attr("#{bt_mode}_company_version".to_sym, line.split(': ')[1])
+                 end
                when line =~ /^TX power:/
                  set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
                when line =~ /^Data:/

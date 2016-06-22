@@ -39,6 +39,9 @@ class BlueHydra::Device
   property :le_random_address_type,        String
   property :le_company_data,               String
   property :le_company_uuid,               String
+  property :le_proximity_uuid,             String
+  property :le_major_num,                  String
+  property :le_minor_num,                  String
   property :le_flags,                      Text
   property :le_rssi,                       Text
   property :le_tx_power,                   Text
@@ -127,7 +130,8 @@ class BlueHydra::Device
       address name manufacturer short_name lmp_version firmware
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
-      le_random_address_type le_company_uuid le_company_data
+      le_random_address_type le_company_uuid le_company_data le_proximity_uuid
+      le_major_num le_minor_num
     }.map(&:to_sym).each do |attr|
       if result[attr]
         # we should only get a single value for these so we need to warn if
@@ -218,7 +222,7 @@ class BlueHydra::Device
       :last_seen, :classic_tx_power, :le_features, :classic_features,
       :le_service_uuids, :classic_service_uuids, :classic_channels,
       :classic_class, :classic_rssi, :le_flags, :le_rssi, :le_company_data,
-      :le_company_uuid
+      :le_company_uuid, :le_proximity_uuid, :le_major_num, :le_minor_num
     ]
   end
 
@@ -330,7 +334,10 @@ class BlueHydra::Device
       :le_features,
       :le_features_bitmap,
       :le_company_data,
-      :le_company_uuid
+      :le_company_uuid,
+      :le_proximity_uuid,
+      :le_major_num,
+      :le_minor_num
     ].each do |le_attr|
       if self[le_attr]
         le ||= true

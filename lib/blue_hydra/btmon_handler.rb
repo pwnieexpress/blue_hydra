@@ -32,7 +32,7 @@ module BlueHydra
       begin
         spawn
       ensure
-        @rawlog_writer.close
+        @rawlog_writer.close if @rawlog_writer
       end
     end
 
