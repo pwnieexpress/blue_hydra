@@ -132,7 +132,8 @@ gets.chomp
 
         justifications = {
           _seen: :right,
-          rssi:  :right
+          rssi:  :right,
+          range: :right
         }
 
         cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]

@@ -58,7 +58,6 @@ module BlueHydra
     #     Unix timestamp for when this message data was created
     def handle_grouped_chunk(grouped_chunk, bt_mode, timestamp)
       tx_power = nil
-      tx_power_last_set = nil
       grouped_chunk.each do |grp|
 
         # when we only have a single line in a group we can handle simply
@@ -66,7 +65,7 @@ module BlueHydra
           line = grp[0]
 
           # next line was not nested, treat as single line
-          parse_single_line(line, bt_mode, timestamp, tx_power, tx_power_last_set)
+          parse_single_line(line, bt_mode, timestamp, tx_power)
 
         # if we have multiple lines in our group of lines determine how to
         # process and set
@@ -81,7 +80,7 @@ module BlueHydra
             grp.each do |entry|
               if entry.count == 1
                 line = entry[0]
-                parse_single_line(line, bt_mode, timestamp, tx_power, tx_power_last_set)
+                parse_single_line(line, bt_mode, timestamp, tx_power)
               else
                 handle_grouped_chunk(grp, bt_mode, timestamp)
               end
@@ -178,7 +177,6 @@ module BlueHydra
                  end
                when line =~ /^TX power:/
                  tx_power = line.split(': ')[1]
-                 tx_power_last_set = timestamp.split(': ')[1].to_f
                  set_attr("#{bt_mode}_tx_power".to_sym, tx_power)
                when line =~ /^Data:/
                  set_attr("#{bt_mode}_company_data".to_sym, line.split(': ')[1])
@@ -257,7 +255,7 @@ module BlueHydra
       end
     end
 
-    def parse_single_line(line, bt_mode, timestamp, tx_power=nil, tx_power_last_set=nil)
+    def parse_single_line(line, bt_mode, timestamp, tx_power=nil)
       line = line.strip
       case
 
@@ -310,13 +308,11 @@ module BlueHydra
           t: timestamp.split(': ')[1].to_i,
           rssi: rssi
         })
-        if tx_power && tx_power_last_set && tx_power_last_set == timestamp.split(': ')[1].to_f
-          ratio_db = tx_power.to_f - rssi.to_f
-          ratio_linear = 10 ** ( ratio_db / 10 )
+        if tx_power
+          ratio_db = tx_power.to_i - rssi.to_i
+          ratio_linear = 10 ** ( ratio_db.to_f / 10 )
           ibeacon_range = Math.sqrt(ratio_linear).round(2)
           set_attr(:ibeacon_range, ibeacon_range)
-        elsif tx_power_last_set != timestamp.split(': ')[1].to_f
-          BlueHydra.logger.debug("FUCK FUCK FUCK")
         end
 
 

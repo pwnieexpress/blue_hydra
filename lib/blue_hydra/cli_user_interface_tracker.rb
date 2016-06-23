@@ -77,10 +77,10 @@ module BlueHydra
             if key == :le_rssi || key == :classic_rssi
               cui_status[@uuid][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
             elsif key == :ibeacon_range
-              cui_status[@uuid][:range] = attrs[key].first
+              cui_status[@uuid][:range] = "#{attrs[key].first}m"
             elsif key == :le_major_num
               cui_status[@uuid][:major] = attrs[key].first
-            elsif key == :le_minor_name
+            elsif key == :le_minor_num
               cui_status[@uuid][:minor] = attrs[key].first
             else
               cui_status[@uuid][key] = attrs[key].first
