@@ -116,12 +116,18 @@ class BlueHydra::Device
     lmn  = result[:le_major_num].first      if result[:le_major_num]
     lmn2 = result[:le_minor_num].first      if result[:le_minor_num]
 
+    c = result[:company].first              if result[:company]
+    d = result[:le_company_data].first      if result[:le_company_data]
+
     record = self.all(address: address).first ||
              self.find_by_uap_lap(address) ||
              (lpu && lmn && lmn2 && self.all(
                le_proximity_uuid: lpu,
                le_major_num: lmn,
                le_minor_num: lmn2
+             ).first) ||
+             (c && d && c =~ /Gimbal/i && self.all(
+               le_company_data: d
              ).first) ||
              self.new
 

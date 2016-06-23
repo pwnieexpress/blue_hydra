@@ -10,10 +10,6 @@ module BlueHydra
       @attrs = attrs
       @address = addr
 
-      @lpu  = attrs[:le_proximity_uuid].first if attrs[:le_proximity_uuid]
-      @lmn  = attrs[:le_major_num].first      if attrs[:le_major_num]
-      @lmn2 = attrs[:le_minor_num].first      if attrs[:le_minor_num]
-
       cui_k = cui_status.keys
       cui_v = cui_status.values
 
@@ -26,6 +22,10 @@ module BlueHydra
       end
 
       unless @uuid
+        @lpu  = attrs[:le_proximity_uuid].first if attrs[:le_proximity_uuid]
+        @lmn  = attrs[:le_major_num].first      if attrs[:le_major_num]
+        @lmn2 = attrs[:le_minor_num].first      if attrs[:le_minor_num]
+
         match2 = cui_v.select{|x|
           x[:le_proximity_uuid] && x[:le_proximity_uuid] == @lpu &&
           x[:le_major_num]      && x[:le_major_num]      == @lmn &&
@@ -34,6 +34,20 @@ module BlueHydra
 
         if match2
           @uuid = cui_k[cui_v.index(match2)]
+        end
+      end
+
+      unless @uuid
+        @c = attrs[:company].first          if attrs[:company]
+        @d = attrs[:le_company_data].first  if attrs[:le_company_data]
+
+        match3 = cui_v.select{|x|
+          x[:company]          && x[:company] == @c &&
+          x[:le_company_data]  && x[:le_company_data] == @d
+        }.first
+
+        if match3
+          @uuid = cui_k[cui_v.index(match3)]
         end
       end
 
@@ -70,7 +84,8 @@ module BlueHydra
 
       [
         :last_seen, :name, :address, :classic_rssi, :le_rssi,
-        :le_proximity_uuid, :le_major_num, :le_minor_num, :ibeacon_range
+        :le_proximity_uuid, :le_major_num, :le_minor_num, :ibeacon_range,
+        :company, :le_company_data
       ].each do |key|
         if attrs[key] && attrs[key].first
           if cui_status[@uuid][key] != attrs[key].first
