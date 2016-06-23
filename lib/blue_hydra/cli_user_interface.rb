@@ -47,11 +47,13 @@ Devices in this display will time out after #{cui_timeout}s but will still be
 available in the BlueHydra Database or synced to pulse if you chose that
 option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
 
-The "VERS" column in the following table shows mode and version if available
+The "VERS" column in the following table shows mode and version if available.
         CL/BR = Classic mode
         CL4.0 = Classic mode, version 4.0
         BTLE = Bluetooth Low Energy mode
         LE4.1 = Bluetooth Low Energy mode, version 4.1
+
+The "RANGE" column shows distance in meters from the device if known.
 
 press [Enter] key to continue....
 HELP
@@ -121,12 +123,20 @@ gets.chomp
         max_lengths = Hash.new(0)
 
         printable_keys = [
-          :_seen, :vers, :address, :rssi, :name, :manuf, :type
+          :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
         ]
+        if BlueHydra.config[:log_level] == 'debug'
+#          printable_keys += [
+#            :le_proximity_uuid, :major, :minor
+#          ]
+          printable_keys += [ :company, :le_company_data ]
+          printable_keys.unshift :uuid
+        end
 
         justifications = {
           _seen: :right,
-          rssi:  :right
+          rssi:  :right,
+          range: :right
         }
 
         cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]

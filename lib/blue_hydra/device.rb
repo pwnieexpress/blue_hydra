@@ -5,7 +5,8 @@ class BlueHydra::Device
 
   # this is a DataMapper model...
   include DataMapper::Resource
-# Attributes for the DB
+
+  # Attributes for the DB
   property :id,                            Serial
   property :uuid,                          String
 
@@ -47,6 +48,7 @@ class BlueHydra::Device
   property :le_tx_power,                   Text
   property :le_features,                   Text
   property :le_features_bitmap,            Text
+  property :ibeacon_range,                 String
 
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
@@ -110,7 +112,24 @@ class BlueHydra::Device
 
     address = result[:address].first
 
-    record = self.all(address: address).first || self.find_by_uap_lap(address) || self.new
+    lpu  = result[:le_proximity_uuid].first if result[:le_proximity_uuid]
+    lmn  = result[:le_major_num].first      if result[:le_major_num]
+    lmn2 = result[:le_minor_num].first      if result[:le_minor_num]
+
+    c = result[:company].first              if result[:company]
+    d = result[:le_company_data].first      if result[:le_company_data]
+
+    record = self.all(address: address).first ||
+             self.find_by_uap_lap(address) ||
+             (lpu && lmn && lmn2 && self.all(
+               le_proximity_uuid: lpu,
+               le_major_num: lmn,
+               le_minor_num: lmn2
+             ).first) ||
+             (c && d && c =~ /Gimbal/i && self.all(
+               le_company_data: d
+             ).first) ||
+             self.new
 
     # if we are processing things here we have, implicitly seen them so
     # mark as online?
