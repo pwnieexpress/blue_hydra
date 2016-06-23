@@ -126,10 +126,10 @@ gets.chomp
           :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
         ]
         if BlueHydra.config[:log_level] == 'debug'
-#          printable_keys += [
-#            :le_proximity_uuid, :major, :minor
-#          ]
-          printable_keys += [ :company, :le_company_data ]
+          printable_keys += [
+            :le_proximity_uuid, :major, :minor
+          ]
+          #printable_keys += [ :company, :le_company_data ]
           printable_keys.unshift :uuid
         end
 

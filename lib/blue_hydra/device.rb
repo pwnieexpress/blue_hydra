@@ -130,6 +130,7 @@ class BlueHydra::Device
                le_company_data: d
              ).first) ||
              self.new
+    BlueHydra.logger.warn("result #{result[:address].first} record #{record.address}") if c=~ /Gimbal/i
 
     # if we are processing things here we have, implicitly seen them so
     # mark as online?
@@ -159,6 +160,9 @@ class BlueHydra::Device
           BlueHydra.logger.warn(
             "#{address} multiple values detected for #{attr}: #{result[attr].inspect}. Using first value..."
           )
+        end
+        if attr == :address
+          BlueHydra.logger.warn("we should be setting record.address to #{result[:address].first}") if c=~ /Gimbal/i
         end
         record.send("#{attr.to_s}=", result.delete(attr).uniq.first)
       end
