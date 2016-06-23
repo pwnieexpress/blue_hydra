@@ -70,12 +70,18 @@ module BlueHydra
 
       [
         :last_seen, :name, :address, :classic_rssi, :le_rssi,
-        :le_proximity_uuid, :le_major_num, :le_minor_num
+        :le_proximity_uuid, :le_major_num, :le_minor_num, :ibeacon_range
       ].each do |key|
         if attrs[key] && attrs[key].first
           if cui_status[@uuid][key] != attrs[key].first
             if key == :le_rssi || key == :classic_rssi
               cui_status[@uuid][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
+            elsif key == :ibeacon_range
+              cui_status[@uuid][:range] = attrs[key].first
+            elsif key == :le_major_num
+              cui_status[@uuid][:major] = attrs[key].first
+            elsif key == :le_minor_name
+              cui_status[@uuid][:minor] = attrs[key].first
             else
               cui_status[@uuid][key] = attrs[key].first
             end
@@ -83,6 +89,7 @@ module BlueHydra
         end
       end
 
+      cui_status[@uuid][:uuid] = @uuid.split('-')[0]
       if attrs[:short_name]
         unless attrs[:short_name] == [nil] || cui_status[@uuid][:name]
           cui_status[@uuid][:name] = attrs[:short_name].first

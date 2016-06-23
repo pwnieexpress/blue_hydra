@@ -27,7 +27,7 @@ module BlueHydra
     def parse
       @chunks.each do |chunk|
 
-        # the first line is no longer useful as we ahve extracted the mode and
+        # the first line is no longer useful as we have extracted the mode and
         # timestamp at other points in the pipeline. Time to discard it
         chunk.shift
 
@@ -57,6 +57,8 @@ module BlueHydra
     #   timestamp ::
     #     Unix timestamp for when this message data was created
     def handle_grouped_chunk(grouped_chunk, bt_mode, timestamp)
+      tx_power = nil
+      tx_power_last_set = nil
       grouped_chunk.each do |grp|
 
         # when we only have a single line in a group we can handle simply
@@ -64,7 +66,7 @@ module BlueHydra
           line = grp[0]
 
           # next line was not nested, treat as single line
-          parse_single_line(line, bt_mode, timestamp)
+          parse_single_line(line, bt_mode, timestamp, tx_power, tx_power_last_set)
 
         # if we have multiple lines in our group of lines determine how to
         # process and set
@@ -79,7 +81,7 @@ module BlueHydra
             grp.each do |entry|
               if entry.count == 1
                 line = entry[0]
-                parse_single_line(line, bt_mode, timestamp)
+                parse_single_line(line, bt_mode, timestamp, tx_power, tx_power_last_set)
               else
                 handle_grouped_chunk(grp, bt_mode, timestamp)
               end
@@ -151,19 +153,22 @@ module BlueHydra
              set_attr(:company, vals.shift.split(': ')[1])
 
              company_type = nil
+             company_type_last_set = nil
              vals.each do |line|
                case
                when line =~ /^Type:/
                  company_type = line.split(': ')[1]
+                 company_type_last_set = timestamp.split(': ')[1].to_f
                  set_attr(:company_type, company_type)
                when line =~ /^UUID:/
-                 if company_type && company_type =~ /\(2\)/
+                 if company_type && company_type =~ /\(2\)/ && company_type_last_set && company_type_last_set == timestamp.split(': ')[1].to_f
                    set_attr("#{bt_mode}_proximity_uuid".to_sym, line.split(': ')[1])
                  else
                    set_attr("#{bt_mode}_company_uuid".to_sym, line.split(': ')[1])
                  end
                when line =~/^Version:/
-                 if company_type && company_type =~ /\(2\)/
+                 if company_type && company_type =~ /\(2\)/ && company_type_last_set && company_type_last_set == timestamp.split(': ')[1].to_f
+                   #bluez decodes this as little endian but it's actually big so we have to reverse it
                    major = line.split(': ')[1].split('.')[0].to_i.to_s(16).scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
                    minor = line.split(': ')[1].split('.')[1].to_i.to_s(16).scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
                    set_attr("#{bt_mode}_major_num".to_sym, major)
@@ -172,7 +177,9 @@ module BlueHydra
                    set_attr("#{bt_mode}_company_version".to_sym, line.split(': ')[1])
                  end
                when line =~ /^TX power:/
-                 set_attr("#{bt_mode}_tx_power".to_sym, line.split(': ')[1])
+                 tx_power = line.split(': ')[1]
+                 tx_power_last_set = timestamp.split(': ')[1].to_f
+                 set_attr("#{bt_mode}_tx_power".to_sym, tx_power)
                when line =~ /^Data:/
                  set_attr("#{bt_mode}_company_data".to_sym, line.split(': ')[1])
                end
@@ -250,7 +257,7 @@ module BlueHydra
       end
     end
 
-    def parse_single_line(line, bt_mode, timestamp)
+    def parse_single_line(line, bt_mode, timestamp, tx_power=nil, tx_power_last_set=nil)
       line = line.strip
       case
 
@@ -298,10 +305,20 @@ module BlueHydra
         set_attr(:appearance, line.split(': ')[1])
 
       when line =~ /^RSSI:/
+        rssi = line.split(': ')[1].split(' ')[0,2].join(' ')
         set_attr("#{bt_mode}_rssi".to_sym, {
           t: timestamp.split(': ')[1].to_i,
-          rssi: line.split(': ')[1].split(' ')[0,2].join(' ')
+          rssi: rssi
         })
+        if tx_power && tx_power_last_set && tx_power_last_set == timestamp.split(': ')[1].to_f
+          ratio_db = tx_power.to_f - rssi.to_f
+          ratio_linear = 10 ** ( ratio_db / 10 )
+          ibeacon_range = Math.sqrt(ratio_linear).round(2)
+          set_attr(:ibeacon_range, ibeacon_range)
+        elsif tx_power_last_set != timestamp.split(': ")[1].to_f
+          BlueHydra.logger.debug("FUCK FUCK FUCK")
+        end
+
 
       else
         # we only might need to see this in debug mode, no need to take up the

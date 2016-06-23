@@ -121,8 +121,14 @@ gets.chomp
         max_lengths = Hash.new(0)
 
         printable_keys = [
-          :_seen, :vers, :address, :rssi, :name, :manuf, :type
+          :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
         ]
+        if BlueHydra.config[:log_level] == 'debug'
+          printable_keys += [
+            :le_proximity_uuid, :major, :minor
+          ]
+          printable_keys.unshift :uuid
+        end
 
         justifications = {
           _seen: :right,

@@ -48,6 +48,7 @@ class BlueHydra::Device
   property :le_tx_power,                   Text
   property :le_features,                   Text
   property :le_features_bitmap,            Text
+  property :ibeacon_range,                 String
 
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
