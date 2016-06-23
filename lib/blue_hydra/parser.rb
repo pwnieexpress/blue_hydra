@@ -315,7 +315,7 @@ module BlueHydra
           ratio_linear = 10 ** ( ratio_db / 10 )
           ibeacon_range = Math.sqrt(ratio_linear).round(2)
           set_attr(:ibeacon_range, ibeacon_range)
-        elsif tx_power_last_set != timestamp.split(': ")[1].to_f
+        elsif tx_power_last_set != timestamp.split(': ')[1].to_f
           BlueHydra.logger.debug("FUCK FUCK FUCK")
         end
 
