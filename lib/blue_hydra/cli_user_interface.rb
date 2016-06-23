@@ -47,11 +47,13 @@ Devices in this display will time out after #{cui_timeout}s but will still be
 available in the BlueHydra Database or synced to pulse if you chose that
 option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
 
-The "VERS" column in the following table shows mode and version if available
+The "VERS" column in the following table shows mode and version if available.
         CL/BR = Classic mode
         CL4.0 = Classic mode, version 4.0
         BTLE = Bluetooth Low Energy mode
         LE4.1 = Bluetooth Low Energy mode, version 4.1
+
+The "RANGE" column shows distance in meters from the device if known.
 
 press [Enter] key to continue....
 HELP
