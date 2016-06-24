@@ -28,8 +28,8 @@ module BlueHydra
 
         match2 = cui_v.select{|x|
           x[:le_proximity_uuid] && x[:le_proximity_uuid] == @lpu &&
-          x[:le_major_num]      && x[:le_major_num]      == @lmn &&
-          x[:le_minor_num]      && x[:le_minor_num]      == @lmn2
+          x[:major]             && x[:major]      == @lmn &&
+          x[:minor]             && x[:minor]      == @lmn2
         }.first
 
         if match2
