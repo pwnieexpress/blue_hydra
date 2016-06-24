@@ -566,7 +566,6 @@ module BlueHydra
 
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
-                BlueHydra.logger.warn("This line should be unique: #{device.address}") if device.company =~ /Gimbal/i
 
                 unless BlueHydra.config[:file]
                   if device.le_mode
