@@ -175,7 +175,10 @@ gets.chomp
           pbuff << "\e[0;4m#{header}\e[0m\n"
           lines += 1
 
-          d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
+          #this is a good sort value but so much harder to read
+          #d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
+          #sort rssi by default
+          d = cui_status.values.sort_by{|x| x[:rssi]}
           d.each do |data|
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
