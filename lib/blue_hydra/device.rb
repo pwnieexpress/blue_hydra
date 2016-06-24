@@ -539,11 +539,14 @@ class BlueHydra::Device
   end
 
   def address=(new)
-    current = self.address
+    if new
+      current = self.address
 
-    if current.nil? || current =~ /^00:00/
       self[:address] = new
-      set_vendor(true)
+
+      if current =~ /^00:00/ || new !~ /^00:00/
+        set_vendor(true)
+      end
     end
   end
 

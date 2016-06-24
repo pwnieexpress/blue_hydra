@@ -126,10 +126,10 @@ gets.chomp
           :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
         ]
         if BlueHydra.config[:log_level] == 'debug'
-#          printable_keys += [
-#            :le_proximity_uuid, :major, :minor
-#          ]
-          printable_keys += [ :company, :le_company_data ]
+          printable_keys += [
+            :le_proximity_uuid, :le_major_num, :le_minor_num
+          ]
+          #printable_keys += [ :company, :le_company_data ]
           printable_keys.unshift :uuid
         end
 
@@ -159,7 +159,18 @@ gets.chomp
           end
 
           keys = printable_keys.select{|k| max_lengths[k] > 0}
-          header = keys.map{|k| k.to_s.ljust(max_lengths[k]).gsub("_"," ")}.join(' | ').upcase
+          make_pretty = Proc.new do |key|
+            k = case key
+              when :le_major_num
+                :major
+              when :le_minor_num
+                :minor
+              else
+                key
+            end
+            k.to_s.ljust(max_lengths[key]).gsub("_"," ")
+          end
+          header = keys.map{|k| make_pretty.call(k)}.join(' | ').upcase
 
           pbuff << "\e[0;4m#{header}\e[0m\n"
           lines += 1

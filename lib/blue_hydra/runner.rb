@@ -569,7 +569,10 @@ module BlueHydra
 
                 unless BlueHydra.config[:file]
                   if device.le_mode
-                    push_to_queue(:le, device.address)
+                    #do not info scan beacon type devices, they do not respond while in advertising mode
+                    if device.company_type !~ /iBeacon/i && device.company !~ /Gimbal/i
+                      push_to_queue(:le, device.address)
+                    end
                   end
 
                   if device.classic_mode

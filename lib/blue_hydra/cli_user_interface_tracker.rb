@@ -28,8 +28,8 @@ module BlueHydra
 
         match2 = cui_v.select{|x|
           x[:le_proximity_uuid] && x[:le_proximity_uuid] == @lpu &&
-          x[:le_major_num]      && x[:le_major_num]      == @lmn &&
-          x[:le_minor_num]      && x[:le_minor_num]      == @lmn2
+          x[:le_major_num]             && x[:le_major_num]      == @lmn &&
+          x[:le_minor_num]             && x[:le_minor_num]      == @lmn2
         }.first
 
         if match2
@@ -93,10 +93,6 @@ module BlueHydra
               cui_status[@uuid][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
             elsif key == :ibeacon_range
               cui_status[@uuid][:range] = "#{attrs[key].first}m"
-            elsif key == :le_major_num
-              cui_status[@uuid][:major] = attrs[key].first
-            elsif key == :le_minor_num
-              cui_status[@uuid][:minor] = attrs[key].first
             else
               cui_status[@uuid][key] = attrs[key].first
             end

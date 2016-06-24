@@ -168,8 +168,8 @@ module BlueHydra
                when line =~/^Version:/
                  if company_type && company_type =~ /\(2\)/ && company_type_last_set && company_type_last_set == timestamp.split(': ')[1].to_f
                    #bluez decodes this as little endian but it's actually big so we have to reverse it
-                   major = line.split(': ')[1].split('.')[0].to_i.to_s(16).scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
-                   minor = line.split(': ')[1].split('.')[1].to_i.to_s(16).scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
+                   major = line.split(': ')[1].split('.')[0].to_i.to_s(16).rjust(4, '0').scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
+                   minor = line.split(': ')[1].split('.')[1].to_i.to_s(16).rjust(4, '0').scan(/.{2}/).map { |i| i.to_i(16).chr }.join.unpack('S<*').first
                    set_attr("#{bt_mode}_major_num".to_sym, major)
                    set_attr("#{bt_mode}_minor_num".to_sym, minor)
                  else
