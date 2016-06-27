@@ -1,0 +1,7 @@
+add license
+fix signaling so test-discovery doesn't get sigint
+
+cui:
+add s to change sort based on columns
+add r to reverse sort for current sort type
+add tab to toggle basic, ibeacon, and data column types
