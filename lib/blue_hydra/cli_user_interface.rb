@@ -89,7 +89,6 @@ gets.chomp
 
         input = STDIN.read_nonblock(1) rescue nil
 
-        BlueHydra.logger.error("CUI thread got input #{input}") if input
         case input
         when "s"
           sort = :last_seen
