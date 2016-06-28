@@ -4,6 +4,7 @@ $:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 
 require 'optparse'
 require 'blue_hydra'
+STDIN.sync = true
 
 options = {}
 

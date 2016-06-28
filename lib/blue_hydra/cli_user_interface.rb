@@ -64,7 +64,9 @@ gets.chomp
     end
 
     def cui_loop
-      reset = false
+      reset   = false
+      sort  ||= :rssi
+      order ||= "normal"
       max_height = `tput lines`.chomp.to_i
 
       until reset do
@@ -72,14 +74,28 @@ gets.chomp
           reset = true
         end
 
-        render_cui(max_height)
+        input = STDIN.read_nonblock(1) rescue nil
+
+        BlueHydra.logger.error("CUI thread got input #{input}") if input
+        case input
+        when "s"
+          sort = :last_seen
+        when "r"
+          if order == "normal"
+            order = "reverse"
+          elsif order == "reverse"
+            order = "normal"
+          end
+        end
+
+        render_cui(max_height,sort,order)
         sleep 0.1
       end
 
       cui_loop
     end
 
-    def render_cui(max_height)
+    def render_cui(max_height,sort,order)
       begin
 
         unless BlueHydra.config[:file]
@@ -178,7 +194,11 @@ gets.chomp
           #this is a good sort value but so much harder to read
           #d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
           #sort rssi by default
-          d = cui_status.values.sort_by{|x| x[:rssi]}
+          if order == "normal"
+            d = cui_status.values.sort_by{|x| x[sort]}
+          elsif order == "reverse"
+            d = cui_status.values.sort_by{|x| x[sort]}.reverse
+          end
           d.each do |data|
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
