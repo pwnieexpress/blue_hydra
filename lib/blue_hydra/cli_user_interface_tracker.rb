@@ -38,8 +38,8 @@ module BlueHydra
       end
 
       unless @uuid
-        @c = attrs[:company].first          if attrs[:company]
-        @d = attrs[:le_company_data].first  if attrs[:le_company_data]
+        @c = attrs[:company].first.split('(').first          if attrs[:company]
+        @d = attrs[:le_company_data].first                   if attrs[:le_company_data]
 
         match3 = cui_v.select{|x|
           x[:company]          && x[:company] == @c &&
@@ -93,6 +93,8 @@ module BlueHydra
               cui_status[@uuid][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
             elsif key == :ibeacon_range
               cui_status[@uuid][:range] = "#{attrs[key].first}m"
+            elsif key == :company
+              cui_status[@uuid][:company] = attrs[key].first.split('(').first
             else
               cui_status[@uuid][key] = attrs[key].first
             end
