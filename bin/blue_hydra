@@ -29,6 +29,11 @@ end
 PID_FILE = '/var/run/blue_hydra.pid'
 File.write(PID_FILE, Process.pid)
 
+done = false
+trap('SIGINT') do
+  done = true
+end
+
 begin
   # Start the main workers...
   runner = BlueHydra::Runner.new
@@ -37,6 +42,12 @@ begin
   # This blocking loop keeps the scanner alive in its threads. Refer to the
   # BlueHydra::Runner to understand the main work threads.
   loop do 
+
+    if done
+      BlueHydra.logger.info("BlueHydra Killed! Exiting... SIGINT")
+      exit_status = 0
+      break
+    end
 
     status = runner.status
 
@@ -52,12 +63,8 @@ begin
       end
     end
 
-    sleep 1
+    sleep 1 unless done
   end
-
-rescue SignalException, Interrupt => e
-  BlueHydra.logger.info("BlueHydra Killed! Exiting... #{e.to_s}")
-  exit_status = 0
 
 rescue FailedThreadError => e
   BlueHydra.logger.error("Thread failure: #{e.message}")
@@ -74,5 +81,6 @@ ensure
   runner.stop
   File.unlink(PID_FILE)
   BlueHydra.logger.warn("GOODBYE! ^_^")
+  exit_status ||= 7
   exit exit_status
 end

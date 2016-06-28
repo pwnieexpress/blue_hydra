@@ -55,6 +55,10 @@ The "VERS" column in the following table shows mode and version if available.
 
 The "RANGE" column shows distance in meters from the device if known.
 
+Press "s" to change sort to the next column (then enter)
+Press "r" to reverse the sort order (then enter)
+Press "c" to change the column set (then enter)
+
 press [Enter] key to continue....
 HELP
 
@@ -64,7 +68,18 @@ gets.chomp
     end
 
     def cui_loop
-      reset = false
+      reset   = false
+      sort  ||= :rssi
+      order ||= "normal"
+      printable_keys ||= [
+        :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
+      ]
+      if BlueHydra.config[:log_level] == 'debug'
+        unless printable_keys.include?(:uuid)
+          printable_keys.unshift :uuid
+        end
+      end
+
       max_height = `tput lines`.chomp.to_i
 
       until reset do
@@ -72,14 +87,41 @@ gets.chomp
           reset = true
         end
 
-        render_cui(max_height)
+        input = STDIN.read_nonblock(1) rescue nil
+
+        case input
+        when "s"
+          sort = :last_seen
+        when "r"
+          if order == "normal"
+            order = "reverse"
+          elsif order == "reverse"
+            order = "normal"
+          end
+        when "c"
+          if printable_keys.include?(:le_proximity_uuid)
+            printable_keys.delete(:le_proximity_uuid)
+            printable_keys.delete(:le_major_num)
+            printable_keys.delete(:le_minor_num)
+            printable_keys += [ :company, :le_company_data ]
+          elsif printable_keys.include?(:company)
+            printable_keys.delete(:company)
+            printable_keys.delete(:le_company_data)
+          else
+            printable_keys += [
+              :le_proximity_uuid, :le_major_num, :le_minor_num
+            ]
+          end
+        end
+
+        render_cui(max_height,sort,order,printable_keys)
         sleep 0.1
       end
 
       cui_loop
     end
 
-    def render_cui(max_height)
+    def render_cui(max_height,sort,order,printable_keys)
       begin
 
         unless BlueHydra.config[:file]
@@ -121,17 +163,6 @@ gets.chomp
         end
 
         max_lengths = Hash.new(0)
-
-        printable_keys = [
-          :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
-        ]
-        if BlueHydra.config[:log_level] == 'debug'
-          printable_keys += [
-            :le_proximity_uuid, :le_major_num, :le_minor_num
-          ]
-          #printable_keys += [ :company, :le_company_data ]
-          printable_keys.unshift :uuid
-        end
 
         justifications = {
           _seen: :right,
@@ -178,7 +209,11 @@ gets.chomp
           #this is a good sort value but so much harder to read
           #d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
           #sort rssi by default
-          d = cui_status.values.sort_by{|x| x[:rssi]}
+          if order == "normal"
+            d = cui_status.values.sort_by{|x| x[sort]}
+          elsif order == "reverse"
+            d = cui_status.values.sort_by{|x| x[sort]}.reverse
+          end
           d.each do |data|
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
