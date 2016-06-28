@@ -64,7 +64,7 @@ begin
       end
     end
 
-    sleep 1
+    sleep 1 unless done
   end
 
 rescue FailedThreadError => e
