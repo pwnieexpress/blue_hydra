@@ -74,11 +74,11 @@ gets.chomp
       printable_keys ||= [
         :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
       ]
-      #if BlueHydra.config[:log_level] == 'debug'
-      #  unless printable_keys.key?(:uuid)
-      #    printable_keys.unshift :uuid
-      #  end
-      #end
+      if BlueHydra.config[:log_level] == 'debug'
+        unless printable_keys.include?(:uuid)
+          printable_keys.unshift :uuid
+        end
+      end
 
       max_height = `tput lines`.chomp.to_i
 
