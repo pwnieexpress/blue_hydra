@@ -463,8 +463,9 @@ module BlueHydra
                             version: BlueHydra::VERSION,
                             data: {}
                           }
+                          send_data[:data][:status] = "online"
                           send_data[:data][:address] = address
-                          send_data[:data][k] = x[:rssi]
+                          send_data[:data][k] = [x]
 
                           begin
                             # create the json
