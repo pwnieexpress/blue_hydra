@@ -271,7 +271,14 @@ gets.chomp
           pbuff << "\e[0;4m#{header}\e[0m\n"
           lines += 1
 
-          d = cui_status.values.sort_by{|x| x[sort].to_s }
+          d = cui_status.values.sort_by do |x|
+
+            if sort == :last_seen || sort == :_seen
+              x[sort].strip.to_i
+            else
+              x[sort].to_s
+            end
+          end
 
           if order == "reverse"
             d.reverse!
