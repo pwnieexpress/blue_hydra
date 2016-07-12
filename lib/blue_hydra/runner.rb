@@ -526,9 +526,18 @@ module BlueHydra
           #debugging
           maxdepth = 0
 
+          last_sync = Time.now
+
           last_status_sync = Time.now.to_i
 
           loop do
+
+            # 1 day in seconds == 24 * 60 * 60 == 86400
+            # daily sync
+            if Time.now.to_i - 86400 >=  last_sync.to_i
+              BlueHydra::Device.sync_all_to_pulse(last_sync)
+              last_sync = Time.now
+            end
 
             unless BlueHydra.config[:file]
               # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
