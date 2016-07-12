@@ -74,6 +74,11 @@ gets.chomp
       printable_keys ||= [
         :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
       ]
+      #set default minimum set of sortable keys
+      sortable_keys ||= [
+        :last_seen, :vers, :address, :rssi
+      ]
+
       if BlueHydra.config[:log_level] == 'debug'
         unless printable_keys.include?(:uuid)
           printable_keys.unshift :uuid
@@ -91,10 +96,6 @@ gets.chomp
 
         case input
         when "s"
-          sortable_keys = [
-            :last_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
-          ]
-
           if sort == sortable_keys.last
             sort = sortable_keys.first
           else
@@ -124,7 +125,7 @@ gets.chomp
         end
 
 
-        render_cui(max_height,sort,order,printable_keys)
+        sortable_keys = render_cui(max_height,sort,order,printable_keys)
         sleep 0.1
       end
 
@@ -283,6 +284,7 @@ gets.chomp
         end
 
         puts pbuff
+        return keys
 
       rescue => e
         BlueHydra.logger.error("CUI thread #{e.message}")
