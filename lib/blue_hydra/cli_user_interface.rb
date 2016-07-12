@@ -91,14 +91,16 @@ gets.chomp
 
         case input
         when "s"
-          sort = case sort
-                 when :rssi
-                   :last_seen
-                 when :last_seen
-                 when :address
-                 when :manuf
-                   :rssi
-                 end
+          sortable_keys = [
+            :last_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
+          ]
+
+          if sort == sortable_keys.last
+            sort = sortable_keys.first
+          else
+            sort = sortable_keys[sortable_keys.index(sort) + 1]
+          end
+
         when "r"
           if order == "normal"
             order = "reverse"
@@ -120,6 +122,7 @@ gets.chomp
             ]
           end
         end
+
 
         render_cui(max_height,sort,order,printable_keys)
         sleep 0.1
@@ -205,22 +208,31 @@ gets.chomp
                 :minor
               else
                 key
+              end
+            k = k.upcase
+
+            if key == :_seen && sort == :last_seen || key == sort
+              z = order == "normal" ? "^" : "v"
+              k = "#{k} #{z}"
+
+              if k.length > max_lengths[key]
+                max_lengths[key] = k.length
+              end
             end
+
             k.to_s.ljust(max_lengths[key]).gsub("_"," ")
           end
-          header = keys.map{|k| make_pretty.call(k)}.join(' | ').upcase
 
+          header = keys.map{|k| make_pretty.call(k)}.join(' | ')
           pbuff << "\e[0;4m#{header}\e[0m\n"
           lines += 1
 
-          #this is a good sort value but so much harder to read
-          #d = cui_status.values.sort_by{|x| x[:last_seen]}.reverse
-          #sort rssi by default
-          if order == "normal"
-            d = cui_status.values.sort_by{|x| x[sort]}
-          elsif order == "reverse"
-            d = cui_status.values.sort_by{|x| x[sort]}.reverse
+          d = cui_status.values.sort_by{|x| x[sort].to_s }
+
+          if order == "reverse"
+            d.reverse!
           end
+
           d.each do |data|
 
             #prevent classic devices from expiring by forcing them onto the l2ping queue
