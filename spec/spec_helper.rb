@@ -10,7 +10,7 @@ ENV["BLUE_HYDRA"] = "test"
 require 'blue_hydra'
 
 BlueHydra.daemon_mode = true
-BlueHydra.no_pulse = true
+BlueHydra.pulse = false
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|

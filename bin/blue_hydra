@@ -21,9 +21,9 @@ if options[:daemonize]
 end
 
 if options[:pulse]
-  BlueHydra.no_pulse = false
+  BlueHydra.pulse = true
 else
-  BlueHydra.no_pulse = true
+  BlueHydra.pulse = false
 end
 
 # This file is used by the service scan to kill the process and should be

@@ -471,7 +471,7 @@ module BlueHydra
                             # create the json
                             json = JSON.generate(send_data)
 
-                            return if BlueHydra.no_pulse
+                            return unless BlueHydra.pulse
 
                             # write json data to result socket
                             TCPSocket.open('127.0.0.1', 8244) do |sock|

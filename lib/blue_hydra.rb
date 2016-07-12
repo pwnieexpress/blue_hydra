@@ -140,20 +140,20 @@ module BlueHydra
     @@daemon_mode ||= false
   end
 
-  def no_pulse
-    @@no_pulse ||= false
+  def pulse
+    @@pulse ||= false
   end
 
   def daemon_mode=(setting)
     @@daemon_mode = setting
   end
 
-  def no_pulse=(setting)
-    @@no_pulse = setting
+  def pulse=(setting)
+    @@pulse = setting
   end
 
-  module_function :logger, :config, :daemon_mode, :daemon_mode=, :no_pulse,
-                  :no_pulse=, :rssi_logger
+  module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
+                  :pulse=, :rssi_logger
 end
 
 # require the code
