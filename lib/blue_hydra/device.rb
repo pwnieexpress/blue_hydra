@@ -70,8 +70,9 @@ class BlueHydra::Device
   # after saving send up to pulse
   after  :save, :sync_to_pulse
 
-  def self.sync_all_to_pulse
-    BlueHydra::Device.all.each do |dev|
+  # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
+  def self.sync_all_to_pulse(since=Time.at(Time.now.to_i - 604800))
+    BlueHydra::Device.all(:updated_at.gte => since).each do |dev|
       dev.sync_to_pulse(true)
     end
   end

@@ -1,5 +1,4 @@
 add license
 calibrate range for sena dongle
-adjust start-up sync to only sync a week of data
 sync full day of data once a day
 do we need to send status with aggressive_rssi?
