@@ -1,13 +1,21 @@
 module BlueHydra
+  # This class is responsible for generating the CLI user interface views. Its
+  # a bit crusty and probably could stand for a loving refactor someday.
+  #
+  # Someday soon...
   class CliUserInterface
     attr_accessor :runner, :cui_timeout, :l2ping_threshold
 
+    # When we initialize this CUI we pass the runner which allows us to pull
+    # information about the threads and queues for our own purposes
     def initialize(runner, cui_timeout=300)
       @runner = runner
       @cui_timeout = cui_timeout
       @l2ping_threshold = (@cui_timeout - 45)
     end
 
+    # the following methods are simply alliasing data to be passed through from
+    # the actual runner class
     def cui_status
       @runner.cui_status
     end
@@ -36,6 +44,8 @@ module BlueHydra
       @runner.query_history
     end
 
+    # This is the message that gets printed before starting the CUI. It waits
+    # til the user hits [Enter] before returning
     def help_message
       puts "\e[H\e[2J"
 
@@ -67,57 +77,79 @@ puts msg
 gets.chomp
     end
 
+    # the main work loop which prints the actual data to screen
     def cui_loop
-      reset   = false
-      sort  ||= :rssi
-      order ||= "normal"
+      reset   = false # determine if we need to reset the loop by restarting method
+      sort  ||= :rssi # default sort attribute
+      order ||= "normal" #default sort order
+
+      # set default printable keys, aka column headers
       printable_keys ||= [
         :_seen, :vers, :address, :rssi, :name, :manuf, :type, :range
       ]
+
       #set default minimum set of sortable keys
       sortable_keys ||= [
         :last_seen, :vers, :address, :rssi
       ]
 
+      # if we are in debug mode we will also print the UUID so we can figure
+      # out what record is being displayed in the DB
       if BlueHydra.config[:log_level] == 'debug'
         unless printable_keys.include?(:uuid)
           printable_keys.unshift :uuid
         end
       end
 
+      # figure out the terminal height using tput command
       max_height = `tput lines`.chomp.to_i
 
       until reset do
         trap("SIGWINCH") do
+          # when we we get SIGWINCH we want to reset the display so we break
+          # the loop and call this method again recursively at the end
           reset = true
         end
 
+        # read 1 character from standard in
         input = STDIN.read_nonblock(1) rescue nil
 
+        # handle the input character
         case input
-        when "s"
+        when "s" # change key used for sorting
           if sort == sortable_keys.last
+            # if current key is last key we just rotate back to the first key
             sort = sortable_keys.first
+
           elsif sortable_keys.include?(sort)
+            # if the key we are sorting on is included (ie columns haven't
+            # changed) increment the index of the key used to go to the
+            # next column for sorting
             sort = sortable_keys[sortable_keys.index(sort) + 1]
           else
+            # TODO is this needed with below?
+            # default sort order
             sort = :rssi
           end
-        when "r"
+        when "r" # toggle sort order
           if order == "normal"
             order = "reverse"
           elsif order == "reverse"
             order = "normal"
           end
-        when "c"
+        when "c" # toggle alternate keys
           if printable_keys.include?(:le_proximity_uuid)
-            printable_keys.delete(:le_proximity_uuid)
-            printable_keys.delete(:le_major_num)
-            printable_keys.delete(:le_minor_num)
+            [
+              :le_proximity_uuid,
+              :le_major_num,
+              :le_minor_num
+            ].each {|k| printable_keys.delete(k)}
             printable_keys += [ :company, :le_company_data ]
           elsif printable_keys.include?(:company)
-            printable_keys.delete(:company)
-            printable_keys.delete(:le_company_data)
+            [
+              :company,
+              :le_company_data
+            ].each {|k| printable_keys.delete(k)}
           else
             printable_keys += [
               :le_proximity_uuid, :le_major_num, :le_minor_num
@@ -126,13 +158,20 @@ gets.chomp
         end
 
 
+        # render the cui with and get back list of currently sortable keys for
+        # next iteration of loop
         sortable_keys = render_cui(max_height,sort,order,printable_keys)
         if sortable_keys.nil? || !sortable_keys.include?(sort)
+          # if we have remove the column we were sorting on
+          # reset the sort order to RSSI
           sort = :rssi
         end
+
         sleep 0.1
       end
 
+      # once reset has been triggered we need to reset this method so
+      # we just call it again on top of itself
       cui_loop
     end
 

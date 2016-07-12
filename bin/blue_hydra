@@ -1,10 +1,18 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
+
+# add ../lib/ to load path 
 $:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 
+# require for option parsing
 require 'optparse'
+
+# require the actual Blue Hydra code from lib
 require 'blue_hydra'
 
+
+# parse all command line arguments and store in options Hash for run time 
+# configurations
 options = {}
 
 OptionParser.new do |opts|
@@ -16,10 +24,14 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+# Daemon mode will run the service in the background with no CLI output
 if options[:daemonize]
   BlueHydra.daemon_mode = true
 end
 
+# If the pulse flag is set the service will attempt to send results to
+# PwnPulse.  This defaults to false and can be ignored unless the system
+# running Blue Hydra is a Pwnie Express sensor.
 if options[:pulse]
   BlueHydra.pulse = true
 else
@@ -31,6 +43,9 @@ end
 PID_FILE = '/var/run/blue_hydra.pid'
 File.write(PID_FILE, Process.pid)
 
+# this flag gets used to safely trap interrupts from the keyboard and 
+# gracefully stop the running process without violently killing and potentially
+# losing data
 done = false
 trap('SIGINT') do
   done = true
@@ -51,15 +66,21 @@ begin
       break
     end
 
+    # check the status of the runner and make sure all threads are alive
     status = runner.status
 
-    keys = [ :btmon_thread, :chunker_thread, :parser_thread, :result_thread ]
+    threads = [ 
+      :btmon_thread, 
+      :chunker_thread, 
+      :parser_thread, 
+      :result_thread 
+    ]
 
     unless BlueHydra.config[:file]
-      keys << :discovery_thread
+      threads << :discovery_thread
     end
 
-    keys.each do |thread_key|
+    threads.each do |thread_key|
       if status[thread_key] == nil || status[thread_key] == false
         raise FailedThreadError, thread_key
       end
@@ -68,10 +89,13 @@ begin
     sleep 1 unless done
   end
 
+# raised above in threads check when one of the threads has died for some 
+# reason
 rescue FailedThreadError => e
   BlueHydra.logger.error("Thread failure: #{e.message}")
   exit_status = 1
 
+# this traps unexpected or non specified errors 
 rescue => e
   BlueHydra.logger.error("Generic Error: #{e.to_s}") 
   e.backtrace.each do |line|
@@ -79,6 +103,10 @@ rescue => e
   end
   exit_status = 1
 
+# we need to stop the runner and clean up the PIDFILE
+#
+# stopping the runner should allow the processing Queue to drain and may take a 
+# moment depending on how many devices are being seen. 
 ensure
   runner.stop
   File.unlink(PID_FILE)
