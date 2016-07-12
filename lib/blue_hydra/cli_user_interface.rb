@@ -275,11 +275,16 @@ gets.chomp
 
             if sort == :rssi || sort == :_seen
               x[sort].strip.to_i
+            elsif sort == :range
+              x[sort].strip.to_f rescue 2**256
             else
               x[sort].to_s
             end
           end
 
+          if sort == :rssi
+            d.reverse!
+          end
           if order == "reverse"
             d.reverse!
           end
