@@ -11,8 +11,8 @@ OptionParser.new do |opts|
   opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
     options[:daemonize] = true
   end
-  opts.on("-n", "--nopulse", "Do not send results to hermes") do |v|
-    options[:nopulse] = true
+  opts.on("-p", "--pulse", "Send results to hermes") do |v|
+    options[:pulse] = true
   end
 end.parse!
 
@@ -20,7 +20,9 @@ if options[:daemonize]
   BlueHydra.daemon_mode = true
 end
 
-if options[:nopulse]
+if options[:pulse]
+  BlueHydra.no_pulse = false
+else
   BlueHydra.no_pulse = true
 end
 
