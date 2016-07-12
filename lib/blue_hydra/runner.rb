@@ -21,6 +21,8 @@ module BlueHydra
     if BlueHydra.config[:file]
       if BlueHydra.config[:file] =~ /\.xz$/
         @@command = "xzcat #{BlueHydra.config[:file]}"
+      elsif BlueHydra.config[:file] =~ /\.gz$/
+        @@command = "zcat #{BlueHydra.config[:file]}"
       else
         @@command = "cat #{BlueHydra.config[:file]}"
       end
