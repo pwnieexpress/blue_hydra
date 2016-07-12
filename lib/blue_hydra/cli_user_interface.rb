@@ -273,7 +273,7 @@ gets.chomp
 
           d = cui_status.values.sort_by do |x|
 
-            if sort == :last_seen || sort == :_seen
+            if sort == :rssi || sort == :_seen
               x[sort].strip.to_i
             else
               x[sort].to_s
