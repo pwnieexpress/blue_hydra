@@ -547,7 +547,6 @@ module BlueHydra
                 self.query_history[device.address] ||= {}
                 if (Time.now.to_i - (60 * 7)) >= self.query_history[device.address][:l2ping].to_i
 
-                  # BlueHydra.logger.debug("device l2ping scan triggered")
                   l2ping_queue.push({
                     command: :l2ping,
                     address: device.address
