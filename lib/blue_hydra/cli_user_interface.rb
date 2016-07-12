@@ -98,10 +98,11 @@ gets.chomp
         when "s"
           if sort == sortable_keys.last
             sort = sortable_keys.first
-          else
+          elsif sortable_keys.include?(sort)
             sort = sortable_keys[sortable_keys.index(sort) + 1]
+          else
+            sort = :rssi
           end
-
         when "r"
           if order == "normal"
             order = "reverse"
@@ -126,6 +127,9 @@ gets.chomp
 
 
         sortable_keys = render_cui(max_height,sort,order,printable_keys)
+        if sortable_keys.nil? || !sortable_keys.include?(sort)
+          sort = :rssi
+        end
         sleep 0.1
       end
 
