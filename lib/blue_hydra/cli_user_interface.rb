@@ -255,7 +255,7 @@ gets.chomp
               end
             k = k.upcase
 
-            if key == :_seen && sort == :last_seen || key == sort
+            if key == sort
               z = order == "normal" ? "^" : "v"
               k = "#{k} #{z}"
 
