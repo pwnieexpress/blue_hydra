@@ -1,3 +1,8 @@
 calibrate range for sena dongle
 update pwnix chef to use --pulse in init script
 do we need to send status with aggressive_rssi?
+
+refactor pass & code cleanup
+code commenting
+extend tests a bit
+write readme.md file with more info for OSS

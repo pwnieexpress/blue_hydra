@@ -488,7 +488,6 @@ module BlueHydra
                       # update this value no more than 1 x / minute to avoid
                       # flooding pulse with too much noise.
                       if (current_time - last_seen_time) > 60
-                        # BlueHydra.logger.debug("syncing #{k} for #{address} last sync was #{attrs[k][0][:t] - last_seen_time}s ago...")
                         scan_results[address][k] = attrs[k]
                         needs_push = true
                       else
