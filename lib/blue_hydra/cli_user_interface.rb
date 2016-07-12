@@ -91,7 +91,14 @@ gets.chomp
 
         case input
         when "s"
-          sort = :last_seen
+          sort = case sort
+                 when :rssi
+                   :last_seen
+                 when :last_seen
+                 when :address
+                 when :manuf
+                   :rssi
+                 end
         when "r"
           if order == "normal"
             order = "reverse"
