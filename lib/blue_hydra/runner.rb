@@ -168,6 +168,10 @@ module BlueHydra
         interface_reset.split("\n").each do |ln|
           BlueHydra.logger.error(ln)
         end
+        if interface_reset =~ /Connection timed out/i
+          ## TODO: check for interface name "Can't init device hci0: Connection timed out (110)"
+          raise BluezNotReadyError
+        end
       end
     end
 
@@ -267,8 +271,19 @@ module BlueHydra
                 discovery_errors.split("\n").each do |ln|
                   BlueHydra.logger.error(ln)
                 end
+                if discovery_errors =~ /org.bluez.Error.NotReady/
+                  raise BluezNotReadyError
+                end
               end
 
+            rescue BluezNotReadyError
+              unless BlueHydra.daemon_mode
+                self.cui_thread.kill
+                puts "Bluez reported #{BlueHydra.config[:bt_device]} not ready"
+                puts "Try removing and replugging the card, or toggling rfkill on and off"
+              end
+              BlueHydra.logger.error("Bluez reported #{BlueHydra.config[:bt_device]} not ready")
+              exit
             rescue => e
               BlueHydra.logger.error("Discovery loop crashed: #{e.message}")
               e.backtrace.each do |x|
@@ -457,7 +472,7 @@ module BlueHydra
 
                       # if aggressive_rssi is set send all rssis to pulse
                       # this should not be set where avoidable
-                      if BlueHydra.config[:aggressive_rssi]
+                      if BlueHydra.config[:aggressive_rssi] && BlueHydra.pulse
                         attrs[k].each do |x|
                           send_data = {
                             type:   "bluetooth",
@@ -472,8 +487,6 @@ module BlueHydra
                           begin
                             # create the json
                             json = JSON.generate(send_data)
-
-                            return unless BlueHydra.pulse
 
                             # write json data to result socket
                             TCPSocket.open('127.0.0.1', 8244) do |sock|

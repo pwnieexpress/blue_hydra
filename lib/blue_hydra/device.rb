@@ -271,6 +271,8 @@ class BlueHydra::Device
 
   # sync record to pulse
   def sync_to_pulse(sync_all=false)
+    return unless BlueHydra.pulse
+
     send_data = {
       type:   "bluetooth",
       source: "blue-hydra",
@@ -307,8 +309,6 @@ class BlueHydra::Device
 
     # create the json
     json = JSON.generate(send_data)
-
-    return unless BlueHydra.pulse
 
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
