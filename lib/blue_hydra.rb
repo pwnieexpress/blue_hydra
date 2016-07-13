@@ -155,6 +155,16 @@ module BlueHydra
     @@daemon_mode = setting
   end
 
+  # getter for demo mode option
+  def demo_mode
+    @@demo_mode ||= false
+  end
+
+  # setter for demo mode option
+  def demo_mode=(setting)
+    @@demo_mode = setting
+  end
+
   # getter for pulse option
   def pulse
     @@pulse ||= false
@@ -166,7 +176,7 @@ module BlueHydra
   end
 
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
-                  :pulse=, :rssi_logger
+                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=
 end
 
 # require the actual code

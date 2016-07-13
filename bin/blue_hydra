@@ -19,6 +19,9 @@ OptionParser.new do |opts|
   opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
     options[:daemonize] = true
   end
+  opts.on("-z", "--demo", "Hide output of CLI UI") do |v|
+    options[:demo] = true
+  end
   opts.on("-p", "--pulse", "Send results to hermes") do |v|
     options[:pulse] = true
   end
@@ -27,6 +30,12 @@ end.parse!
 # Daemon mode will run the service in the background with no CLI output
 if options[:daemonize]
   BlueHydra.daemon_mode = true
+end
+
+# Demo mode will disguise macs detected for demo purposes, only affects CLI
+# output, not what is stored in DB
+if options[:demo]
+  BlueHydra.demo_mode = true
 end
 
 # If the pulse flag is set the service will attempt to send results to

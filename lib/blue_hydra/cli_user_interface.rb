@@ -175,16 +175,30 @@ gets.chomp
       cui_loop
     end
 
+    # this method gets called over and over in the cui loop to print the data
+    # table
+    #
+    # Parameters::
+    #   max_height     - integer value for height of output terminal
+    #   sort           - symbol key to indicate what attribute table should be
+    #                    sorted on
+    #   order          - symbol key to determine if we should reverse the sort
+    #                    order from asc to desc
+    #   printable_keys - list of keys to be printed as table headers
+    #
     def render_cui(max_height,sort,order,printable_keys)
       begin
 
+        # skip if we are reading from a file
         unless BlueHydra.config[:file]
+          # check status of test discovery
           if scanner_status[:test_discovery]
             discovery_time = Time.now.to_i - scanner_status[:test_discovery]
           else
             discovery_time = "not started"
           end
 
+          # check status of ubertooth
           if ubertooth_thread
             if scanner_status[:ubertooth]
               ubertooth_time = Time.now.to_i - scanner_status[:ubertooth]
@@ -196,39 +210,70 @@ gets.chomp
           end
         end
 
+        # pbuff is the print buffer we build up to write to the screen, each
+        # time we append lines to pbuff we need to increment the lines count
+        # so that we know how many lines we are trying to output.
         pbuff = ""
         lines = 1
 
+        # clear screen, doesn't require line increment cause it wipes
+        # everything
         pbuff << "\e[H\e[2J"
 
+        # first line, blue hydra wrapped in blue
         pbuff << "\e[34;1mBlue Hydra\e[0m :"
+        # unless we are reading from a file we will ad this to the first line
         unless BlueHydra.config[:file]
           pbuff <<  " Devices Seen in last #{cui_timeout}s"
         end
         pbuff << "\n"
         lines += 1
 
+        # second line, information about runner queues to help determine if we
+        # have a backlog. backlogs mean that the data being displayed may be
+        # delayed
         pbuff << "Queue status: result_queue: #{result_queue.length}, info_scan_queue: #{info_scan_queue.length}, l2ping_queue: #{l2ping_queue.length}\n"
         lines += 1
 
+        # unless we are reading from a file we add a line with information
+        # about the status of the discovery and ubertooth timers from the
+        # runner
         unless BlueHydra.config[:file]
           pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
           lines += 1
         end
 
+        # initialize a hash to track column widths, default value is 0
         max_lengths = Hash.new(0)
 
+        # guide for how we should justify (left / right), default is left so
+        # really only adding overrides at this point.
         justifications = {
           _seen: :right,
           rssi:  :right,
           range: :right
         }
 
-        cui_status.keys.select{|x| cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)}.each{|x| cui_status.delete(x)} unless BlueHydra.config[:file]
 
+        # remove devices from the cui_status which have expired
+        unless BlueHydra.config[:file]
+          cui_status.keys.select do |x|
+            cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)
+          end.each do |x|
+            cui_status.delete(x)
+          end
+        end
+
+        # nothing to do if cui_status is empty (no devices or all expired)
         unless cui_status.empty?
+
+          # for each of the values we need to
           cui_status.values.each do |hsh|
+            # fake a :_seen key with info derived from the :last_seen value
             hsh[:_seen] = " +#{Time.now.to_i - hsh[:last_seen]}s"
+            # loop through the keys and figure out what the max value for the
+            # width of the column is. This includes the length of the actual
+            # header key itself
             printable_keys.each do |key|
               key_length = key.to_s.length
               if v = hsh[key].to_s
@@ -243,8 +288,13 @@ gets.chomp
             end
           end
 
+          # select the keys which have some value greater than 0
           keys = printable_keys.select{|k| max_lengths[k] > 0}
-          make_pretty = Proc.new do |key|
+
+          # reusable proc for formatting the keys
+          prettify_key = Proc.new do |key|
+
+            # shorten some names
             k = case key
               when :le_major_num
                 :major
@@ -253,44 +303,65 @@ gets.chomp
               else
                 key
               end
+
+            # upcase the ky
             k = k.upcase
 
+            # if the key is the same as the sort value we need to add an
+            # indicator and also determine if the values are sorted ascending
+            # (^) or descending (v)
             if key == sort
+
+              # determin order and add the sort indicator to the key
               z = order == "normal" ? "^" : "v"
               k = "#{k} #{z}"
 
+              # expand max length for the key column if adding the sort
+              # indicator makes the key length greater than the current
+              # tracked length for the column width
               if k.length > max_lengths[key]
                 max_lengths[key] = k.length
               end
             end
 
+            # replace underscores with spaces and left justify
             k.to_s.ljust(max_lengths[key]).gsub("_"," ")
           end
 
-          header = keys.map{|k| make_pretty.call(k)}.join(' | ')
+          # map across the keys and use the pretify key to clean up the key
+          # before joining with | characters to create the header row
+          header = keys.map{|k| prettify_key.call(k)}.join(' | ')
+
+          # underline and add to pbuff
           pbuff << "\e[0;4m#{header}\e[0m\n"
           lines += 1
 
+          # customize some of the sort options to handle integer values
+          # which may be string wrapped in strange ways
           d = cui_status.values.sort_by do |x|
-
             if sort == :rssi || sort == :_seen
               x[sort].strip.to_i
             elsif sort == :range
               x[sort].strip.to_f rescue 2**256
             else
+              # default sort is alpha sort
               x[sort].to_s
             end
           end
 
+          # rssi values are neg numbers and so we want to just go ahead and
+          # reverse the sort to beging by default
           if sort == :rssi
             d.reverse!
           end
+
+          # if order is reverse we should go ahead and reverse the table data
           if order == "reverse"
             d.reverse!
           end
 
+          # iterate across the  sorted data
           d.each do |data|
-
             #prevent classic devices from expiring by forcing them onto the l2ping queue
             unless BlueHydra.config[:file]
               if data[:vers] =~ /cl/i
@@ -307,8 +378,12 @@ gets.chomp
               end
             end
 
+            # stop printing if we are at the max_height value. this is why
+            # incrementing lines is important
             next if lines >= max_height
 
+            # choose a color code for the row based on how recently its been
+            # since initially detecting
             color = case
                     when data[:created] > Time.now.to_i - 10  # in last 10 seconds
                       "\e[0;32m" # green
@@ -320,25 +395,47 @@ gets.chomp
                       ""
                     end
 
+            # for each key determin if the data should be left or right
+            # justified
             x = keys.map do |k|
+
               if data[k]
                 if justifications[k] == :right
                   data[k].to_s.rjust(max_lengths[k])
                 else
-                  data[k].to_s.ljust(max_lengths[k])
+                  v = data[k]
+                  if BlueHydra.demo_mode
+                    if k == :address
+                      mac_chars = "A-F0-9:"
+                      v = v.gsub(
+                        /^[#{mac_chars}]{5}|[#{mac_chars}]{5}$/,
+                        '**:**'
+                      )
+                    end
+                  end
+                  v.to_s.ljust(max_lengths[k])
                 end
               else
                 ''.ljust(max_lengths[k])
               end
             end
+
+            # join the data after justifying and add to the pbuff
+            #
+            # We did it! :D
             pbuff <<  "#{color}#{x.join(' | ')}\e[0m\n"
             lines += 1
           end
         else
+          # when empty just tack onthis line to the pbuff
           pbuff <<  "No recent devices..."
         end
 
+        # print the entire pbuff to screen! ... phew
         puts pbuff
+
+        # keys are returned back to the cui_loop so it can update its
+        # pre-processing for sort etc
         return keys
 
       rescue => e
