@@ -12,6 +12,5 @@ gem 'data_mapper'
 gem 'dm-sqlite-adapter'
 gem 'pry'
 gem 'louis'
-# 
 gem 'rake'
 gem 'rspec'
