@@ -5,6 +5,7 @@ require 'json'
 require 'open3'
 require 'securerandom'
 require 'zlib'
+require 'yaml'
 
 # Gems
 require 'data_mapper'
@@ -52,10 +53,18 @@ module BlueHydra
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
   # or in the local directory if run on a non-Pwnie device.
-  CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
+  LEGACY_CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
               '/opt/pwnix/pwnix-config/blue_hydra.json'
             else
               File.expand_path('../../blue_hydra.json', __FILE__)
+            end
+
+  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
+  # or in the local directory if run on a non-Pwnie device.
+  CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
+              '/opt/pwnix/pwnix-config/blue_hydra.yml'
+            else
+              File.expand_path('../../blue_hydra.yml', __FILE__)
             end
 
   # Default configuration values
@@ -73,20 +82,31 @@ module BlueHydra
     aggressive_rssi:   false         # if set will sync all rssi to pulse
   }
 
+  if File.exists?(LEGACY_CONFIG_FILE)
+    old_config = JSON.parse(
+      File.read(LEGACY_CONFIG_FILE),
+      symbolize_names: true
+    )
+    File.unlink(LEGACY_CONFIG_FILE)
+  else
+    old_config = {}
+  end
+
+  config_base = DEFAULT_CONFIG.merge(old_config)
+
   # Create config file with defaults if missing or load and update.
   @@config = if File.exists?(CONFIG_FILE)
-               DEFAULT_CONFIG.merge(JSON.parse(
-                 File.read(CONFIG_FILE),
-                 symbolize_names: true
+               config_base.merge(YAML.load(
+                 File.read(CONFIG_FILE)
                ))
              else
-               DEFAULT_CONFIG
+               config_base
              end
 
   # update the config file with any new values not present, will leave
   # configured values intact but should allow users to pull code changes with
   # new config options and have them show up in the file after running
-  File.write(CONFIG_FILE, JSON.pretty_generate(@@config))
+  File.write(CONFIG_FILE, @@config.to_yaml)
 
   # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
   # in the local directory as blue_hydra.log if on a non-Pwnie system
