@@ -178,14 +178,16 @@ gets.chomp
     # this method gets called over and over in the cui loop to print the data
     # table
     #
-    # Parameters::
-    #   max_height     - integer value for height of output terminal
-    #   sort           - symbol key to indicate what attribute table should be
-    #                    sorted on
-    #   order          - symbol key to determine if we should reverse the sort
-    #                    order from asc to desc
-    #   printable_keys - list of keys to be printed as table headers
-    #
+    # == Parameters:
+    #   max_height ::
+    #     integer value for height of output terminal
+    #   sort ::
+    #      symbol key to indicate what attribute table should be sorted on
+    #   order ::
+    #     symbol key to determine if we should reverse the sort order from asc
+    #     to desc
+    #   printable_keys ::
+    #     list of keys to be printed as table headers
     def render_cui(max_height,sort,order,printable_keys)
       begin
 

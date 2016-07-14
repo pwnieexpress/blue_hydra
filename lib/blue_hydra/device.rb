@@ -23,6 +23,7 @@ class BlueHydra::Device
   property :manufacturer,                  String
   property :firmware,                      String
 
+  # classic mode specific attributes
   property :classic_mode,                  Boolean
   property :classic_service_uuids,         Text
   property :classic_channels,              Text
@@ -34,6 +35,7 @@ class BlueHydra::Device
   property :classic_features,              Text
   property :classic_features_bitmap,       Text
 
+  # low energy mode specific attributes
   property :le_mode,                       Boolean
   property :le_service_uuids,              Text
   property :le_address_type,               String
@@ -77,6 +79,7 @@ class BlueHydra::Device
     end
   end
 
+  # sync device status to pulse rather than full attribute set
   def self.sync_statuses_to_pulse
     BlueHydra::Device.all.each do |dev|
       dev.instance_variable_set(:@filthy_attributes, [:status])
@@ -84,8 +87,9 @@ class BlueHydra::Device
     end
   end
 
+  # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline
-    # mark hosts as 'offline' if we haven't seen for a while
+    # classic mode devices have 15 min timeout
     BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (15*60))
     }.each{|device|
@@ -93,6 +97,7 @@ class BlueHydra::Device
       device.save
     }
 
+    # le mode devices have 3 min timeout
     BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (60*3))
     }.each{|device|
