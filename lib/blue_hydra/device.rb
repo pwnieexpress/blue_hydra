@@ -266,6 +266,9 @@ class BlueHydra::Device
   end
 
 
+  # This is a helper method to track what attributes change because all
+  # attributes lose their 'dirty' status after save and the sync method is an
+  # after save so we need to keep a record of what changed to only sync relevant
   def prepare_the_filth
     @filthy_attributes ||= []
     syncable_attributes.each do |attr|
@@ -544,6 +547,9 @@ class BlueHydra::Device
     end
   end
 
+  # set the addres field but only conditionally set vendor based on some whether
+  # or not we have an appropriate address to use for vendor lookup. Don't do
+  # vendor lookups if address starts with 00:00
   def address=(new)
     if new
       current = self.address

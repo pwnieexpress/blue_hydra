@@ -1,4 +1,8 @@
 module BlueHydra
+
+  # This class is a wrapper for all the core functionality of  Blue Hydra. It
+  # is responsible for managing all the threads for device interaction, data
+  # processing and, when not in daemon mode, the CLI UI trhead and tracker.
   class Runner
 
     attr_accessor :command,
@@ -18,6 +22,11 @@ module BlueHydra
                   :l2ping_queue,
                   :result_thread
 
+    # if we have been passed the 'file' option in the config we should try to
+    # read out the file as our data source. This allows for btmon captures to
+    # be replayed and post-processed.
+    #
+    # Supported filetypes are .xz, .gz or plaintext
     if BlueHydra.config[:file]
       if BlueHydra.config[:file] =~ /\.xz$/
         @@command = "xzcat #{BlueHydra.config[:file]}"
@@ -30,32 +39,69 @@ module BlueHydra
       @@command = "btmon -T -i #{BlueHydra.config[:bt_device]}"
     end
 
+    # Start the runner after being initialized
+    #
+    # == Parameters
+    #   command ::
+    #     the command to run, typically btmon -T -i hci0 but will be different
+    #     if running in file mode
     def start(command=@@command)
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
+        # Since it is unknown how long it has been since the system run last
+        # we should look at the DB and mark timed out devices as offline before
+        # starting anything else
         BlueHydra.logger.info("Marking older devices as 'offline'...")
         BlueHydra::Device.mark_old_devices_offline
 
+        # Sync everything to pwnpulse if the system is connected to the Pwnie
+        # Express cloud
         BlueHydra.logger.info("Syncing all hosts to Pulse...")
         BlueHydra::Device.sync_all_to_pulse
 
+        # Query History is used to track what addresses have been pinged
         self.query_history   = {}
-        self.command         = command
-        self.raw_queue       = Queue.new
-        self.chunk_queue     = Queue.new
-        self.result_queue    = Queue.new
-        self.info_scan_queue = Queue.new
-        self.l2ping_queue    = Queue.new
 
+        # the command used to capture data
+        self.command         = command
+
+        # various queues used for thread intercommunication, could be replaced
+        # by true IPC sockets at some point but these work prety damn well
+        self.raw_queue       = Queue.new # btmon thread   -> chunker thread
+        self.chunk_queue     = Queue.new # chunker thread -> parser thread
+        self.result_queue    = Queue.new # parser thread  -> result thread
+        self.info_scan_queue = Queue.new # result thread  -> discovery thread
+        self.l2ping_queue    = Queue.new # result thread  -> discovery thread
+
+        # start the thrad which runs the command, typically btmon so this is
+        # the btmon thread but this thread will also run the xzcat, zcat or cat
+        # commands for files
         start_btmon_thread
+
+        # helper hashes for tracking status of the scanners and also the in
+        # memory copy of data for the CUI
         self.scanner_status  = {}
         self.cui_status      = {}
+
+        # another thread which operates the actual device discovery, not needed
+        # if reading from a file since btmon will just be getting replayed
         start_discovery_thread unless BlueHydra.config[:file]
+
+        # start the thread responsibly for breaking the filtered btmon output
+        # into chunks by device, basically a pre-parser
         start_chunker_thread
+
+        # start the thread responsible for parsing the chunks into little data
+        # blobs to be sotred in teh db
         start_parser_thread
+
+        # start the result processing thread
         start_result_thread
 
+        # unless we are reading from a file we need to determine if we have an
+        # ubertooth available and then initialize a thread to manage that
+        # device as needed
         unless BlueHydra.config[:file]
           # Handle ubertooth
           if ::File.executable?("/usr/bin/ubertooth-util") && system("/usr/bin/ubertooth-util -v > /dev/null 2>&1")
@@ -71,6 +117,8 @@ module BlueHydra
           end
         end
 
+        # start the thread responsible for printing the CUI to screen unless
+        # we are in daemon mode
         start_cui_thread unless BlueHydra.daemon_mode
 
         sleep 5 # allow it start up
@@ -83,6 +131,9 @@ module BlueHydra
       end
     end
 
+    # this is a helper method which resports status of queue depth and thread
+    # health. Mainly used from bin/blue_hydra work loop to make sure everything
+    # is alive or to exit gracefully
     def status
       x = {
         raw_queue:         self.raw_queue.length,
@@ -106,6 +157,8 @@ module BlueHydra
       x
     end
 
+    # stop method this stops the threads but attempts to allow the result queue
+    # to drain before fully exiting to prevent data loss
     def stop
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
       self.btmon_thread.kill # stop this first thread so data stops flowing ...
@@ -141,10 +194,13 @@ module BlueHydra
       self.cui_thread.kill if self.cui_thread
     end
 
+    # Start the thread which runs the specified command
     def start_btmon_thread
       BlueHydra.logger.info("Btmon thread starting")
       self.btmon_thread = Thread.new do
         begin
+          # spawn the handler for btmon and pass in the shared raw queue as a
+          # param so that it can feed data back into the runner threads
           spawner = BlueHydra::BtmonHandler.new(
             self.command,
             self.raw_queue
@@ -160,6 +216,7 @@ module BlueHydra
       end
     end
 
+    # helper method to reset the interface as needed
     def hci_reset
       # interface reset
       interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")[:stderr]
@@ -175,7 +232,8 @@ module BlueHydra
       end
     end
 
-
+    # thread responsible for sending interesting commands to the hci device so
+    # that interesting things show up in the btmon ouput
     def start_discovery_thread
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
@@ -186,18 +244,31 @@ module BlueHydra
           loop do
             begin
 
-              # clear queues
+              # clear the queues
               until info_scan_queue.empty? && l2ping_queue.empty?
-                # clear out entire info scan queue
+                # clear out entire info scan queue first
                 until info_scan_queue.empty?
+
+                  # reset interface first to get to a good base state
                   hci_reset
+
                   BlueHydra.logger.debug("Popping off info scan queue. Depth: #{ info_scan_queue.length}")
+
+                  # grab a command out of the queue to run
                   command = info_scan_queue.pop
                   case command[:command]
-                  when :info
+                  when :info # classic mode devices
+                    # run hcitool info against the specified address, capture
+                    # errors, no need to capture stdout because the interesting
+                    # stuff is gonna be in btmon anyway
                     info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}",3)[:stderr]
-                  when :leinfo
+
+                  when :leinfo # low energy devices
+                    # run hcitool leinfo, capture errors
                     info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --random #{command[:address]}",3)[:stderr]
+
+                    # if we have errors fro le info scan attempt some
+                    # additional trickery to grab the data in a few other ways
                     if info_errors == "Could not create connection: Input/output error"
                       info_errors = nil
                       BlueHydra.logger.debug("Random leinfo failed against #{command[:address]}")
@@ -218,6 +289,8 @@ module BlueHydra
                     BlueHydra.logger.error("Invalid command detected... #{command.inspect}")
                     info_errors = nil
                   end
+
+                  # handle and log error output as needed
                   if info_errors
                     if info_errors.chomp =~ /connect: No route to host/i
                       # We could handle this as negative feedback if we want
@@ -231,6 +304,7 @@ module BlueHydra
                     end
                   end
                 end
+
                 # run 1 l2ping a time while still checking if info scan queue
                 # is empty
                 unless l2ping_queue.empty?
@@ -257,6 +331,7 @@ module BlueHydra
                 end
               end
 
+              # another reset
               hci_reset
 
               # hot loop avoidance, but run right before discovery to avoid any delay between discovery and info scan
@@ -303,6 +378,7 @@ module BlueHydra
       end
     end
 
+    # thread to manage the ubertooth device where available
     def start_ubertooth_thread
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
@@ -348,6 +424,7 @@ module BlueHydra
       end
     end
 
+    # thread to manage the CUI output where availalbe
     def start_cui_thread
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
@@ -357,6 +434,8 @@ module BlueHydra
       end
     end
 
+    # helper method to push addresses intothe scan queues with a little
+    # pre-processing
     def push_to_queue(mode, address)
       case mode
       when :classic
@@ -364,14 +443,17 @@ module BlueHydra
         # use uap_lap for tracking classic devices
         track_addr = address.split(":")[2,4].join(":")
 
+        # do not send local adapter to be scanned y(>_<)y
         return if track_addr == BlueHydra::LOCAL_ADAPTER_ADDRESS.split(":")[2,4].join(":")
       when :le
         command = :leinfo
         track_addr = address
 
+        # do not send local adapter to be scanned y(>_<)y
         return if address == BlueHydra::LOCAL_ADAPTER_ADDRESS
       end
 
+      # only scan if the info scan rate timeframe has elapsed
       self.query_history[track_addr] ||= {}
       last_info = self.query_history[track_addr][mode].to_i
       if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_info
@@ -380,11 +462,13 @@ module BlueHydra
       end
     end
 
+    # thread responsible for chunking up btmon output to be parsed
     def start_chunker_thread
       BlueHydra.logger.info("Chunker thread starting")
       self.chunker_thread = Thread.new do
         loop do
           begin
+            # handler, pass in chunk queue for data to be fed back out
             chunker = BlueHydra::Chunker.new(
               self.raw_queue,
               self.chunk_queue
@@ -402,6 +486,7 @@ module BlueHydra
       end
     end
 
+    # thread responsible for parsed chunked up btmon output
     def start_parser_thread
       BlueHydra.logger.info("Parser thread starting")
       self.parser_thread = Thread.new do
@@ -409,6 +494,8 @@ module BlueHydra
 
           scan_results = {}
 
+          # get the chunks and parse them, track history, update CUI and push
+          # to data processing thread
           while chunk = chunk_queue.pop do
             p = BlueHydra::Parser.new(chunk.dup)
             p.parse
