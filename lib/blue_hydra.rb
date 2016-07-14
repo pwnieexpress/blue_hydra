@@ -59,7 +59,7 @@ module BlueHydra
               File.expand_path('../../blue_hydra.json', __FILE__)
             end
 
-  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
+  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.
   CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
               '/opt/pwnix/pwnix-config/blue_hydra.yml'
