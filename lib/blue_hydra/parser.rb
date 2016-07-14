@@ -319,7 +319,7 @@ module BlueHydra
       else
         # we only might need to see this in debug mode, no need to take up the
         # memory
-        if BlueHydra.config[:log_level] == 'debug'
+        if BlueHydra.config["log_level"] == 'debug'
           set_attr("#{bt_mode}_unknown".to_sym, line)
         end
       end

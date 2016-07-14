@@ -85,7 +85,7 @@ begin
       :result_thread 
     ]
 
-    unless BlueHydra.config[:file]
+    unless BlueHydra.config["file"]
       threads << :discovery_thread
     end
 

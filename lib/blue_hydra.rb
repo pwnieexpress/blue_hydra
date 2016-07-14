@@ -71,21 +71,20 @@ module BlueHydra
   #
   # Note: "file" can also be set but has no default value
   DEFAULT_CONFIG = {
-    log_level:         "info",
-    bt_device:         "hci0",       # change for external ud100
-    info_scan_rate:    60,           # 1 minute in seconds
-    status_sync_rate:  60 * 60 * 24, # 1 day in seconds
-    btmon_log:         false,        # if set will write used btmon output to a log file
-    btmon_rawlog:      false,        # if set will write raw btmon output to a log file
-    file:              false,        # if set will read from file, not hci dev
-    rssi_log:          false,        # if set will log rssi
-    aggressive_rssi:   false         # if set will sync all rssi to pulse
+    "log_level" =>         "info",
+    "bt_device" =>         "hci0",       # change for external ud100
+    "info_scan_rate" =>    60,           # 1 minute in seconds
+    "status_sync_rate" =>  60 * 60 * 24, # 1 day in seconds
+    "btmon_log" =>         false,        # if set will write used btmon output to a log file
+    "btmon_rawlog" =>      false,        # if set will write raw btmon output to a log file
+    "file" =>              false,        # if set will read from file, not hci dev
+    "rssi_log" =>          false,        # if set will log rssi
+    "aggressive_rssi" =>   false         # if set will sync all rssi to pulse
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
     old_config = JSON.parse(
-      File.read(LEGACY_CONFIG_FILE),
-      symbolize_names: true
+      File.read(LEGACY_CONFIG_FILE)
     )
     File.unlink(LEGACY_CONFIG_FILE)
   else
@@ -118,7 +117,7 @@ module BlueHydra
 
   # set log level from config
   @@logger = Logger.new(LOGFILE)
-  @@logger.level = case @@config[:log_level]
+  @@logger.level = case @@config["log_level"]
                    when "fatal"
                      Logger::FATAL
                    when "error"
@@ -213,7 +212,7 @@ require 'blue_hydra/cli_user_interface_tracker'
 # Here we enumerate the local hci adapter hardware address and make it
 # available as an internal value
 BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
-  "hciconfig #{BlueHydra.config[:bt_device]}")[:stdout].scan(
+  "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
     /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
   ).flatten.first
 

@@ -27,16 +27,16 @@ module BlueHydra
     # be replayed and post-processed.
     #
     # Supported filetypes are .xz, .gz or plaintext
-    if BlueHydra.config[:file]
-      if BlueHydra.config[:file] =~ /\.xz$/
-        @@command = "xzcat #{BlueHydra.config[:file]}"
-      elsif BlueHydra.config[:file] =~ /\.gz$/
-        @@command = "zcat #{BlueHydra.config[:file]}"
+    if BlueHydra.config["file"]
+      if BlueHydra.config["file"] =~ /\.xz$/
+        @@command = "xzcat #{BlueHydra.config["file"]}"
+      elsif BlueHydra.config["file"] =~ /\.gz$/
+        @@command = "zcat #{BlueHydra.config["file"]}"
       else
-        @@command = "cat #{BlueHydra.config[:file]}"
+        @@command = "cat #{BlueHydra.config["file"]}"
       end
     else
-      @@command = "btmon -T -i #{BlueHydra.config[:bt_device]}"
+      @@command = "btmon -T -i #{BlueHydra.config["bt_device"]}"
     end
 
     # Start the runner after being initialized
@@ -86,7 +86,7 @@ module BlueHydra
 
         # another thread which operates the actual device discovery, not needed
         # if reading from a file since btmon will just be getting replayed
-        start_discovery_thread unless BlueHydra.config[:file]
+        start_discovery_thread unless BlueHydra.config["file"]
 
         # start the thread responsibly for breaking the filtered btmon output
         # into chunks by device, basically a pre-parser
@@ -102,7 +102,7 @@ module BlueHydra
         # unless we are reading from a file we need to determine if we have an
         # ubertooth available and then initialize a thread to manage that
         # device as needed
-        unless BlueHydra.config[:file]
+        unless BlueHydra.config["file"]
           # Handle ubertooth
           if ::File.executable?("/usr/bin/ubertooth-util") && system("/usr/bin/ubertooth-util -v > /dev/null 2>&1")
             if ::File.executable?("/usr/bin/ubertooth-rx") && system("/usr/bin/ubertooth-rx -h | grep -q Survey")
@@ -147,7 +147,7 @@ module BlueHydra
         result_thread:     self.result_thread.status
       }
 
-      unless BlueHydra.config[:file]
+      unless BlueHydra.config["file"]
         x[:discovery_thread] = self.discovery_thread.status
         x[:ubertooth_thread] = self.ubertooth_thread.status if self.ubertooth_thread
       end
@@ -183,7 +183,7 @@ module BlueHydra
       self.info_scan_queue = nil
       self.l2ping_queue    = nil
 
-      unless BlueHydra.config[:file]
+      unless BlueHydra.config["file"]
         self.discovery_thread.kill
         self.ubertooth_thread.kill if self.ubertooth_thread
       end
@@ -219,9 +219,9 @@ module BlueHydra
     # helper method to reset the interface as needed
     def hci_reset
       # interface reset
-      interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config[:bt_device]} reset")[:stderr]
+      interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config["bt_device"]} reset")[:stderr]
       if interface_reset
-        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config[:bt_device]} reset..")
+        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
         interface_reset.split("\n").each do |ln|
           BlueHydra.logger.error(ln)
         end
@@ -239,7 +239,7 @@ module BlueHydra
       self.discovery_thread = Thread.new do
         begin
 
-          discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config[:bt_device]}"
+          discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config["bt_device"]}"
 
           loop do
             begin
@@ -261,11 +261,11 @@ module BlueHydra
                     # run hcitool info against the specified address, capture
                     # errors, no need to capture stdout because the interesting
                     # stuff is gonna be in btmon anyway
-                    info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} info #{command[:address]}",3)[:stderr]
+                    info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config["bt_device"]} info #{command[:address]}",3)[:stderr]
 
                   when :leinfo # low energy devices
                     # run hcitool leinfo, capture errors
-                    info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --random #{command[:address]}",3)[:stderr]
+                    info_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config["bt_device"]} leinfo --random #{command[:address]}",3)[:stderr]
 
                     # if we have errors fro le info scan attempt some
                     # additional trickery to grab the data in a few other ways
@@ -273,11 +273,11 @@ module BlueHydra
                       info_errors = nil
                       BlueHydra.logger.debug("Random leinfo failed against #{command[:address]}")
                       hci_reset
-                      info2_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo --static #{command[:address]}",3)[:stderr]
+                      info2_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config["bt_device"]} leinfo --static #{command[:address]}",3)[:stderr]
                       if info2_errors == "Could not create connection: Input/output error"
                         BlueHydra.logger.debug("Static leinfo failed against #{command[:address]}")
                         hci_reset
-                        info3_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config[:bt_device]} leinfo #{command[:address]}",3)[:stderr]
+                        info3_errors = BlueHydra::Command.execute3("hcitool -i #{BlueHydra.config["bt_device"]} leinfo #{command[:address]}",3)[:stderr]
                         if info3_errors == "Could not create connection: Input/output error"
                           BlueHydra.logger.debug("Default leinfo failed against #{command[:address]}")
                           BlueHydra.logger.debug("Default leinfo failed against #{command[:address]}")
@@ -311,7 +311,7 @@ module BlueHydra
                   hci_reset
                   BlueHydra.logger.debug("Popping off l2ping queue. Depth: #{ l2ping_queue.length}")
                   command = l2ping_queue.pop
-                  l2ping_errors = BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config[:bt_device]} #{command[:address]}",5)[:stderr]
+                  l2ping_errors = BlueHydra::Command.execute3("l2ping -c 3 -i #{BlueHydra.config["bt_device"]} #{command[:address]}",5)[:stderr]
                   if l2ping_errors
                     if l2ping_errors.chomp =~ /connect: No route to host/i
                       # We could handle this as negative feedback if we want
@@ -354,10 +354,10 @@ module BlueHydra
             rescue BluezNotReadyError
               unless BlueHydra.daemon_mode
                 self.cui_thread.kill
-                puts "Bluez reported #{BlueHydra.config[:bt_device]} not ready"
+                puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready"
                 puts "Try removing and replugging the card, or toggling rfkill on and off"
               end
-              BlueHydra.logger.error("Bluez reported #{BlueHydra.config[:bt_device]} not ready")
+              BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready")
               exit
             rescue => e
               BlueHydra.logger.error("Discovery loop crashed: #{e.message}")
@@ -456,7 +456,7 @@ module BlueHydra
       # only scan if the info scan rate timeframe has elapsed
       self.query_history[track_addr] ||= {}
       last_info = self.query_history[track_addr][mode].to_i
-      if (Time.now.to_i - (BlueHydra.config[:info_scan_rate].to_i * 60)) >= last_info
+      if (Time.now.to_i - (BlueHydra.config["info_scan_rate"].to_i * 60)) >= last_info
         info_scan_queue.push({command: command, address: address})
         self.query_history[track_addr][mode] = Time.now.to_i
       end
@@ -542,7 +542,7 @@ module BlueHydra
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
                       # if log_rssi is set log all values
-                      if BlueHydra.config[:rssi_log]
+                      if BlueHydra.config["rssi_log"]
                         attrs[k].each do |x|
                           # unix timestamp from btmon
                           ts = x[:t]
@@ -559,7 +559,7 @@ module BlueHydra
 
                       # if aggressive_rssi is set send all rssis to pulse
                       # this should not be set where avoidable
-                      if BlueHydra.config[:aggressive_rssi] && BlueHydra.pulse
+                      if BlueHydra.config["aggressive_rssi"] && BlueHydra.pulse
                         attrs[k].each do |x|
                           send_data = {
                             type:   "bluetooth",
@@ -640,7 +640,7 @@ module BlueHydra
               last_sync = Time.now
             end
 
-            unless BlueHydra.config[:file]
+            unless BlueHydra.config["file"]
               # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
               #   l2ping them :  "l2ping -c 3 result[:address]"
               BlueHydra::Device.all(classic_mode: true).select{|x|
@@ -677,7 +677,7 @@ module BlueHydra
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
-                unless BlueHydra.config[:file]
+                unless BlueHydra.config["file"]
                   if device.le_mode
                     #do not info scan beacon type devices, they do not respond while in advertising mode
                     if device.company_type !~ /iBeacon/i && device.company !~ /Gimbal/i
@@ -697,7 +697,7 @@ module BlueHydra
 
             BlueHydra::Device.mark_old_devices_offline
 
-            if (Time.now.to_i - BlueHydra.config[:status_sync_rate]) > last_status_sync
+            if (Time.now.to_i - BlueHydra.config["status_sync_rate"]) > last_status_sync
               BlueHydra.logger.info("Syncing all host statuses to Pulse...")
               BlueHydra::Device.sync_statuses_to_pulse
               last_status_sync = Time.now.to_i
