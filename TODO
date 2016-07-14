@@ -2,15 +2,9 @@ calibrate range for sena dongle
 update pwnix chef to use --pulse in init script
 do we need to send status with aggressive_rssi?
 
-change CUI sort order from normal/reversed to 'ascending/descending' this will
-be useful for code readability and we may have use for those values in the future
-
 refactor pass & code cleanup
-code commenting
 extend tests a bit
-write readme.md file with more info for OSS
 
-## TODO:
 Some stuff to do
 * handle alt UUIDs which contain paren
 * rate limit incoming RSSIs to 1 per timeframe

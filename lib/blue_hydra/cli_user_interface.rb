@@ -81,7 +81,7 @@ gets.chomp
     def cui_loop
       reset   = false # determine if we need to reset the loop by restarting method
       sort  ||= :rssi # default sort attribute
-      order ||= "normal" #default sort order
+      order ||= "ascending" #default sort order
 
       # set default printable keys, aka column headers
       printable_keys ||= [
@@ -132,10 +132,10 @@ gets.chomp
             sort = :rssi
           end
         when "r" # toggle sort order
-          if order == "normal"
-            order = "reverse"
-          elsif order == "reverse"
-            order = "normal"
+          if order == "ascending"
+            order = "descending"
+          elsif order == "descending"
+            order = "ascending"
           end
         when "c" # toggle alternate keys
           if printable_keys.include?(:le_proximity_uuid)
@@ -315,7 +315,7 @@ gets.chomp
             if key == sort
 
               # determin order and add the sort indicator to the key
-              z = order == "normal" ? "^" : "v"
+              z = order == "ascending" ? "^" : "v"
               k = "#{k} #{z}"
 
               # expand max length for the key column if adding the sort
@@ -358,7 +358,7 @@ gets.chomp
           end
 
           # if order is reverse we should go ahead and reverse the table data
-          if order == "reverse"
+          if order == "descending"
             d.reverse!
           end
 
