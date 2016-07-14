@@ -51,7 +51,7 @@ module BlueHydra
   # 1.1.1 Range monitoring based on TX power, OSS cleanup
   VERSION = '1.1.1'
 
-  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
+  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.
   LEGACY_CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
               '/opt/pwnix/pwnix-config/blue_hydra.json'
@@ -95,9 +95,7 @@ module BlueHydra
 
   # Create config file with defaults if missing or load and update.
   @@config = if File.exists?(CONFIG_FILE)
-               config_base.merge(YAML.load(
-                 File.read(CONFIG_FILE)
-               ))
+               config_base.merge(YAML.load(File.read(CONFIG_FILE)))
              else
                config_base
              end
@@ -105,7 +103,7 @@ module BlueHydra
   # update the config file with any new values not present, will leave
   # configured values intact but should allow users to pull code changes with
   # new config options and have them show up in the file after running
-  File.write(CONFIG_FILE, @@config.to_yaml)
+  File.write(CONFIG_FILE, @@config.to_yaml.gsub("---\n",''))
 
   # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
   # in the local directory as blue_hydra.log if on a non-Pwnie system
