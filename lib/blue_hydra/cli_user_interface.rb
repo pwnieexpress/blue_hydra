@@ -239,10 +239,12 @@ gets.chomp
         pbuff << "\e[H\e[2J"
 
         # first line, blue hydra wrapped in blue
-        pbuff << "\e[34;1mBlue Hydra\e[0m :"
+        pbuff << "\e[34;1mBlue Hydra\e[0m : "
         # unless we are reading from a file we will ad this to the first line
-        unless BlueHydra.config["file"]
-          pbuff <<  " Devices Seen in last #{cui_timeout}s"
+        if BlueHydra.config["file"]
+          pbuff << "Reading data from " + BlueHydra.config["file"]
+        else
+          pbuff <<  "Devices Seen in last #{cui_timeout}s"
         end
         pbuff << "\n"
         lines += 1
