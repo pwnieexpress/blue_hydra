@@ -19,7 +19,7 @@ Ensure that the following packages are installed:
 bluez-utils
 bluez-test-scripts
 python-bluez
-pyhton-dbus
+python-dbus
 ubertooth # where applicable
 sqlite3
 ```
@@ -29,6 +29,7 @@ version 2.1 or higher installed. With ruby installed add the `bundler` gem and
 then run `bundle install` inside the checkout directory. 
 
 Once all dependencies are met simply run `./bin/blue_hydra` to start discovery.
+If you experience gem inconsistency try running `bundle exec ./bin/blue_hydra` instead.
 
 There are a few flags that can be passed to this script: 
 
@@ -38,11 +39,11 @@ There are a few flags that can be passed to this script:
 
 
 ## Recommended Hardware
-BlueHydra should function with most internal bluetooth cards but we reccomend 
-using the Sena UD100 adapter. 
+BlueHydra should function with most internal bluetooth cards but we recommend 
+using the Sena UD100 adapter.
 
-Additionally you can make use of Ubertooth hardware to detect devices out of 
-discoverable mode.
+Additionally you can make use of Ubertooth One hardware to detect active devices
+not in discoverable mode.
 
 ## Configuring Options
 
