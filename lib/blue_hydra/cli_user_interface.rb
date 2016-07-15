@@ -65,7 +65,8 @@ The "VERS" column in the following table shows mode and version if available.
 
 The "RANGE" column shows distance in meters from the device if known.
 
-Press "s" to change sort to the next column (then enter)
+Press "s" to change sort to the next column to the right (then enter)
+Press "S" to change sort to the next column to the left (then enter)
 Press "r" to reverse the sort order (then enter)
 Press "c" to change the column set (then enter)
 
@@ -116,7 +117,7 @@ gets.chomp
 
         # handle the input character
         case input
-        when "s" # change key used for sorting
+        when "s" # change key used for sorting moving left to right
           if sort == sortable_keys.last
             # if current key is last key we just rotate back to the first key
             sort = sortable_keys.first
@@ -126,6 +127,21 @@ gets.chomp
             # changed) increment the index of the key used to go to the
             # next column for sorting
             sort = sortable_keys[sortable_keys.index(sort) + 1]
+          else
+            # TODO is this needed with below?
+            # default sort order
+            sort = :rssi
+          end
+        when "S" # change key used for sorting moving right to left
+          if sort == sortable_keys.first
+            # if current key is first key we just rotate back to the last key
+            sort = sortable_keys.last
+
+          elsif sortable_keys.include?(sort)
+            # if the key we are sorting on is included (ie columns haven't
+            # changed) increment the index of the key used to go to the
+            # next column for sorting
+            sort = sortable_keys[sortable_keys.index(sort) - 1]
           else
             # TODO is this needed with below?
             # default sort order
