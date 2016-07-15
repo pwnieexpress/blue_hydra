@@ -358,7 +358,7 @@ gets.chomp
           # which may be string wrapped in strange ways
           d = cui_status.values.sort_by do |x|
             if sort == :rssi || sort == :_seen
-              x[sort].strip.to_i
+              x[sort].to_s.strip.to_i
             elsif sort == :range
               x[sort].strip.to_f rescue 2**256
             else
