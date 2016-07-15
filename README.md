@@ -46,11 +46,11 @@ discoverable mode.
 
 ## Configuring Options
 
-The config file is located in `/opt/pwnix/pwnix-config/blue_hydra.json` on
+The config file is located in `/opt/pwnix/pwnix-config/blue_hydra.yml` on
 Pwnie devices. On systems which do no have the /opt/pwnix/pwnix-config
 directory the service will default to looking in the root of the services
 directory (where this README file is located. It will still be called
-`blue_hydra.json`
+`blue_hydra.yml`
 
 The following options can be set:
 

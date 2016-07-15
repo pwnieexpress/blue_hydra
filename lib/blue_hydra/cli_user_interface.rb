@@ -55,7 +55,7 @@ Welcome to \e[34;1mBlue Hydra\e[0m
 This will display live information about Bluetooth devices seen in the area.
 Devices in this display will time out after #{cui_timeout}s but will still be
 available in the BlueHydra Database or synced to pulse if you chose that
-option.  #{ BlueHydra.config[:file] ? "\n\nReading data from " + BlueHydra.config[:file]  + '.' : '' }
+option.  #{ BlueHydra.config["file"] ? "\n\nReading data from " + BlueHydra.config["file"]  + '.' : '' }
 
 The "VERS" column in the following table shows mode and version if available.
         CL/BR = Classic mode
@@ -95,7 +95,7 @@ gets.chomp
 
       # if we are in debug mode we will also print the UUID so we can figure
       # out what record is being displayed in the DB
-      if BlueHydra.config[:log_level] == 'debug'
+      if BlueHydra.config["log_level"] == 'debug'
         unless printable_keys.include?(:uuid)
           printable_keys.unshift :uuid
         end
@@ -192,7 +192,7 @@ gets.chomp
       begin
 
         # skip if we are reading from a file
-        unless BlueHydra.config[:file]
+        unless BlueHydra.config["file"]
           # check status of test discovery
           if scanner_status[:test_discovery]
             discovery_time = Time.now.to_i - scanner_status[:test_discovery]
@@ -225,7 +225,7 @@ gets.chomp
         # first line, blue hydra wrapped in blue
         pbuff << "\e[34;1mBlue Hydra\e[0m :"
         # unless we are reading from a file we will ad this to the first line
-        unless BlueHydra.config[:file]
+        unless BlueHydra.config["file"]
           pbuff <<  " Devices Seen in last #{cui_timeout}s"
         end
         pbuff << "\n"
@@ -240,7 +240,7 @@ gets.chomp
         # unless we are reading from a file we add a line with information
         # about the status of the discovery and ubertooth timers from the
         # runner
-        unless BlueHydra.config[:file]
+        unless BlueHydra.config["file"]
           pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
           lines += 1
         end
@@ -258,7 +258,7 @@ gets.chomp
 
 
         # remove devices from the cui_status which have expired
-        unless BlueHydra.config[:file]
+        unless BlueHydra.config["file"]
           cui_status.keys.select do |x|
             cui_status[x][:last_seen] < (Time.now.to_i - cui_timeout)
           end.each do |x|
@@ -365,7 +365,7 @@ gets.chomp
           # iterate across the  sorted data
           d.each do |data|
             #prevent classic devices from expiring by forcing them onto the l2ping queue
-            unless BlueHydra.config[:file]
+            unless BlueHydra.config["file"]
               if data[:vers] =~ /cl/i
                 ping_time = (Time.now.to_i - l2ping_threshold)
                 query_history[data[:address]] ||= {}

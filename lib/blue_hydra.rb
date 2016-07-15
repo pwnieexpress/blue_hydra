@@ -5,6 +5,7 @@ require 'json'
 require 'open3'
 require 'securerandom'
 require 'zlib'
+require 'yaml'
 
 # Gems
 require 'data_mapper'
@@ -50,43 +51,59 @@ module BlueHydra
   # 1.1.1 Range monitoring based on TX power, OSS cleanup
   VERSION = '1.1.1'
 
-  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.json on sensors
+  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.
-  CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
+  LEGACY_CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
               '/opt/pwnix/pwnix-config/blue_hydra.json'
             else
               File.expand_path('../../blue_hydra.json', __FILE__)
+            end
+
+  # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
+  # or in the local directory if run on a non-Pwnie device.
+  CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
+              '/opt/pwnix/pwnix-config/blue_hydra.yml'
+            else
+              File.expand_path('../../blue_hydra.yml', __FILE__)
             end
 
   # Default configuration values
   #
   # Note: "file" can also be set but has no default value
   DEFAULT_CONFIG = {
-    log_level:         "info",
-    bt_device:         "hci0",       # change for external ud100
-    info_scan_rate:    60,           # 1 minute in seconds
-    status_sync_rate:  60 * 60 * 24, # 1 day in seconds
-    btmon_log:         false,        # if set will write used btmon output to a log file
-    btmon_rawlog:      false,        # if set will write raw btmon output to a log file
-    file:              false,        # if set will read from file, not hci dev
-    rssi_log:          false,        # if set will log rssi
-    aggressive_rssi:   false         # if set will sync all rssi to pulse
+    "log_level" =>         "info",
+    "bt_device" =>         "hci0",       # change for external ud100
+    "info_scan_rate" =>    60,           # 1 minute in seconds
+    "status_sync_rate" =>  60 * 60 * 24, # 1 day in seconds
+    "btmon_log" =>         false,        # if set will write used btmon output to a log file
+    "btmon_rawlog" =>      false,        # if set will write raw btmon output to a log file
+    "file" =>              false,        # if set will read from file, not hci dev
+    "rssi_log" =>          false,        # if set will log rssi
+    "aggressive_rssi" =>   false         # if set will sync all rssi to pulse
   }
+
+  if File.exists?(LEGACY_CONFIG_FILE)
+    old_config = JSON.parse(
+      File.read(LEGACY_CONFIG_FILE)
+    )
+    File.unlink(LEGACY_CONFIG_FILE)
+  else
+    old_config = {}
+  end
+
+  config_base = DEFAULT_CONFIG.merge(old_config)
 
   # Create config file with defaults if missing or load and update.
   @@config = if File.exists?(CONFIG_FILE)
-               DEFAULT_CONFIG.merge(JSON.parse(
-                 File.read(CONFIG_FILE),
-                 symbolize_names: true
-               ))
+               config_base.merge(YAML.load(File.read(CONFIG_FILE)))
              else
-               DEFAULT_CONFIG
+               config_base
              end
 
   # update the config file with any new values not present, will leave
   # configured values intact but should allow users to pull code changes with
   # new config options and have them show up in the file after running
-  File.write(CONFIG_FILE, JSON.pretty_generate(@@config))
+  File.write(CONFIG_FILE, @@config.to_yaml.gsub("---\n",''))
 
   # Logs will be written to /var/log/pwnix/blue_hydra.log on a sensor or
   # in the local directory as blue_hydra.log if on a non-Pwnie system
@@ -98,7 +115,7 @@ module BlueHydra
 
   # set log level from config
   @@logger = Logger.new(LOGFILE)
-  @@logger.level = case @@config[:log_level]
+  @@logger.level = case @@config["log_level"]
                    when "fatal"
                      Logger::FATAL
                    when "error"
@@ -193,7 +210,7 @@ require 'blue_hydra/cli_user_interface_tracker'
 # Here we enumerate the local hci adapter hardware address and make it
 # available as an internal value
 BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
-  "hciconfig #{BlueHydra.config[:bt_device]}")[:stdout].scan(
+  "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
     /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
   ).flatten.first
 
