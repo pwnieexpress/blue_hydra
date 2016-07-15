@@ -447,7 +447,7 @@ gets.chomp
             lines += 1
           end
         else
-          # when empty just tack onthis line to the pbuff
+          # when empty just tack on this line to the pbuff
           pbuff <<  "No recent devices..."
         end
 
