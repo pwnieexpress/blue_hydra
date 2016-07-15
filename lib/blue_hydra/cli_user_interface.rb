@@ -116,8 +116,8 @@ gets.chomp
         input = STDIN.read_nonblock(1) rescue nil
 
         # handle the input character
-        case input
-        when "s" # change key used for sorting moving left to right
+        case
+        when input == "s" # change key used for sorting moving left to right
           if sort == sortable_keys.last
             # if current key is last key we just rotate back to the first key
             sort = sortable_keys.first
@@ -132,7 +132,7 @@ gets.chomp
             # default sort order
             sort = :rssi
           end
-        when "S" # change key used for sorting moving right to left
+        when input == "S" # change key used for sorting moving right to left
           if sort == sortable_keys.first
             # if current key is first key we just rotate back to the last key
             sort = sortable_keys.last
@@ -147,13 +147,13 @@ gets.chomp
             # default sort order
             sort = :rssi
           end
-        when "r" # toggle sort order
+        when ["r","R"].include?(input) # toggle sort order
           if order == "ascending"
             order = "descending"
           elsif order == "descending"
             order = "ascending"
           end
-        when "c" # toggle alternate keys
+        when input == "c" # toggle alternate keys
           if printable_keys.include?(:le_proximity_uuid)
             [
               :le_proximity_uuid,
