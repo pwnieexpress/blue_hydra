@@ -331,7 +331,7 @@ module BlueHydra
                 end
               end
 
-              # another reset
+              # another reset before going back to discovery
               hci_reset
 
               # hot loop avoidance, but run right before discovery to avoid any delay between discovery and info scan

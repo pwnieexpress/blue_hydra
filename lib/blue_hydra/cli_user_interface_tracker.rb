@@ -138,7 +138,7 @@ module BlueHydra
         end
       end
 
-      # set appearence
+      # set appearance
       if attrs[:appearance]
         cui_status[@uuid][:type] = attrs[:appearance].first.split('(').first
       end
