@@ -23,6 +23,7 @@ class BlueHydra::Device
   property :manufacturer,                  String
   property :firmware,                      String
 
+  # classic mode specific attributes
   property :classic_mode,                  Boolean
   property :classic_service_uuids,         Text
   property :classic_channels,              Text
@@ -34,6 +35,7 @@ class BlueHydra::Device
   property :classic_features,              Text
   property :classic_features_bitmap,       Text
 
+  # low energy mode specific attributes
   property :le_mode,                       Boolean
   property :le_service_uuids,              Text
   property :le_address_type,               String
@@ -70,12 +72,14 @@ class BlueHydra::Device
   # after saving send up to pulse
   after  :save, :sync_to_pulse
 
-  def self.sync_all_to_pulse
-    BlueHydra::Device.all.each do |dev|
+  # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
+  def self.sync_all_to_pulse(since=Time.at(Time.now.to_i - 604800))
+    BlueHydra::Device.all(:updated_at.gte => since).each do |dev|
       dev.sync_to_pulse(true)
     end
   end
 
+  # sync device status to pulse rather than full attribute set
   def self.sync_statuses_to_pulse
     BlueHydra::Device.all.each do |dev|
       dev.instance_variable_set(:@filthy_attributes, [:status])
@@ -83,8 +87,9 @@ class BlueHydra::Device
     end
   end
 
+  # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline
-    # mark hosts as 'offline' if we haven't seen for a while
+    # classic mode devices have 15 min timeout
     BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (15*60))
     }.each{|device|
@@ -92,6 +97,7 @@ class BlueHydra::Device
       device.save
     }
 
+    # le mode devices have 3 min timeout
     BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (60*3))
     }.each{|device|
@@ -260,6 +266,9 @@ class BlueHydra::Device
   end
 
 
+  # This is a helper method to track what attributes change because all
+  # attributes lose their 'dirty' status after save and the sync method is an
+  # after save so we need to keep a record of what changed to only sync relevant
   def prepare_the_filth
     @filthy_attributes ||= []
     syncable_attributes.each do |attr|
@@ -270,6 +279,8 @@ class BlueHydra::Device
 
   # sync record to pulse
   def sync_to_pulse(sync_all=false)
+    return unless BlueHydra.pulse
+
     send_data = {
       type:   "bluetooth",
       source: "blue-hydra",
@@ -306,8 +317,6 @@ class BlueHydra::Device
 
     # create the json
     json = JSON.generate(send_data)
-
-    return if BlueHydra.no_pulse
 
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
@@ -538,6 +547,9 @@ class BlueHydra::Device
     end
   end
 
+  # set the addres field but only conditionally set vendor based on some whether
+  # or not we have an appropriate address to use for vendor lookup. Don't do
+  # vendor lookups if address starts with 00:00
   def address=(new)
     if new
       current = self.address

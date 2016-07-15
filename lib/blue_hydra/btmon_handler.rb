@@ -18,11 +18,12 @@ module BlueHydra
       @parse_queue = parse_queue
 
       # # log used btmon output for review if requested
-      if BlueHydra.config[:btmon_log]
-        @log_file = File.open('btmon.log','a')
+      if BlueHydra.config["btmon_log"]
+        @log_file = File.open("btmon_#{Time.now.to_i}.log.gz",'w+')
+        @log_writer = Zlib::GzipWriter.wrap(@log_file)
       end
       # # log raw btmon output for review if requested
-      if BlueHydra.config[:btmon_rawlog]
+      if BlueHydra.config["btmon_rawlog"]
         @rawlog_file = File.open("btmon_raw_#{Time.now.to_i}.log.gz",'w+')
         @rawlog_writer = Zlib::GzipWriter.wrap(@rawlog_file)
       end
@@ -32,6 +33,7 @@ module BlueHydra
       begin
         spawn
       ensure
+        @log_writer.close if @log_writer
         @rawlog_writer.close if @rawlog_writer
       end
     end
@@ -49,7 +51,7 @@ module BlueHydra
           stdout.each do |line|
 
             # log used btmon output for review if we are in debug mode
-            if BlueHydra.config[:btmon_rawlog] && !BlueHydra.config[:file]
+            if BlueHydra.config["btmon_rawlog"] && !BlueHydra.config["file"]
               @rawlog_writer.puts(line.chomp)
             end
 
@@ -153,9 +155,9 @@ module BlueHydra
         )
 
         # log used btmon output for review if we are in debug mode
-        if BlueHydra.config[:btmon_log] && !BlueHydra.config[:file] && !BlueHydra.config[:btmon_rawlog]
+        if BlueHydra.config["btmon_log"] && !BlueHydra.config["file"] && !BlueHydra.config["btmon_rawlog"]
           buffer.each do |line|
-            @log_file.puts(line.chomp)
+            @log_writer.puts(line.chomp)
           end
         end
 

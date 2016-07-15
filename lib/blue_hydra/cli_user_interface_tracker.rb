@@ -4,9 +4,19 @@ module BlueHydra
   class CliUserInterfaceTracker
     attr_accessor :runner, :chunk, :attrs, :address, :uuid
 
+    # This method initializes with a runner and some data and then handles
+    # updating the cui_status to track the devices for the CUI
+    #
+    # == Parameters:
+    #   run ::
+    #     BlueHydra::Runner instance
+    #   attrs ::
+    #     record attributes to update with
+    #   addr ::
+    #     device addr
     def initialize(run, chnk, attrs, addr)
       @runner = run
-      @chunk = chnk
+      @chunk = chnk #todo, rm, deprecated
       @attrs = attrs
       @address = addr
 
@@ -17,10 +27,13 @@ module BlueHydra
         x[:address] == @address
       }.first
 
+      # if there is already a key with this address get the uuid from the
+      # keys
       if match1
         @uuid = cui_k[cui_v.index(match1)]
       end
 
+      # if we don't have uuid attempt a second match using le meta info
       unless @uuid
         @lpu  = attrs[:le_proximity_uuid].first if attrs[:le_proximity_uuid]
         @lmn  = attrs[:le_major_num].first      if attrs[:le_major_num]
@@ -28,8 +41,8 @@ module BlueHydra
 
         match2 = cui_v.select{|x|
           x[:le_proximity_uuid] && x[:le_proximity_uuid] == @lpu &&
-          x[:le_major_num]             && x[:le_major_num]      == @lmn &&
-          x[:le_minor_num]             && x[:le_minor_num]      == @lmn2
+          x[:le_major_num]      && x[:le_major_num]      == @lmn &&
+          x[:le_minor_num]      && x[:le_minor_num]      == @lmn2
         }.first
 
         if match2
@@ -37,9 +50,10 @@ module BlueHydra
         end
       end
 
+      # if we don't have a uuid attempt a third match using company meta info
       unless @uuid
-        @c = attrs[:company].first.split('(').first          if attrs[:company]
-        @d = attrs[:le_company_data].first                   if attrs[:le_company_data]
+        @c = attrs[:company].first.split('(').first if attrs[:company]
+        @d = attrs[:le_company_data].first          if attrs[:le_company_data]
 
         match3 = cui_v.select{|x|
           x[:company]          && x[:company] == @c &&
@@ -51,23 +65,32 @@ module BlueHydra
         end
       end
 
+      # if still no uuid, generate a random one
       unless @uuid
         @uuid = SecureRandom.uuid
       end
     end
 
+    # alias for cui status blob from the runner object
     def cui_status
       runner.cui_status
     end
 
+    # update the cui_status in the runner
     def update_cui_status
+      # initialize with a created timestampe or leave alone if uuid already exits
       cui_status[@uuid] ||= {created: Time.now.to_i}
+
+      # update lap unless we have one
       cui_status[@uuid][:lap] = address.split(":")[3,3].join(":") unless cui_status[@uuid][:lap]
 
+      # test to see if the data chunk is le or classic
       if chunk[0] && chunk[0][0]
         bt_mode = chunk[0][0] =~ /^\s+LE/ ? "le" : "classic"
       end
 
+      # use lmp version to make a simplified copy of the version for table
+      # display, set as :vers under the uuid key
       if bt_mode == "le"
         if attrs[:lmp_version] && attrs[:lmp_version].first !~ /0x(00|FF|ff)/
           cui_status[@uuid][:vers] = "LE#{attrs[:lmp_version].first.split(" ")[1]}"
@@ -82,6 +105,8 @@ module BlueHydra
         end
       end
 
+      # update the following attributes with a little of massaging to get the
+      # attributes more presentable for human consumption
       [
         :last_seen, :name, :address, :classic_rssi, :le_rssi,
         :le_proximity_uuid, :le_major_num, :le_minor_num, :ibeacon_range,
@@ -102,7 +127,10 @@ module BlueHydra
         end
       end
 
+      # simplified copy of internal tracking uuid
       cui_status[@uuid][:uuid] = @uuid.split('-')[0]
+
+      # if we have a short name set it as the name attribute
       if attrs[:short_name]
         unless attrs[:short_name] == [nil] || cui_status[@uuid][:name]
           cui_status[@uuid][:name] = attrs[:short_name].first
@@ -110,10 +138,12 @@ module BlueHydra
         end
       end
 
+      # set appearence
       if attrs[:appearance]
         cui_status[@uuid][:type] = attrs[:appearance].first.split('(').first
       end
 
+      # set minor class or as uncategorized as appropriate
       if attrs[:classic_minor_class]
         if attrs[:classic_minor_class].first =~ /Uncategorized/i
           cui_status[@uuid][:type] = "Uncategorized"
@@ -122,6 +152,8 @@ module BlueHydra
         end
       end
 
+      # set :manuf key from a few different fields or Louis gem depending on a
+      # few conditions, we are overloading this field so its populated
       if [nil, "Unknown"].include?(cui_status[@uuid][:manuf])
         if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
             vendor = Louis.lookup(address)

@@ -1,5 +1,17 @@
-add license
 calibrate range for sena dongle
-adjust start-up sync to only sync a week of data
-sync full day of data once a day
+update pwnix chef to use --pulse in init script
 do we need to send status with aggressive_rssi?
+
+refactor pass & code cleanup
+extend tests a bit
+
+Some stuff to do
+* handle alt UUIDs which contain paren
+* rate limit incoming RSSIs to 1 per timeframe
+* Investigate duplicate classic_features_bitmaps...
+* catch bluez chunk start lines by number instead of randomly abbreviated header
+
+```
+W, [2016-01-27T15:51:44.838857 #18723]  WARN -- : 00:61:71:D0:E1:EF multiple values detected for classic_features_bitmap: ["0xbf 0xfe 0xcf 0xfe 0xdb 0xff 0x7b 0x87", "0x07 0x00 0x00 0x00 0x00 0x00 0x00 0x00", "0x000002a8"]. Using first value...
+```
+^^ this looks severely like we are missing an (most likely le) start block, because that looks like a classic features bitmap colliding with an le one.
