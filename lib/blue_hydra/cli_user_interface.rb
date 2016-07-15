@@ -324,7 +324,7 @@ gets.chomp
                 key
               end
 
-            # upcase the ky
+            # upcase the key
             k = k.upcase
 
             # if the key is the same as the sort value we need to add an
