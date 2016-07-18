@@ -21,9 +21,16 @@ $:.unshift(File.dirname(__FILE__))
 DataMapper::Property::String.length(255)
 
 LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
-DB_DIR           = '/opt/pwnix/data/blue_hydra'
+DATA_DIR         = '/opt/pwnix/data'
+DB_DIR           = File.join(DATA_DIR, 'blue_hydra')
 DB_NAME          = 'blue_hydra.db'
 DB_PATH          = File.join(DB_DIR, DB_NAME)
+
+if Dir.exists?(DATA_DIR)
+  unless Dir.exists?(DB_DIR)
+    Dir.mkdir(DB_DIR)
+  end
+end
 
 if File.exists?(LEGACY_DB_PATH) && Dir.exists?(DB_DIR)
   FileUtils.mv(LEGACY_DB_PATH, DB_PATH) unless File.exists?(DB_PATH)
