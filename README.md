@@ -64,3 +64,8 @@ The following options can be set:
 * `file`: if set to a filepath that file will be read in rather than doing live device interactions
 * `rssi_log`: `true|false`, if set will log serialized RSSI values
 * `aggressive_rssi`: `true|false`, if set will agressively send RSSIs to Pulse
+
+Helping with Development
+
+PR's should be targeted against the "develop" branch.
+Develop branch gets merged to master branch and tagged during the release process.
