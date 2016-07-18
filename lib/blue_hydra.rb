@@ -25,9 +25,8 @@ PWNIX_CONFIG_DIR = '/opt/pwnix/pwnix-config/'
 DB_NAME          = 'blue_hydra.db'
 DB_PATH          = File.join(PWNIX_CONFIG_DIR, DB_NAME)
 
-if File.exists?(LEGACY_DB_PATH) && Dir.exists?(PWNIX_CONFIG_DIR) &&
-      !File.exists?(DB_PATH)
-  FileUtils.mv(LEGACY_DB_PATH, DB_PATH)
+if File.exists?(LEGACY_DB_PATH) && Dir.exists?(PWNIX_CONFIG_DIR)
+  FileUtils.mv(LEGACY_DB_PATH, DB_PATH) unless File.exists?(DB_PATH)
 end
 
 # The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
