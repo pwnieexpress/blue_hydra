@@ -6,6 +6,7 @@ require 'open3'
 require 'securerandom'
 require 'zlib'
 require 'yaml'
+require 'fileutils'
 
 # Gems
 require 'data_mapper'
@@ -19,6 +20,15 @@ $:.unshift(File.dirname(__FILE__))
 # set all String properties to have a default length of 255
 DataMapper::Property::String.length(255)
 
+LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
+PWNIX_CONFIG_DIR = '/opt/pwnix/pwnix-config/'
+DB_NAME          = 'blue_hydra.db'
+DB_PATH          = File.join(PWNIX_CONFIG_DIR, 'blue_hydra.db')
+
+if File.exists?(LEGACY_DB_PATH) && Dir.exists?('/opt/pwnix/pwnix-config/')
+  FileUtils.mv(LEGACY_DB_PATH, DB_PATH)
+end
+
 # The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
 # which the Pwnie Express chef scripts have been run. Otherwise it will attempt
 # to create a sqlite db whereever the run was initiated.
@@ -27,8 +37,8 @@ DataMapper::Property::String.length(255)
 # 'test' and all tests should run with an in-memory db.
 db_path = if ENV["BLUE_HYDRA"] == "test"
             'sqlite::memory:?cache=shared'
-          elsif  Dir.exist?('/opt/pwnix/')
-            "sqlite:/opt/pwnix/blue_hydra.db"
+          elsif  Dir.exist?(PWNIX_CONFIG_DIR)
+            "sqlite:#{DB_PATH}"
           else
             "sqlite:blue_hydra.db"
           end
