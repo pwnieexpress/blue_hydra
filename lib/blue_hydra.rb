@@ -37,7 +37,7 @@ end
 # 'test' and all tests should run with an in-memory db.
 db_path = if ENV["BLUE_HYDRA"] == "test"
             'sqlite::memory:?cache=shared'
-          elsif  Dir.exist?(PWNIX_CONFIG_DIR)
+          elsif  Dir.exist?(DB_DIR)
             "sqlite:#{DB_PATH}"
           else
             "sqlite:#{DB_NAME}"
