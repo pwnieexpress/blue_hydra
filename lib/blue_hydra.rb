@@ -21,7 +21,7 @@ $:.unshift(File.dirname(__FILE__))
 DataMapper::Property::String.length(255)
 
 LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
-DB_DIR           = '/opt/pwnix/pwnix-config/'
+DB_DIR           = '/opt/pwnix/data/blue_hydra'
 DB_NAME          = 'blue_hydra.db'
 DB_PATH          = File.join(DB_DIR, DB_NAME)
 
@@ -71,8 +71,8 @@ module BlueHydra
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.
-  CONFIG_FILE = if Dir.exists?('/opt/pwnix/pwnix-config')
-              '/opt/pwnix/pwnix-config/blue_hydra.yml'
+  CONFIG_FILE = if Dir.exists?('/opt/pwnix/data/blue_hydra')
+              '/opt/pwnix/data/blue_hydra/blue_hydra.yml'
             else
               File.expand_path('../../blue_hydra.yml', __FILE__)
             end
