@@ -246,7 +246,9 @@ module BlueHydra
           loop do
             begin
 
-              bluez_errors ||= 0
+              #set once here so if it fails on the first loop we don't get nil
+              bluez_errors      ||= 0
+              bluetoothd_errors ||= 0
 
               # clear the queues
               until info_scan_queue.empty? && l2ping_queue.empty?
@@ -352,11 +354,58 @@ module BlueHydra
                 end
                 if discovery_errors =~ /org.bluez.Error.NotReady/
                   raise BluezNotReadyError
+                elsif discovery_errors =~ /Unit dbus-org.bluez.service not found/i || discovery_errors =~ /The name org.bluez was not provided/i
+                  # This happens when bluetoothd isn't running or otherwise broken off the dbus
+                  #systemd
+                  #dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found
+                  #gentoo (not systemd)
+                  #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
+                  raise BluetoothdDbusError
                 end
               end
 
-              blue_errors = 0
+              bluez_errors = 0
+              bluetoothd_errors = 0
 
+            rescue BluetoothdDbusError
+              bluetoothd_errors += 1
+              if bluetoothd_errors == 1
+                # Is bluetoothd running?
+                bluetoothd_pid = `pgrep bluetoothd`.chomp
+                unless bluetooth_pid == ""
+                  # Does init own bluetoothd?
+                  if `ps -o ppid= #{bluetooth_pid}`.chomp =~ /\s1/
+                    bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
+                  else
+                    #not controled by init, bail
+                    unless BlueHydra.daemon_mode
+                      self.cui_thread.kill
+                      puts "Bluetoothd is running but not controlled by init or functioning, please restart it manually."
+                    end
+                    BlueHydra.logger.error("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
+                    exit 1
+                  end
+                else
+                  # bluetoothd isn't running at all, attempt to restart through init
+                  bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
+                end
+                unless bluetoothd_restart[:exit_code] == 0
+                  bluetoothd_errors += 1
+                end
+              end
+              if bluetoothd_errors > 1
+                unless BlueHydra.daemon_mode
+                  self.cui_thread.kill
+                  puts "Bluetoothd is not functioning as expected and auto-restart failed."
+                  puts "Please restart bluetoothd and try again."
+                end
+                if bluetoothd_restart[:stderr]
+                  BlueHydra.logger.error("Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}")
+                end
+                BlueHydra.logger.error("Bluetoothd is not functioning as expected")
+                exit 1
+              end
+            end
             rescue BluezNotReadyError
               bluez_errors += 1
               if bluez_errors == 1
@@ -374,7 +423,7 @@ module BlueHydra
                   puts "Try removing and replugging the card, or toggling rfkill on and off"
                 end
                 BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
-                exit
+                exit 1
               end
             rescue => e
               BlueHydra.logger.error("Discovery loop crashed: #{e.message}")

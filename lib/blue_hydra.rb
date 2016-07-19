@@ -54,6 +54,7 @@ db_path = if ENV["BLUE_HYDRA"] == "test"
 DataMapper.setup(:default, db_path)
 
 # Helpful Errors to raise in specific cased.
+class BluetoothdDbusError < StandardError; end
 class BluezNotReadyError < StandardError; end
 class FailedThreadError < StandardError; end
 class BtmonExitedError < StandardError; end
