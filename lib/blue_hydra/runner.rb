@@ -225,8 +225,10 @@ module BlueHydra
         interface_reset.split("\n").each do |ln|
           BlueHydra.logger.error(ln)
         end
-        if interface_reset =~ /Connection timed out/i
+        if interface_reset =~ /Connection timed out/i || interface_reset =~ /Operation not possible due to RF-kill/i
+          ## TODO: check error number not description
           ## TODO: check for interface name "Can't init device hci0: Connection timed out (110)"
+          ## TODO: check for interface name "Can't init device hci0: Operation not possible due to RF-kill (132)"
           raise BluezNotReadyError
         end
       end
@@ -243,6 +245,8 @@ module BlueHydra
 
           loop do
             begin
+
+              bluez_errors ||= 0
 
               # clear the queues
               until info_scan_queue.empty? && l2ping_queue.empty?
@@ -351,14 +355,27 @@ module BlueHydra
                 end
               end
 
+              blue_errors = 0
+
             rescue BluezNotReadyError
-              unless BlueHydra.daemon_mode
-                self.cui_thread.kill
-                puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready"
-                puts "Try removing and replugging the card, or toggling rfkill on and off"
+              bluez_errors += 1
+              if bluez_errors == 1
+                BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready, attempting to reset with rfkill")
+                rfkillreset_command = "#{File.expand_path('../../../bin/rfkill-reset', __FILE__)} #{BlueHydra.config["bt_device"]}"
+                rfkillreset_errors = BlueHydra::Command.execute3(rfkillreset_command,45)[:stdout] #no output means no errors, all output to stdout
+                if rfkillreset_errors
+                  bluez_errors += 1
+                end
               end
-              BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready")
-              exit
+              if bluez_errors > 1
+                unless BlueHydra.daemon_mode
+                  self.cui_thread.kill
+                  puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to auto-reset with rfkill"
+                  puts "Try removing and replugging the card, or toggling rfkill on and off"
+                end
+                BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
+                exit
+              end
             rescue => e
               BlueHydra.logger.error("Discovery loop crashed: #{e.message}")
               e.backtrace.each do |x|
