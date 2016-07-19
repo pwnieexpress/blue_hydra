@@ -1,4 +1,5 @@
 calibrate range for sena dongle
+migrate away from dbus/test-discovery
 update pwnix chef to use --pulse in init script
 do we need to send status with aggressive_rssi?
 
@@ -15,3 +16,9 @@ Some stuff to do
 W, [2016-01-27T15:51:44.838857 #18723]  WARN -- : 00:61:71:D0:E1:EF multiple values detected for classic_features_bitmap: ["0xbf 0xfe 0xcf 0xfe 0xdb 0xff 0x7b 0x87", "0x07 0x00 0x00 0x00 0x00 0x00 0x00 0x00", "0x000002a8"]. Using first value...
 ```
 ^^ this looks severely like we are missing an (most likely le) start block, because that looks like a classic features bitmap colliding with an le one.
+
+Handle these by restarting the bluetooth service:
+#debian (systemd)
+dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found
+#gentoo (not systemd)
+dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
