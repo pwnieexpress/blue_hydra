@@ -246,7 +246,7 @@ module BlueHydra
           loop do
             begin
 
-              #set once here so if it fails on the first loop we don't get nil
+              # set once here so if it fails on the first loop we don't get nil
               bluez_errors      ||= 0
               bluetoothd_errors ||= 0
 
@@ -356,12 +356,12 @@ module BlueHydra
                   raise BluezNotReadyError
                 elsif discovery_errors =~ /dbus.exceptions.DBusException/i
                   # This happens when bluetoothd isn't running or otherwise broken off the dbus
-                  #systemd
-                  #dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found.
-                  #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{5} was not provided by any .service files
-                  #gentoo (not systemd)
-                  #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
-                  #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{3} was not provided by any .service files
+                  # systemd
+                  #  dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found.
+                  #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{5} was not provided by any .service files
+                  # gentoo (not systemd)
+                  #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
+                  #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{3} was not provided by any .service files
                   raise BluetoothdDbusError
                 end
               end
@@ -380,7 +380,7 @@ module BlueHydra
                     bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
                     sleep 3
                   else
-                    #not controled by init, bail
+                    # not controled by init, bail
                     unless BlueHydra.daemon_mode
                       self.cui_thread.kill
                       puts "Bluetoothd is running but not controlled by init or functioning, please restart it manually."
