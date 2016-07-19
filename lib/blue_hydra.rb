@@ -54,6 +54,7 @@ db_path = if ENV["BLUE_HYDRA"] == "test"
 DataMapper.setup(:default, db_path)
 
 # Helpful Errors to raise in specific cased.
+class BluetoothdDbusError < StandardError; end
 class BluezNotReadyError < StandardError; end
 class FailedThreadError < StandardError; end
 class BtmonExitedError < StandardError; end
@@ -226,10 +227,25 @@ require 'blue_hydra/cli_user_interface_tracker'
 
 # Here we enumerate the local hci adapter hardware address and make it
 # available as an internal value
-BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
-  "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
-    /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
-  ).flatten.first
+
+BlueHydra::EnumLocalAddr = Proc.new do
+  BlueHydra::Command.execute3(
+    "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
+      /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
+    ).flatten
+end
+
+begin
+  BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::EnumLocalAddr.call.first
+rescue
+  if ENV["BLUE_HYDRA"] == "test"
+    BlueHydra::LOCAL_ADAPTER_ADDRESS = "JE:NK:IN:SJ:EN:KI"
+    puts "Failed to find mac address for #{BlueHydra.config["bt_device"]}, faking for tests"
+  else
+    BlueHydra.logger.error("Unabled to read the mac address from #{BlueHydra.config["bt_device"]}")
+    exit 1
+  end
+end
 
 # DB Migration and upgrade logic
 begin

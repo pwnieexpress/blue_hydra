@@ -57,7 +57,7 @@ module BlueHydra
 
         # Sync everything to pwnpulse if the system is connected to the Pwnie
         # Express cloud
-        BlueHydra.logger.info("Syncing all hosts to Pulse...")
+        BlueHydra.logger.info("Syncing all hosts to Pulse...") if BlueHydra.pulse
         BlueHydra::Device.sync_all_to_pulse
 
         # Query History is used to track what addresses have been pinged
@@ -225,8 +225,10 @@ module BlueHydra
         interface_reset.split("\n").each do |ln|
           BlueHydra.logger.error(ln)
         end
-        if interface_reset =~ /Connection timed out/i
+        if interface_reset =~ /Connection timed out/i || interface_reset =~ /Operation not possible due to RF-kill/i
+          ## TODO: check error number not description
           ## TODO: check for interface name "Can't init device hci0: Connection timed out (110)"
+          ## TODO: check for interface name "Can't init device hci0: Operation not possible due to RF-kill (132)"
           raise BluezNotReadyError
         end
       end
@@ -243,6 +245,10 @@ module BlueHydra
 
           loop do
             begin
+
+              # set once here so if it fails on the first loop we don't get nil
+              bluez_errors      ||= 0
+              bluetoothd_errors ||= 0
 
               # clear the queues
               until info_scan_queue.empty? && l2ping_queue.empty?
@@ -348,17 +354,80 @@ module BlueHydra
                 end
                 if discovery_errors =~ /org.bluez.Error.NotReady/
                   raise BluezNotReadyError
+                elsif discovery_errors =~ /dbus.exceptions.DBusException/i
+                  # This happens when bluetoothd isn't running or otherwise broken off the dbus
+                  # systemd
+                  #  dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found.
+                  #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{5} was not provided by any .service files
+                  # gentoo (not systemd)
+                  #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
+                  #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{3} was not provided by any .service files
+                  raise BluetoothdDbusError
                 end
               end
 
-            rescue BluezNotReadyError
-              unless BlueHydra.daemon_mode
-                self.cui_thread.kill
-                puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready"
-                puts "Try removing and replugging the card, or toggling rfkill on and off"
+              bluez_errors = 0
+              bluetoothd_errors = 0
+
+            rescue BluetoothdDbusError
+              bluetoothd_errors += 1
+              if bluetoothd_errors == 1
+                # Is bluetoothd running?
+                bluetoothd_pid = `pgrep bluetoothd`.chomp
+                unless bluetoothd_pid == ""
+                  # Does init own bluetoothd?
+                  if `ps -o ppid= #{bluetoothd_pid}`.chomp =~ /\s1/
+                    bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
+                    sleep 3
+                  else
+                    # not controled by init, bail
+                    unless BlueHydra.daemon_mode
+                      self.cui_thread.kill
+                      puts "Bluetoothd is running but not controlled by init or functioning, please restart it manually."
+                    end
+                    BlueHydra.logger.error("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
+                    exit 1
+                  end
+                else
+                  # bluetoothd isn't running at all, attempt to restart through init
+                  bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
+                  sleep 3
+                end
+                unless bluetoothd_restart[:exit_code] == 0
+                  bluetoothd_errors += 1
+                end
               end
-              BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready")
-              exit
+              if bluetoothd_errors > 1
+                unless BlueHydra.daemon_mode
+                  self.cui_thread.kill
+                  puts "Bluetoothd is not functioning as expected and auto-restart failed."
+                  puts "Please restart bluetoothd and try again."
+                end
+                if bluetoothd_restart[:stderr]
+                  BlueHydra.logger.error("Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}")
+                end
+                BlueHydra.logger.error("Bluetoothd is not functioning as expected")
+                exit 1
+              end
+            rescue BluezNotReadyError
+              bluez_errors += 1
+              if bluez_errors == 1
+                BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready, attempting to reset with rfkill")
+                rfkillreset_command = "#{File.expand_path('../../../bin/rfkill-reset', __FILE__)} #{BlueHydra.config["bt_device"]}"
+                rfkillreset_errors = BlueHydra::Command.execute3(rfkillreset_command,45)[:stdout] #no output means no errors, all output to stdout
+                if rfkillreset_errors
+                  bluez_errors += 1
+                end
+              end
+              if bluez_errors > 1
+                unless BlueHydra.daemon_mode
+                  self.cui_thread.kill
+                  puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to auto-reset with rfkill"
+                  puts "Try removing and replugging the card, or toggling rfkill on and off"
+                end
+                BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
+                exit 1
+              end
             rescue => e
               BlueHydra.logger.error("Discovery loop crashed: #{e.message}")
               e.backtrace.each do |x|
@@ -697,7 +766,7 @@ module BlueHydra
 
             BlueHydra::Device.mark_old_devices_offline
 
-            if (Time.now.to_i - BlueHydra.config["status_sync_rate"]) > last_status_sync
+            if (Time.now.to_i - BlueHydra.config["status_sync_rate"]) > last_status_sync && BlueHydra.pulse
               BlueHydra.logger.info("Syncing all host statuses to Pulse...")
               BlueHydra::Device.sync_statuses_to_pulse
               last_status_sync = Time.now.to_i
