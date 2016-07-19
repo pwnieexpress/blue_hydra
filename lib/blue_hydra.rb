@@ -227,10 +227,20 @@ require 'blue_hydra/cli_user_interface_tracker'
 
 # Here we enumerate the local hci adapter hardware address and make it
 # available as an internal value
-BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
-  "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
-    /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
-  ).flatten.first
+begin
+  BlueHydra::LOCAL_ADAPTER_ADDRESS = BlueHydra::Command.execute3(
+    "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
+      /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
+    ).flatten.first
+rescue
+  if ENV["BLUE_HYDRA"] == "test"
+    BlueHydra::LOCAL_ADAPTER_ADDRESS = "JE:NK:IN:SJ:EN:KI"
+    puts "Failed to find mac address for #{BlueHydra.config["bt_device"]}, faking for tests"
+  else
+    BlueHydra.logger.error("Unabled to read the mac address from #{BlueHydra.config["bt_device"]}")
+    exit 1
+  end
+end
 
 # DB Migration and upgrade logic
 begin
