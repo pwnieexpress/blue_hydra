@@ -57,7 +57,7 @@ module BlueHydra
 
         # Sync everything to pwnpulse if the system is connected to the Pwnie
         # Express cloud
-        BlueHydra.logger.info("Syncing all hosts to Pulse...")
+        BlueHydra.logger.info("Syncing all hosts to Pulse...") if BlueHydra.pulse
         BlueHydra::Device.sync_all_to_pulse
 
         # Query History is used to track what addresses have been pinged
@@ -714,7 +714,7 @@ module BlueHydra
 
             BlueHydra::Device.mark_old_devices_offline
 
-            if (Time.now.to_i - BlueHydra.config["status_sync_rate"]) > last_status_sync
+            if (Time.now.to_i - BlueHydra.config["status_sync_rate"]) > last_status_sync && BlueHydra.pulse
               BlueHydra.logger.info("Syncing all host statuses to Pulse...")
               BlueHydra::Device.sync_statuses_to_pulse
               last_status_sync = Time.now.to_i
