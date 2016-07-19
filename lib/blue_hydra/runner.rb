@@ -354,12 +354,14 @@ module BlueHydra
                 end
                 if discovery_errors =~ /org.bluez.Error.NotReady/
                   raise BluezNotReadyError
-                elsif discovery_errors =~ /Unit dbus-org.bluez.service not found/i || discovery_errors =~ /The name org.bluez was not provided/i
+                elsif discovery_errors =~ /dbus.exceptions.DBusException/i
                   # This happens when bluetoothd isn't running or otherwise broken off the dbus
                   #systemd
-                  #dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found
+                  #dbus.exceptions.DBusException: org.freedesktop.systemd1.NoSuchUnit: Unit dbus-org.bluez.service not found.
+                  #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{5} was not provided by any .service files
                   #gentoo (not systemd)
                   #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
+                  #dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{3} was not provided by any .service files
                   raise BluetoothdDbusError
                 end
               end
@@ -372,10 +374,11 @@ module BlueHydra
               if bluetoothd_errors == 1
                 # Is bluetoothd running?
                 bluetoothd_pid = `pgrep bluetoothd`.chomp
-                unless bluetooth_pid == ""
+                unless bluetoothd_pid == ""
                   # Does init own bluetoothd?
-                  if `ps -o ppid= #{bluetooth_pid}`.chomp =~ /\s1/
+                  if `ps -o ppid= #{bluetoothd_pid}`.chomp =~ /\s1/
                     bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
+                    sleep 3
                   else
                     #not controled by init, bail
                     unless BlueHydra.daemon_mode
@@ -388,6 +391,7 @@ module BlueHydra
                 else
                   # bluetoothd isn't running at all, attempt to restart through init
                   bluetoothd_restart = BlueHydra::Command.execute3("service bluetooth restart")
+                  sleep 3
                 end
                 unless bluetoothd_restart[:exit_code] == 0
                   bluetoothd_errors += 1
@@ -405,7 +409,6 @@ module BlueHydra
                 BlueHydra.logger.error("Bluetoothd is not functioning as expected")
                 exit 1
               end
-            end
             rescue BluezNotReadyError
               bluez_errors += 1
               if bluez_errors == 1
