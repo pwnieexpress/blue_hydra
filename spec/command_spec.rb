@@ -12,10 +12,7 @@ end
 describe "hciconfig output parsing" do
   it "returns a single mac" do
     begin
-      expect(BlueHydra::Command.execute3(
-      "hciconfig #{BlueHydra.config["bt_device"]}")[:stdout].scan(
-        /((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})/i
-      ).flatten.count).to eq(1)
+      expect(BlueHydra::EnumLocalAddr.call.count).to eq(1)
     rescue NoMethodError => e
       if e.message == "undefined method `scan' for nil:NilClass"
         #during testing we allow this to pass if there is no adapter
