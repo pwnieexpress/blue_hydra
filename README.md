@@ -1,6 +1,6 @@
 # BlueHydra
 
-BlueHydra is a Bluetooh device discovery service built on top of the `bluez` 
+BlueHydra is a Bluetooth device discovery service built on top of the `bluez` 
 library. BlueHydra makes use of ubertooth where available and attempts to track
 both classic and low energy (LE) bluetooth devices over time. 
 
