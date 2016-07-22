@@ -142,10 +142,11 @@ class BlueHydra::Device
     record.status = "online"
 
     # set last_seen or default value if missing
-    if result[:last_seen] &&
+    if (result[:last_seen] &&
       result[:last_seen].class == Array &&
-      !result[:last_seen].empty?
-      record.last_seen = result[:last_seen].sort.last # latest value
+      !result[:last_seen].empty? &&
+      record.last_seen.to_i < result[:last_seen][0].to_i)
+        record.last_seen = result[:last_seen].sort.last # latest value
     else
       record.last_seen = Time.now.to_i
     end

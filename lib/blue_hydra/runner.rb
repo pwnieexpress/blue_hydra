@@ -471,6 +471,7 @@ module BlueHydra
                   BlueHydra.logger.error(ln)
                 end
               else
+
                 ubertooth_output[:stdout].each_line do |line|
                   if line =~ /^[\?:]{6}[0-9a-f:]{11}/i
                     address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
@@ -483,6 +484,15 @@ module BlueHydra
                     push_to_queue(:classic, address)
                   end
                 end
+
+                BlueHydra::UbertoothParser.parse(ubertooth_output[:stdout]).each do |x|
+                  chunk_queue.push(
+                    {
+                      address: [address],
+                      classic_rssi: [{rssi: rssi, t: ts}]
+                    })
+                end
+
               end
 
               # scan with ubertooth for 40 seconds, sleep for 1, reset, repeat
@@ -566,10 +576,14 @@ module BlueHydra
           # get the chunks and parse them, track history, update CUI and push
           # to data processing thread
           while chunk = chunk_queue.pop do
-            p = BlueHydra::Parser.new(chunk.dup)
-            p.parse
+            if chunk.kind_of?(Hash) # its from ubertooth parser yo
+              attrs = chunk.dup
+            else
+              p = BlueHydra::Parser.new(chunk.dup)
+              p.parse
 
-            attrs = p.attributes.dup
+              attrs = p.attributes.dup
+            end
 
             address = (attrs[:address]||[]).uniq.first
 

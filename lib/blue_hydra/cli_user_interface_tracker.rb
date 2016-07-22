@@ -115,7 +115,10 @@ module BlueHydra
         if attrs[key] && attrs[key].first
           if cui_status[@uuid][key] != attrs[key].first
             if key == :le_rssi || key == :classic_rssi
-              cui_status[@uuid][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
+              if cui_status[@uuid][:rssi_ts].to_i <= attrs[key].first[:t]
+                cui_status[@uuid][:rssi] = attrs[key].first[:rssi].gsub('dBm','')
+                cui_status[@uuid][:rssi_ts] = attrs[key].first[:t]
+              end
             elsif key == :ibeacon_range
               cui_status[@uuid][:range] = "#{attrs[key].first}m"
             elsif key == :company
