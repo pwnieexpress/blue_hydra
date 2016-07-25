@@ -242,7 +242,9 @@ rescue
     BlueHydra::LOCAL_ADAPTER_ADDRESS = "JE:NK:IN:SJ:EN:KI"
     puts "Failed to find mac address for #{BlueHydra.config["bt_device"]}, faking for tests"
   else
-    BlueHydra.logger.error("Unabled to read the mac address from #{BlueHydra.config["bt_device"]}")
+    msg = "Unable to read the mac address from #{BlueHydra.config["bt_device"]}"
+    BlueHydra.logger.error(msg)
+    puts msg unless BlueHydra.daemon_mode
     exit 1
   end
 end
