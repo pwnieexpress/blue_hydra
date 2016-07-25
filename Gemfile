@@ -1,7 +1,8 @@
 source 'http://rubygems.org'
 
-gem 'data_mapper'
+gem 'dm-migrations'
 gem 'dm-sqlite-adapter'
+gem 'dm-timestamps'
 gem 'louis'
 
 group :development do

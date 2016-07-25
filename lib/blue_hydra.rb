@@ -9,7 +9,7 @@ require 'yaml'
 require 'fileutils'
 
 # Gems
-require 'data_mapper'
+require 'dm-migrations'
 require 'dm-timestamps'
 require 'dm-validations'
 require 'louis'
