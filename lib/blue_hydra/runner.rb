@@ -161,7 +161,7 @@ module BlueHydra
     # to drain before fully exiting to prevent data loss
     def stop
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
-      self.btmon_thread.kill # stop this first thread so data stops flowing ...
+      self.btmon_thread.kill if self.btmon_thread # stop this first thread so data stops flowing ...
 
       stop_condition = Proc.new do
         [nil, false].include?(result_thread.status) ||
@@ -184,14 +184,14 @@ module BlueHydra
       self.l2ping_queue    = nil
 
       unless BlueHydra.config["file"]
-        self.discovery_thread.kill
+        self.discovery_thread.kill if self.discovery_thread
         self.ubertooth_thread.kill if self.ubertooth_thread
       end
 
-      self.chunker_thread.kill
-      self.parser_thread.kill
-      self.result_thread.kill
-      self.cui_thread.kill if self.cui_thread
+      self.chunker_thread.kill if self.chunker_thread
+      self.parser_thread.kill  if self.parser_thread
+      self.result_thread.kill  if self.result_thread
+      self.cui_thread.kill     if self.cui_thread
     end
 
     # Start the thread which runs the specified command
@@ -382,7 +382,7 @@ module BlueHydra
                   else
                     # not controled by init, bail
                     unless BlueHydra.daemon_mode
-                      self.cui_thread.kill
+                      self.cui_thread.kill if self.cui_thread
                       puts "Bluetoothd is running but not controlled by init or functioning, please restart it manually."
                     end
                     BlueHydra.logger.error("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
@@ -399,7 +399,7 @@ module BlueHydra
               end
               if bluetoothd_errors > 1
                 unless BlueHydra.daemon_mode
-                  self.cui_thread.kill
+                  self.cui_thread.kill if self.cui_thread
                   puts "Bluetoothd is not functioning as expected and auto-restart failed."
                   puts "Please restart bluetoothd and try again."
                 end
@@ -421,7 +421,7 @@ module BlueHydra
               end
               if bluez_errors > 1
                 unless BlueHydra.daemon_mode
-                  self.cui_thread.kill
+                  self.cui_thread.kill if self.cui_thread
                   puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to auto-reset with rfkill"
                   puts "Try removing and replugging the card, or toggling rfkill on and off"
                 end
