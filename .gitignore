@@ -38,3 +38,4 @@ build/
 *.db
 Gemfile.lock
 blue_hydra.json
+blue_hydra.yml
