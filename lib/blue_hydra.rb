@@ -131,8 +131,25 @@ module BlueHydra
               File.expand_path('../../blue_hydra.log', __FILE__)
             end
 
+  # override logger which does nothing
+  class NilLogger
+    # nil! :)
+    def initialize;     end
+    def level=(lvl);    end
+    def fatal(msg);     end
+    def error(msg);     end
+    def warn(msg);      end
+    def info(msg);      end
+    def debug(msg);     end
+    def formatter=(fm); end
+  end
+
   # set log level from config
-  @@logger = Logger.new(LOGFILE)
+  @@logger = if @@config["log_level"]
+               Logger.new(LOGFILE)
+             else
+               NilLogger.new
+             end
   @@logger.level = case @@config["log_level"]
                    when "fatal"
                      Logger::FATAL
@@ -158,7 +175,11 @@ module BlueHydra
               File.expand_path('../../blue_hydra_rssi.log', __FILE__)
             end
 
-  @@rssi_logger = Logger.new(RSSI_LOGFILE)
+  @@rssi_logger = if @@config["log_level"]
+                    Logger.new(RSSI_LOGFILE)
+                  else
+                    NilLogger.new
+                  end
   @@rssi_logger.level = Logger::INFO
 
   # we dont want logger formatting here, the code defines what we want these

@@ -58,7 +58,7 @@ directory (where this README file is located. It will still be called
 
 The following options can be set:
 
-* `log_level`: defaults to info level, can be set to debug for much more verbosity
+* `log_level`: defaults to info level, can be set to debug for much more verbosity. If set to `false` no log or rssi log will be created.
 * `bt_device`: specify device to use as main bluetooth interface, defaults to `hci0`
 * `info_scan_rate`: rate at which to run info scan in seconds, defaults to 60
 * `status_sync_rate`: rate at which to sync device status to Pulse in seconds
