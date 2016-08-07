@@ -44,6 +44,11 @@ module BlueHydra
       @runner.query_history
     end
 
+    def stop!
+      puts "Exiting......."
+      @runner.stop
+    end
+
     # This is the message that gets printed before starting the CUI. It waits
     # til the user hits [Enter] before returning
     def help_message
@@ -69,6 +74,7 @@ Press "s" to change sort to the next column to the right (then enter)
 Press "S" to change sort to the next column to the left (then enter)
 Press "r" to reverse the sort order (then enter)
 Press "c" to change the column set (then enter)
+Press "q" to exit (then enter)
 
 press [Enter] key to continue....
 HELP
@@ -117,6 +123,8 @@ gets.chomp
 
         # handle the input character
         case
+        when ["q","Q"].include?(input) # bail out yo
+          stop!
         when input == "s" # change key used for sorting moving left to right
           if sort == sortable_keys.last
             # if current key is last key we just rotate back to the first key
