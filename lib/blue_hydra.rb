@@ -145,7 +145,7 @@ module BlueHydra
   end
 
   # set log level from config
-  @@logger = if BlueHydra.config["log_level"]
+  @@logger = if @@config["log_level"]
                Logger.new(LOGFILE)
              else
                NilLogger.new
@@ -175,7 +175,7 @@ module BlueHydra
               File.expand_path('../../blue_hydra_rssi.log', __FILE__)
             end
 
-  @@rssi_logger = if BlueHydra.config["log_level"]
+  @@rssi_logger = if @@config["log_level"]
                     Logger.new(RSSI_LOGFILE)
                   else
                     NilLogger.new
