@@ -45,7 +45,7 @@ using the Sena UD100 adapter.
 Additionally you can make use of Ubertooth One hardware to detect active devices
 not in discoverable mode.
 
-**Note:** using and Ubertooth One is _not_ a replacement for a conventional
+**Note:** using an Ubertooth One is _not_ a replacement for a conventional
 bluetooth dongle. 
 
 ## Configuring Options
