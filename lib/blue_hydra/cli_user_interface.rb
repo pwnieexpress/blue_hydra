@@ -81,7 +81,7 @@ gets.chomp
     # the main work loop which prints the actual data to screen
     def cui_loop
       reset   = false # determine if we need to reset the loop by restarting method
-      sort  ||= :rssi # default sort attribute
+      sort  ||= :_seen # default sort attribute
       order ||= "ascending" #default sort order
 
       # set default printable keys, aka column headers
@@ -130,7 +130,7 @@ gets.chomp
           else
             # TODO is this needed with below?
             # default sort order
-            sort = :rssi
+            sort = :_seen
           end
         when input == "S" # change key used for sorting moving right to left
           if sort == sortable_keys.first
@@ -145,7 +145,7 @@ gets.chomp
           else
             # TODO is this needed with below?
             # default sort order
-            sort = :rssi
+            sort = :_seen
           end
         when ["r","R"].include?(input) # toggle sort order
           if order == "ascending"
@@ -180,10 +180,10 @@ gets.chomp
         if sortable_keys.nil? || !sortable_keys.include?(sort)
           # if we have remove the column we were sorting on
           # reset the sort order to RSSI
-          sort = :rssi
+          sort = :_seen
         end
 
-        sleep 0.1
+        sleep 0.2
       end
 
       # once reset has been triggered we need to reset this method so
