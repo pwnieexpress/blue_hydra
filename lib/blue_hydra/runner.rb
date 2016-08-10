@@ -204,9 +204,9 @@ module BlueHydra
 
     # Start the thread which runs the specified command
     def start_btmon_thread
-      #Process.setproctitle("BlueHydra Btmon thread")
       BlueHydra.logger.info("Btmon thread starting")
       self.btmon_thread = Thread.new do
+        #Process.setproctitle("BlueHydra Btmon thread")
         begin
           # spawn the handler for btmon and pass in the shared raw queue as a
           # param so that it can feed data back into the runner threads
@@ -246,9 +246,9 @@ module BlueHydra
     # thread responsible for sending interesting commands to the hci device so
     # that interesting things show up in the btmon ouput
     def start_discovery_thread
-      #Process.setproctitle("BlueHydra Discovery thread")
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
+        #Process.setproctitle("BlueHydra Discovery thread")
         begin
 
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config["bt_device"]}"
@@ -462,9 +462,9 @@ module BlueHydra
 
     # thread to manage the ubertooth device where available
     def start_ubertooth_thread
-      #Process.setproctitle("BlueHydra Ubertooth thread")
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
+        #Process.setproctitle("BlueHydra Ubertooth thread")
         begin
           loop do
             begin
@@ -509,9 +509,9 @@ module BlueHydra
 
     # thread to manage the CUI output where availalbe
     def start_cui_thread
-      #Process.setproctitle("BlueHydra CUI thread")
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
+        #Process.setproctitle("BlueHydra CUI thread")
         cui  = BlueHydra::CliUserInterface.new(self)
         cui.help_message
         cui.cui_loop
@@ -548,9 +548,9 @@ module BlueHydra
 
     # thread responsible for chunking up btmon output to be parsed
     def start_chunker_thread
-      #Process.setproctitle("BlueHydra Chunker thread")
       BlueHydra.logger.info("Chunker thread starting")
       self.chunker_thread = Thread.new do
+        #Process.setproctitle("BlueHydra Chunker thread")
         loop do
           begin
             # handler, pass in chunk queue for data to be fed back out
@@ -573,9 +573,9 @@ module BlueHydra
 
     # thread responsible for parsed chunked up btmon output
     def start_parser_thread
-      #Process.setproctitle("BlueHydra Parser thread")
       BlueHydra.logger.info("Parser thread starting")
       self.parser_thread = Thread.new do
+        #Process.setproctitle("BlueHydra Parser thread")
         begin
 
           scan_results = {}
@@ -706,9 +706,9 @@ module BlueHydra
     end
 
     def start_result_thread
-      #Process.setproctitle("BlueHydra Result thread")
       BlueHydra.logger.info("Result thread starting")
       self.result_thread = Thread.new do
+        #Process.setproctitle("BlueHydra Result thread")
         begin
 
           #debugging
