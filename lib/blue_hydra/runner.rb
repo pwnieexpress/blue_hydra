@@ -39,6 +39,8 @@ module BlueHydra
       @@command = "btmon -T -i #{BlueHydra.config["bt_device"]}"
     end
 
+    @@stopping = false
+
     # Start the runner after being initialized
     #
     # == Parameters
@@ -144,7 +146,8 @@ module BlueHydra
         btmon_thread:      self.btmon_thread.status,
         chunker_thread:    self.chunker_thread.status,
         parser_thread:     self.parser_thread.status,
-        result_thread:     self.result_thread.status
+        result_thread:     self.result_thread.status,
+        stopping:          @@stopping
       }
 
       unless BlueHydra.config["file"]
@@ -160,7 +163,13 @@ module BlueHydra
     # stop method this stops the threads but attempts to allow the result queue
     # to drain before fully exiting to prevent data loss
     def stop
+      return if @@stopping
+      @@stopping = true
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
+      unless BlueHydra.config["file"]
+        self.discovery_thread.kill if self.discovery_thread
+        self.ubertooth_thread.kill if self.ubertooth_thread
+      end
       self.btmon_thread.kill if self.btmon_thread # stop this first thread so data stops flowing ...
 
       stop_condition = Proc.new do
@@ -171,31 +180,31 @@ module BlueHydra
 
       # clear queue...
       until stop_condition.call
-        BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
-        sleep 15
+        unless self.cui_thread
+          BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
+          sleep 5
+        else
+          sleep 1
+        end
       end
 
       BlueHydra.logger.info("Queue clear! Exiting.")
+
+      self.chunker_thread.kill if self.chunker_thread
+      self.parser_thread.kill  if self.parser_thread
+      self.result_thread.kill  if self.result_thread
+      self.cui_thread.kill     if self.cui_thread
 
       self.raw_queue       = nil
       self.chunk_queue     = nil
       self.result_queue    = nil
       self.info_scan_queue = nil
       self.l2ping_queue    = nil
-
-      unless BlueHydra.config["file"]
-        self.discovery_thread.kill if self.discovery_thread
-        self.ubertooth_thread.kill if self.ubertooth_thread
-      end
-
-      self.chunker_thread.kill if self.chunker_thread
-      self.parser_thread.kill  if self.parser_thread
-      self.result_thread.kill  if self.result_thread
-      self.cui_thread.kill     if self.cui_thread
     end
 
     # Start the thread which runs the specified command
     def start_btmon_thread
+      #Process.setproctitle("BlueHydra Btmon thread")
       BlueHydra.logger.info("Btmon thread starting")
       self.btmon_thread = Thread.new do
         begin
@@ -237,6 +246,7 @@ module BlueHydra
     # thread responsible for sending interesting commands to the hci device so
     # that interesting things show up in the btmon ouput
     def start_discovery_thread
+      #Process.setproctitle("BlueHydra Discovery thread")
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
         begin
@@ -365,7 +375,7 @@ module BlueHydra
                   raise BluetoothdDbusError
                 elsif discovery_errors =~ /KeyboardInterrupt/
                   # Sometimes the interrupt gets passed to test-discovery so bubble it up
-                  stop!
+                  stop
                 end
               end
 
@@ -452,6 +462,7 @@ module BlueHydra
 
     # thread to manage the ubertooth device where available
     def start_ubertooth_thread
+      #Process.setproctitle("BlueHydra Ubertooth thread")
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
         begin
@@ -498,6 +509,7 @@ module BlueHydra
 
     # thread to manage the CUI output where availalbe
     def start_cui_thread
+      #Process.setproctitle("BlueHydra CUI thread")
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
         cui  = BlueHydra::CliUserInterface.new(self)
@@ -536,6 +548,7 @@ module BlueHydra
 
     # thread responsible for chunking up btmon output to be parsed
     def start_chunker_thread
+      #Process.setproctitle("BlueHydra Chunker thread")
       BlueHydra.logger.info("Chunker thread starting")
       self.chunker_thread = Thread.new do
         loop do
@@ -560,6 +573,7 @@ module BlueHydra
 
     # thread responsible for parsed chunked up btmon output
     def start_parser_thread
+      #Process.setproctitle("BlueHydra Parser thread")
       BlueHydra.logger.info("Parser thread starting")
       self.parser_thread = Thread.new do
         begin
@@ -692,6 +706,7 @@ module BlueHydra
     end
 
     def start_result_thread
+      #Process.setproctitle("BlueHydra Result thread")
       BlueHydra.logger.info("Result thread starting")
       self.result_thread = Thread.new do
         begin
