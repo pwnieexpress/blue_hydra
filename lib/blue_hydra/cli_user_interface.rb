@@ -187,7 +187,7 @@ gets.chomp
         sortable_keys = render_cui(max_height,sort,order,printable_keys)
         if sortable_keys.nil? || !sortable_keys.include?(sort)
           # if we have remove the column we were sorting on
-          # reset the sort order to RSSI
+          # reset the sort order to the default
           sort = :_seen
         end
 
