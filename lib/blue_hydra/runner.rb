@@ -477,7 +477,8 @@ module BlueHydra
 
                     result_queue.push({
                       address: [address],
-                      last_seen: [Time.now.to_i]
+                      last_seen: [Time.now.to_i],
+                      classic_mode: true
                     })
 
                     push_to_queue(:classic, address)
@@ -701,7 +702,6 @@ module BlueHydra
           last_status_sync = Time.now.to_i
 
           loop do
-
             # 1 day in seconds == 24 * 60 * 60 == 86400
             # daily sync
             if Time.now.to_i - 86400 >=  last_sync.to_i

@@ -97,6 +97,19 @@ class BlueHydra::Device
       device.save
     }
 
+    # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
+    # OLD DBS)
+    BlueHydra::Device.all(
+      le_mode:       false,
+      classic_mode:  false,
+      status:        "online"
+    ).select{|x|
+      x.last_seen < (Time.now.to_i - (15*60))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+
     # le mode devices have 3 min timeout
     BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
       x.last_seen < (Time.now.to_i - (60*3))
@@ -156,7 +169,7 @@ class BlueHydra::Device
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
       le_random_address_type le_company_uuid le_company_data le_proximity_uuid
-      le_major_num le_minor_num
+      le_major_num le_minor_num classic_mode le_mode
     }.map(&:to_sym).each do |attr|
       if result[attr]
         # we should only get a single value for these so we need to warn if
