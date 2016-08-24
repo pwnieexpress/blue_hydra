@@ -99,29 +99,40 @@ module BlueHydra
         # start the result processing thread
         start_result_thread
 
+        # start the thread responsible for printing the CUI to screen unless
+        # we are in daemon mode
+        start_cui_thread unless BlueHydra.daemon_mode
+
         # unless we are reading from a file we need to determine if we have an
         # ubertooth available and then initialize a thread to manage that
         # device as needed
         unless BlueHydra.config["file"]
           # Handle ubertooth
+          self.scanner_status[:ubertooth] = "Detecting"
           if system("ubertooth-util -v > /dev/null 2>&1")
-            if system("ubertooth-rx -h | grep -q Survey")
+            self.scanner_status[:ubertooth] = "Found hardware"
+            BlueHydra.logger.debug("Found ubertooth hardware")
+            if system("ubertooth-rx -h 2>&1 | grep -q Survey")
               @ubertooth_command = "ubertooth-rx -z -t 40"
+              BlueHydra.logger.debug("Found working ubertooth-rx -z")
+              self.scanner_status[:ubertooth] = "ubertooth-rx"
             end
             unless @ubertooth_command
-              if ::File.executable?("ubertooth-scan")
+              if system("ubertooth-scan -t 1 > /dev/null 2>&1")
                 @ubertooth_command = "ubertooth-scan -t 40"
+                BlueHydra.logger.debug("Found working ubertooth-scan")
+                self.scanner_status[:ubertooth] = "ubertooth-scan"
+              else
+                BlueHydra.logger.error("Unable to find ubertooth-scan or ubertooth-rx -z, ubertooth disabled.")
+                self.scanner_status[:ubertooth] = "Unable to find ubertooth-scan or ubertooth-rx -z"
               end
             end
             start_ubertooth_thread if @ubertooth_command
+          else
+            self.scanner_status[:ubertooth] = "No hardware detected"
+            BlueHydra.logger.debug("No ubertooth hardware detected")
           end
         end
-
-        # start the thread responsible for printing the CUI to screen unless
-        # we are in daemon mode
-        start_cui_thread unless BlueHydra.daemon_mode
-
-        sleep 5 # allow it start up
 
       rescue => e
         BlueHydra.logger.error("Runner master thread: #{e.message}")

@@ -225,14 +225,14 @@ gets.chomp
           end
 
           # check status of ubertooth
-          if ubertooth_thread
-            if scanner_status[:ubertooth]
+          if scanner_status[:ubertooth]
+            if scanner_status[:ubertooth].class == Fixnum
               ubertooth_time = Time.now.to_i - scanner_status[:ubertooth]
             else
-              ubertooth_time = "not started"
+              ubertooth_time = scanner_status[:ubertooth]
             end
           else
-            ubertooth_time = "not enabled"
+            ubertooth_time = "Starting detection..."
           end
         end
 
