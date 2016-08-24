@@ -113,7 +113,7 @@ module BlueHydra
             self.scanner_status[:ubertooth] = "Found hardware"
             BlueHydra.logger.debug("Found ubertooth hardware")
             sleep 1
-            if system("ubertooth-util -r")
+            if system("ubertooth-util -r > /dev/null 2>&1")
               self.scanner_status[:ubertooth] = "hardware responsive"
               BlueHydra.logger.debug("hardware is responsive")
               sleep 1
