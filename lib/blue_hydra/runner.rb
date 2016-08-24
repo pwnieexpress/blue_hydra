@@ -112,20 +112,30 @@ module BlueHydra
           if system("ubertooth-util -v > /dev/null 2>&1")
             self.scanner_status[:ubertooth] = "Found hardware"
             BlueHydra.logger.debug("Found ubertooth hardware")
-            if system("ubertooth-rx -h 2>&1 | grep -q Survey")
-              @ubertooth_command = "ubertooth-rx -z -t 40"
-              BlueHydra.logger.debug("Found working ubertooth-rx -z")
-              self.scanner_status[:ubertooth] = "ubertooth-rx"
-            end
-            unless @ubertooth_command
-              if system("ubertooth-scan -t 1 > /dev/null 2>&1")
-                @ubertooth_command = "ubertooth-scan -t 40"
-                BlueHydra.logger.debug("Found working ubertooth-scan")
-                self.scanner_status[:ubertooth] = "ubertooth-scan"
-              else
-                BlueHydra.logger.error("Unable to find ubertooth-scan or ubertooth-rx -z, ubertooth disabled.")
-                self.scanner_status[:ubertooth] = "Unable to find ubertooth-scan or ubertooth-rx -z"
+            sleep 1
+            if system("ubertooth-util -r")
+              self.scanner_status[:ubertooth] = "hardware responsive"
+              BlueHydra.logger.debug("hardware is responsive")
+              sleep 1
+              if system("ubertooth-rx -h 2>&1 | grep -q Survey")
+                @ubertooth_command = "ubertooth-rx -z -t 40"
+                BlueHydra.logger.debug("Found working ubertooth-rx -z")
+                self.scanner_status[:ubertooth] = "ubertooth-rx"
               end
+              unless @ubertooth_command
+                sleep 1
+                if system("ubertooth-scan -t 1 > /dev/null 2>&1")
+                  @ubertooth_command = "ubertooth-scan -t 40"
+                  BlueHydra.logger.debug("Found working ubertooth-scan")
+                  self.scanner_status[:ubertooth] = "ubertooth-scan"
+                else
+                  BlueHydra.logger.error("Unable to find ubertooth-scan or ubertooth-rx -z, ubertooth disabled.")
+                  self.scanner_status[:ubertooth] = "Unable to find ubertooth-scan or ubertooth-rx -z"
+                end
+              end
+            else
+              self.scanner_status[:ubertooth] = "hardware unresponsive"
+              BlueHydra.logger.error("hardware is present but ubertooth-util -r fails")
             end
             start_ubertooth_thread if @ubertooth_command
           else
