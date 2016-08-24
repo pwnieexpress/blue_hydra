@@ -65,7 +65,6 @@ class BlueHydra::Device
   # before saving set the vendor info and the mode flags (le/classic)
   before :save, :set_vendor
   before :save, :set_uap_lap
-  before :save, :set_mode_flags
   before :save, :set_uuid
   before :save, :prepare_the_filth
 
@@ -339,52 +338,6 @@ class BlueHydra::Device
     end
   rescue => e
     BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
-  end
-
-  # set the le_mode and classic_mode flags to true or false based on the
-  # presence of certain attributes being set
-  def set_mode_flags
-    classic = false
-    [
-      :classic_service_uuids,
-      :classic_channels,
-      :classic_major_class,
-      :classic_minor_class,
-      :classic_class,
-      :classic_rssi,
-      :classic_tx_power,
-      :classic_features,
-      :classic_features_bitmap,
-
-    ].each do |classic_attr|
-      if self[classic_attr]
-        classic ||= true
-      end
-    end
-    self[:classic_mode] = classic
-
-
-    le = false
-    [
-      :le_service_uuids,
-      :le_address_type,
-      :le_random_address_type,
-      :le_flags,
-      :le_rssi,
-      :le_tx_power,
-      :le_features,
-      :le_features_bitmap,
-      :le_company_data,
-      :le_company_uuid,
-      :le_proximity_uuid,
-      :le_major_num,
-      :le_minor_num
-    ].each do |le_attr|
-      if self[le_attr]
-        le ||= true
-      end
-    end
-    self[:le_mode] = le
   end
 
   # set the :name attribute from the :short_name key only if name is not already
