@@ -24,7 +24,7 @@ class BlueHydra::Device
   property :firmware,                      String
 
   # classic mode specific attributes
-  property :classic_mode,                  Boolean
+  property :classic_mode,                  Boolean, default: false
   property :classic_service_uuids,         Text
   property :classic_channels,              Text
   property :classic_major_class,           String
@@ -36,7 +36,7 @@ class BlueHydra::Device
   property :classic_features_bitmap,       Text
 
   # low energy mode specific attributes
-  property :le_mode,                       Boolean
+  property :le_mode,                       Boolean, default: false
   property :le_service_uuids,              Text
   property :le_address_type,               String
   property :le_random_address_type,        String

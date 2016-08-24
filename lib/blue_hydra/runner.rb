@@ -486,10 +486,12 @@ module BlueHydra
                   if line =~ /^[\?:]{6}[0-9a-f:]{11}/i
                     address = line.scan(/^((\?\?:){2}([0-9a-f:]*))/i).flatten.first.gsub('?', '0')
 
+                    # note that things here are being manually [array] wrapped
+                    # so that they follow the data patterns set by the parser
                     result_queue.push({
-                      address: [address],
-                      last_seen: [Time.now.to_i],
-                      classic_mode: true
+                      address:      [address],
+                      last_seen:    [Time.now.to_i],
+                      classic_mode: [true]
                     })
 
                     push_to_queue(:classic, address)
