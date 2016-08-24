@@ -37,6 +37,12 @@ module BlueHydra
         timestamp = chunk.pop
         set_attr(:last_seen, timestamp.split(': ')[1].to_i)
 
+        if @bt_mode == "le"
+          set_attr(:le_mode, true)
+        elsif @bt_mode == "classic"
+          set_attr(:classic_mode, true)
+        end
+
         # group the chunk of lines into nested / related groups of data
         # containing 1 or more lines
         grouped_chunk = group_by_depth(chunk)

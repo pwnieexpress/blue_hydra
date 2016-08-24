@@ -24,7 +24,7 @@ class BlueHydra::Device
   property :firmware,                      String
 
   # classic mode specific attributes
-  property :classic_mode,                  Boolean
+  property :classic_mode,                  Boolean, default: false
   property :classic_service_uuids,         Text
   property :classic_channels,              Text
   property :classic_major_class,           String
@@ -36,7 +36,7 @@ class BlueHydra::Device
   property :classic_features_bitmap,       Text
 
   # low energy mode specific attributes
-  property :le_mode,                       Boolean
+  property :le_mode,                       Boolean, default: false
   property :le_service_uuids,              Text
   property :le_address_type,               String
   property :le_random_address_type,        String
@@ -65,7 +65,6 @@ class BlueHydra::Device
   # before saving set the vendor info and the mode flags (le/classic)
   before :save, :set_vendor
   before :save, :set_uap_lap
-  before :save, :set_mode_flags
   before :save, :set_uuid
   before :save, :prepare_the_filth
 
@@ -91,6 +90,19 @@ class BlueHydra::Device
   def self.mark_old_devices_offline
     # classic mode devices have 15 min timeout
     BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (15*60))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+
+    # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
+    # OLD DBS)
+    BlueHydra::Device.all(
+      le_mode:       false,
+      classic_mode:  false,
+      status:        "online"
+    ).select{|x|
       x.last_seen < (Time.now.to_i - (15*60))
     }.each{|device|
       device.status = 'offline'
@@ -156,7 +168,7 @@ class BlueHydra::Device
       classic_major_class classic_minor_class le_tx_power classic_tx_power
       le_address_type company company_type appearance le_address_type
       le_random_address_type le_company_uuid le_company_data le_proximity_uuid
-      le_major_num le_minor_num
+      le_major_num le_minor_num classic_mode le_mode
     }.map(&:to_sym).each do |attr|
       if result[attr]
         # we should only get a single value for these so we need to warn if
@@ -326,52 +338,6 @@ class BlueHydra::Device
     end
   rescue => e
     BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
-  end
-
-  # set the le_mode and classic_mode flags to true or false based on the
-  # presence of certain attributes being set
-  def set_mode_flags
-    classic = false
-    [
-      :classic_service_uuids,
-      :classic_channels,
-      :classic_major_class,
-      :classic_minor_class,
-      :classic_class,
-      :classic_rssi,
-      :classic_tx_power,
-      :classic_features,
-      :classic_features_bitmap,
-
-    ].each do |classic_attr|
-      if self[classic_attr]
-        classic ||= true
-      end
-    end
-    self[:classic_mode] = classic
-
-
-    le = false
-    [
-      :le_service_uuids,
-      :le_address_type,
-      :le_random_address_type,
-      :le_flags,
-      :le_rssi,
-      :le_tx_power,
-      :le_features,
-      :le_features_bitmap,
-      :le_company_data,
-      :le_company_uuid,
-      :le_proximity_uuid,
-      :le_major_num,
-      :le_minor_num
-    ].each do |le_attr|
-      if self[le_attr]
-        le ||= true
-      end
-    end
-    self[:le_mode] = le
   end
 
   # set the :name attribute from the :short_name key only if name is not already
