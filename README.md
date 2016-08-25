@@ -72,3 +72,22 @@ Helping with Development
 
 PR's should be targeted against the "develop" branch.
 Develop branch gets merged to master branch and tagged during the release process.
+
+## Troubleshooting
+
+### `Parser thread "\xC3" on US-ASCII`
+
+If you encounter an error like `Parser Thread "\xC3" on US-ASCII` it may be due
+to an encoding misconfiguration on your system. 
+
+This can be resolved by setting locale encodings as follows:
+
+```
+sudo locale-gen en_US.UTF-8 
+sudo locale-gen en en_US en_US.UTF-8
+sudo dpkg-reconfigure locales
+export LC_ALL = "en_US"
+```
+
+This issue and solution brought up by @llarzo
+[here](https://github.com/pwnieexpress/blue_hydra/issues/65).
