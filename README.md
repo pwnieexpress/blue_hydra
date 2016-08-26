@@ -75,12 +75,12 @@ Develop branch gets merged to master branch and tagged during the release proces
 
 ## Troubleshooting
 
-### `Parser thread "\xC3" on US-ASCII`
+### `Parser thread "\xC3" on US-ASCII` 
 
 If you encounter an error like `Parser Thread "\xC3" on US-ASCII` it may be due
 to an encoding misconfiguration on your system. 
 
-This can be resolved by setting locale encodings as follows:
+On Debian like systems, this can be resolved by setting locale encodings as follows:
 
 ```
 sudo locale-gen en_US.UTF-8 
@@ -89,5 +89,5 @@ sudo dpkg-reconfigure locales
 export LC_ALL = "en_US"
 ```
 
-This issue and solution brought up by @llarzo
+This issue and solution brought up by [llazzaro](https://github.com/llazzaro)
 [here](https://github.com/pwnieexpress/blue_hydra/issues/65).
