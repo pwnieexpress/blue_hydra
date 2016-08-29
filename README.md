@@ -16,7 +16,7 @@ On non Pwnie Express systems the files in this repository can be run directly.
 Ensure that the following packages are installed: 
 
 ```
-bluez-tools
+bluez
 bluez-test-scripts
 python-bluez
 python-dbus
@@ -26,7 +26,8 @@ libsqlite3-dev
 ```
 
 On Debian-based systems, these packages can be installed with the following command line:
-```sudo apt-get install bluez-tools bluez-test-scripts python-bluez python-dbus libsqlite3-dev```
+
+```sudo apt-get install bluez bluez-test-scripts python-bluez python-dbus libsqlite3-dev ubertooth```
 
 In addition to the Bluetooth packages listed above you will need to have Ruby
 version 2.1 or higher installed. With ruby installed add the `bundler` gem and
