@@ -348,6 +348,10 @@ module BlueHydra
                       # We failed to connect, not sure why, not sure we care
                     elsif l2ping_errors.chomp =~ /connect: Connection refused/i
                       #maybe we do care about this one? if it refused, it was there
+                    elsif l2ping_errors.chomp =~ /connect: Permission denied/i
+                      #this appears when we aren't root, but it also gets sent back from the remote host sometimes
+                    elsif l2ping_errors.chomp =~ /connect: Function not implemented/i
+                      # this isn't in the bluez code at all so it must be coming back from the remote host
                     else
                       BlueHydra.logger.error("Error with l2ping command... #{command.inspect}")
                       l2ping_errors.split("\n").each do |ln|
