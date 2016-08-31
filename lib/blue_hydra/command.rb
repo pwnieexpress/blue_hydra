@@ -24,8 +24,8 @@ module BlueHydra::Command
 
       begin
         Process.kill(timeout_signal, thread.pid) unless thread.status == false
-      rescue => Errno::ESRCH
-        BlueHydra.logger.debug("Command: #{command} exited unnaturally.")
+      rescue Errno::ESRCH
+        BlueHydra.logger.warn("Command: #{command} exited unnaturally.")
       end
     end
 
