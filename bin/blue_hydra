@@ -19,11 +19,18 @@ OptionParser.new do |opts|
   opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
     options[:daemonize] = true
   end
-  opts.on("-z", "--demo", "Hide output of CLI UI") do |v|
+  opts.on("-z", "--demo", "Hide mac addresses in CLI UI") do |v|
     options[:demo] = true
   end
   opts.on("-p", "--pulse", "Send results to hermes") do |v|
     options[:pulse] = true
+  end
+  opts.on("--no-db", "Keep db in ram only") do |v|
+    options[:no_db] = false
+  end
+  opts.on_tail("-h", "--help", "Show this message") do
+    puts opts
+    exit
   end
 end.parse!
 
@@ -45,6 +52,13 @@ if options[:pulse]
   BlueHydra.pulse = true
 else
   BlueHydra.pulse = false
+end
+
+# Switch between ram and persistent db
+if options[:no_db]
+  BlueHydra.db = false
+else
+  BlueHydra.db = true
 end
 
 # This file is used by the service scan to kill the process and should be
