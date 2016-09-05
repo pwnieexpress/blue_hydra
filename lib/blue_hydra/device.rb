@@ -118,6 +118,18 @@ class BlueHydra::Device
     }
   end
 
+  # during shutdown we should always mark all devices offline
+  # if we aren't online then we cannot assert that anything else is.
+  # This is also a safety mechanism for non-persistant db
+  def self.mark_all_devices_offline
+    #require 'pry'
+    #binding.pry
+    BlueHydra::Device.all(status: "online").each{|device|
+      device.status = 'offline'
+      device.save
+    }
+  end
+
   # this class method is take a result Hash and convert it into a new or update
   # an existing record
   #
