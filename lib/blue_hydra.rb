@@ -278,7 +278,7 @@ begin
   rescue DataObjects::ConnectionError
     # in the case of an invalid / blank/ corrupt DB file we will back up the old
     # file and then create a new db to proceed.
-    db_file = Dir.exist?('/opt/pwnix/') ?  "/opt/pwnix/blue_hydra.db" : "blue_hydra.db"
+    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
     BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
     File.rename(db_file, "#{db_file}.corrupt")   #=> 0
 
