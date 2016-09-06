@@ -345,6 +345,7 @@ class BlueHydra::Device
   end
 
   def do_send(json)
+    return unless BlueHydra.pulse
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
       sock.write(json)
