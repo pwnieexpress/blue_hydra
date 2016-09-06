@@ -233,8 +233,19 @@ module BlueHydra
     @@pulse = setting
   end
 
+  # getter for db option
+  def db
+    @@db ||= true
+  end
+
+  # setter for pulse mode option
+  def db=(setting)
+    @@db = setting
+  end
+
+
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
-                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=
+                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=, :db, :db=
 end
 
 # require the actual code
