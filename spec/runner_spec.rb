@@ -6,6 +6,7 @@ describe BlueHydra::Runner do
     command = "cat #{filepath} && sleep 1"
     runner = BlueHydra::Runner.new
     runner.start(command)
+    sleep 5
 
     created_device = BlueHydra::Device.all(address: 'B3:3F:CA:F3:DE:AD').first
 
