@@ -17,42 +17,6 @@ require 'louis'
 # Add to Load Path
 $:.unshift(File.dirname(__FILE__))
 
-# set all String properties to have a default length of 255
-DataMapper::Property::String.length(255)
-
-LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
-DATA_DIR         = '/opt/pwnix/data'
-DB_DIR           = File.join(DATA_DIR, 'blue_hydra')
-DB_NAME          = 'blue_hydra.db'
-DB_PATH          = File.join(DB_DIR, DB_NAME)
-
-if Dir.exists?(DATA_DIR)
-  unless Dir.exists?(DB_DIR)
-    Dir.mkdir(DB_DIR)
-  end
-end
-
-if File.exists?(LEGACY_DB_PATH) && Dir.exists?(DB_DIR)
-  FileUtils.mv(LEGACY_DB_PATH, DB_PATH) unless File.exists?(DB_PATH)
-end
-
-# The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
-# which the Pwnie Express chef scripts have been run. Otherwise it will attempt
-# to create a sqlite db whereever the run was initiated.
-#
-# When running the rspec tets the BLUE_HYDRA environmental value will be set to
-# 'test' and all tests should run with an in-memory db.
-db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.db == false
-            'sqlite::memory:?cache=shared'
-          elsif  Dir.exist?(DB_DIR)
-            "sqlite:#{DB_PATH}"
-          else
-            "sqlite:#{DB_NAME}"
-          end
-
-# create the db file
-DataMapper.setup(:default, db_path)
-
 # Helpful Errors to raise in specific cased.
 class BluetoothdDbusError < StandardError; end
 class BluezNotReadyError < StandardError; end
@@ -281,6 +245,43 @@ rescue
     exit 1
   end
 end
+
+# set all String properties to have a default length of 255
+DataMapper::Property::String.length(255)
+
+LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
+DATA_DIR         = '/opt/pwnix/data'
+DB_DIR           = File.join(DATA_DIR, 'blue_hydra')
+DB_NAME          = 'blue_hydra.db'
+DB_PATH          = File.join(DB_DIR, DB_NAME)
+
+if Dir.exists?(DATA_DIR)
+  unless Dir.exists?(DB_DIR)
+    Dir.mkdir(DB_DIR)
+  end
+end
+
+if File.exists?(LEGACY_DB_PATH) && Dir.exists?(DB_DIR)
+  FileUtils.mv(LEGACY_DB_PATH, DB_PATH) unless File.exists?(DB_PATH)
+end
+
+
+# The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
+# which the Pwnie Express chef scripts have been run. Otherwise it will attempt
+# to create a sqlite db whereever the run was initiated.
+#
+# When running the rspec tets the BLUE_HYDRA environmental value will be set to
+# 'test' and all tests should run with an in-memory db.
+db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.db == false
+            'sqlite::memory:?cache=shared'
+          elsif  Dir.exist?(DB_DIR)
+            "sqlite:#{DB_PATH}"
+          else
+            "sqlite:#{DB_NAME}"
+          end
+
+# create the db file
+DataMapper.setup(:default, db_path)
 
 # DB Migration and upgrade logic
 begin

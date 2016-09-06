@@ -26,7 +26,7 @@ OptionParser.new do |opts|
     options[:pulse] = true
   end
   opts.on("--no-db", "Keep db in ram only") do |v|
-    options[:no_db] = false
+    options[:no_db] = true
   end
   opts.on_tail("-h", "--help", "Show this message") do
     puts opts
