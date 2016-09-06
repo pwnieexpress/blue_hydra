@@ -63,11 +63,12 @@ class BtmonExitedError < StandardError; end
 module BlueHydra
   # 0.0.1 first stable verison
   # 0.0.2 timestamps, feedback loop for info scans, l2ping
-  # 0.1.0 first working version with frozen models for pulse
+  # 0.1.0 first working version with frozen models for Pwn Pulse
   # 1.0.0 many refactors, already in stable sensor release as per 1.7.2
   # 1.1.0 CUI, readability refactor, many small improvements
   # 1.1.1 Range monitoring based on TX power, OSS cleanup
-  VERSION = '1.1.1'
+  # 1.1.2 Add pulse reset
+  VERSION = '1.1.2'
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.

@@ -288,6 +288,17 @@ class BlueHydra::Device
     end
   end
 
+  def send_reset_to_pulse
+    return unless BlueHydra.pulse
+    BlueHydra.logger.info("Sending db reset to pulse")
+
+    json_msg = JSON.generate({
+      type:    "reset",
+      source:  "blue-hydra",
+      version: BlueHydra::VERSION,
+    })
+    do_send(json_msg)
+  end
 
   # sync record to pulse
   def sync_to_pulse(sync_all=false)
@@ -328,8 +339,12 @@ class BlueHydra::Device
     end
 
     # create the json
-    json = JSON.generate(send_data)
+    json_msg = JSON.generate(send_data)
+    # send the json
+    do_send(json_msg)
+  end
 
+  def do_send(json)
     # write json data to result socket
     TCPSocket.open('127.0.0.1', 8244) do |sock|
       sock.write(json)
