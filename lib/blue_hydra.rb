@@ -283,8 +283,6 @@ begin
     BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
     File.rename(db_file, "#{db_file}.corrupt")   #=> 0
 
-    # TODO send message to pulse offline all clients if the above scenario
-    # happened.
     DataMapper.auto_upgrade!
   end
 
