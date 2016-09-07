@@ -53,7 +53,7 @@ module BlueHydra
         if BlueHydra::Device.count == 0
           # if we have no devices, tell pulse we are starting clean
           BlueHydra.logger.info("No devices found in DB, starting clean.")
-          BlueHydra::Device.send_reset_to_pulse
+          BlueHydra::Pulse.reset
         else
           #If we have devices, make sure to clean up their states and sync it all
 
@@ -680,7 +680,7 @@ module BlueHydra
                           # create the json
                           json_msg = JSON.generate(send_data)
                           #send the json
-                          do_send(json_msg)
+                          BlueHydra::Pulse.do_send(json_msg)
                         end
                       end
 

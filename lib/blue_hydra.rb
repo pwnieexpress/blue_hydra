@@ -7,6 +7,7 @@ require 'securerandom'
 require 'zlib'
 require 'yaml'
 require 'fileutils'
+require 'socket'
 
 # Gems
 require 'dm-migrations'
@@ -215,6 +216,7 @@ end
 # require the actual code
 require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
+require 'blue_hydra/pulse'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 require 'blue_hydra/command'

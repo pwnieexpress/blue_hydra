@@ -288,18 +288,6 @@ class BlueHydra::Device
     end
   end
 
-  def send_reset_to_pulse
-    return unless BlueHydra.pulse
-    BlueHydra.logger.info("Sending db reset to pulse")
-
-    json_msg = JSON.generate({
-      type:    "reset",
-      source:  "blue-hydra",
-      version: BlueHydra::VERSION,
-    })
-    do_send(json_msg)
-  end
-
   # sync record to pulse
   def sync_to_pulse(sync_all=false)
     return unless BlueHydra.pulse
@@ -341,19 +329,7 @@ class BlueHydra::Device
     # create the json
     json_msg = JSON.generate(send_data)
     # send the json
-    do_send(json_msg)
-  end
-
-  def do_send(json)
-    return unless BlueHydra.pulse
-    # write json data to result socket
-    TCPSocket.open('127.0.0.1', 8244) do |sock|
-      sock.write(json)
-      sock.write("\n")
-      sock.flush
-    end
-  rescue => e
-    BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
+    BlueHydra::Pulse.do_send(json_msg)
   end
 
   # set the :name attribute from the :short_name key only if name is not already
