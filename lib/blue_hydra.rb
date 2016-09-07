@@ -198,19 +198,18 @@ module BlueHydra
     @@pulse = setting
   end
 
-  # getter for db option
-  def db
-    @@db ||= true
+  # setter/getter/better
+  def pulse_debug
+    @@pulse_debug ||= false
   end
-
-  # setter for pulse mode option
-  def db=(setting)
-    @@db = setting
+  def pulse_debug=(setting)
+    @@pulse_debug = setting
   end
 
 
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
-                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=, :db, :db=
+                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=,
+                  :pulse_debug, :pulse_debug=
 end
 
 # require the actual code
@@ -274,9 +273,9 @@ end
 #
 # When running the rspec tets the BLUE_HYDRA environmental value will be set to
 # 'test' and all tests should run with an in-memory db.
-db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.db == false
+db_path = if ENV["BLUE_HYDRA"] == "test" || @options[:no_db]
             'sqlite::memory:?cache=shared'
-          elsif  Dir.exist?(DB_DIR)
+          elsif Dir.exist?(DB_DIR)
             "sqlite:#{DB_PATH}"
           else
             "sqlite:#{DB_NAME}"

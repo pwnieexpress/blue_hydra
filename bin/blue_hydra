@@ -7,26 +7,27 @@ $:.unshift(File.dirname(File.expand_path('../../lib/blue_hydra.rb',__FILE__)))
 # require for option parsing
 require 'optparse'
 
-# require the actual Blue Hydra code from lib
-require 'blue_hydra'
-
 
 # parse all command line arguments and store in options Hash for run time 
 # configurations
-options = {}
+@options = {}
 
 OptionParser.new do |opts|
   opts.on("-d", "--daemonize", "Suppress output and run in daemon mode") do |v|
-    options[:daemonize] = true
+    @options[:daemonize] = true
   end
   opts.on("-z", "--demo", "Hide mac addresses in CLI UI") do |v|
-    options[:demo] = true
+    @options[:demo] = true
   end
   opts.on("-p", "--pulse", "Send results to hermes") do |v|
-    options[:pulse] = true
+    @options[:pulse] = true
   end
+  opts.on("--pulse-debug", "Store results in a file for review") do |v|
+    @options[:pulse_debug] = true
+  end
+  # This gets parsed directly and is not available as BlueHydra.db
   opts.on("--no-db", "Keep db in ram only") do |v|
-    options[:no_db] = true
+    @options[:no_db] = true
   end
   opts.on_tail("-h", "--help", "Show this message") do
     puts opts
@@ -34,31 +35,33 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+# require the actual Blue Hydra code from lib
+require 'blue_hydra'
+
 # Daemon mode will run the service in the background with no CLI output
-if options[:daemonize]
+if @options[:daemonize]
   BlueHydra.daemon_mode = true
 end
 
 # Demo mode will disguise macs detected for demo purposes, only affects CLI
 # output, not what is stored in DB
-if options[:demo]
+if @options[:demo]
   BlueHydra.demo_mode = true
 end
 
 # If the pulse flag is set the service will attempt to send results to
 # PwnPulse.  This defaults to false and can be ignored unless the system
 # running Blue Hydra is a Pwnie Express sensor.
-if options[:pulse]
+if @options[:pulse]
   BlueHydra.pulse = true
 else
   BlueHydra.pulse = false
 end
 
-# Switch between ram and persistent db
-if options[:no_db]
-  BlueHydra.db = false
+if @options[:pulse_debug]
+  BlueHydra.pulse_debug = true
 else
-  BlueHydra.db = true
+  BlueHydra.pulse_debug = false
 end
 
 # This file is used by the service scan to kill the process and should be
