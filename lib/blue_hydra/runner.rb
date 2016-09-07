@@ -665,7 +665,7 @@ module BlueHydra
 
                       # if aggressive_rssi is set send all rssis to pulse
                       # this should not be set where avoidable
-                      if BlueHydra.config["aggressive_rssi"] && BlueHydra.pulse
+                      if BlueHydra.config["aggressive_rssi"] && ( BlueHydra.pulse || BlueHydra.pulse_debug )
                         attrs[k].each do |x|
                           send_data = {
                             type:   "bluetooth",
