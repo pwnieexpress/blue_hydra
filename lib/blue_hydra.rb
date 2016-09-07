@@ -273,7 +273,7 @@ end
 #
 # When running the rspec tets the BLUE_HYDRA environmental value will be set to
 # 'test' and all tests should run with an in-memory db.
-db_path = if ENV["BLUE_HYDRA"] == "test" || @options[:no_db]
+db_path = if ENV["BLUE_HYDRA"] == "test" || OPTIONS[:no_db]
             'sqlite::memory:?cache=shared'
           elsif Dir.exist?(DB_DIR)
             "sqlite:#{DB_PATH}"
