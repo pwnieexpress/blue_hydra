@@ -49,11 +49,10 @@ module BlueHydra
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
-        # Since it is unknown how long it has been since the system run last
-        # we should look at the DB and mark timed out devices as offline before
-        # starting anything else
-        BlueHydra.logger.info("Marking older devices as 'offline'...")
-        BlueHydra::Device.mark_old_devices_offline
+        # We should have marked everything offline at shutdown, but just in case
+        # our shutdown was unclean, make sure it's all offline now.
+        BlueHydra.logger.info("Marking old devices as 'offline'...")
+        BlueHydra::Device.mark_all_devices_offline
 
         # Sync everything to pwnpulse if the system is connected to the Pwnie
         # Express cloud
@@ -195,6 +194,10 @@ module BlueHydra
         BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
         sleep 15
       end
+
+      # Mark all devices offline while shutting down
+      # If we aren't online to see it then we cannot pretend things are online.
+      BlueHydra::Device.mark_all_devices_offline
 
       BlueHydra.logger.info("Queue clear! Exiting.")
 
