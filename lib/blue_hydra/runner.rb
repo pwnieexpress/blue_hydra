@@ -39,8 +39,6 @@ module BlueHydra
       @@command = "btmon -T -i #{BlueHydra.config["bt_device"]}"
     end
 
-    @@stopping = false
-
     # Start the runner after being initialized
     #
     # == Parameters
@@ -48,6 +46,7 @@ module BlueHydra
     #     the command to run, typically btmon -T -i hci0 but will be different
     #     if running in file mode
     def start(command=@@command)
+      @stopping = false
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
@@ -147,7 +146,7 @@ module BlueHydra
         chunker_thread:    self.chunker_thread.status,
         parser_thread:     self.parser_thread.status,
         result_thread:     self.result_thread.status,
-        stopping:          @@stopping
+        stopping:          @stopping
       }
 
       unless BlueHydra.config["file"]
@@ -163,8 +162,8 @@ module BlueHydra
     # stop method this stops the threads but attempts to allow the result queue
     # to drain before fully exiting to prevent data loss
     def stop
-      return if @@stopping
-      @@stopping = true
+      return if @stopping
+      @stopping = true
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
       unless BlueHydra.config["file"]
         self.discovery_thread.kill if self.discovery_thread
