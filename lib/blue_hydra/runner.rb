@@ -374,8 +374,9 @@ module BlueHydra
                   #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{3} was not provided by any .service files
                   raise BluetoothdDbusError
                 elsif discovery_errors =~ /KeyboardInterrupt/
-                  # Sometimes the interrupt gets passed to test-discovery so bubble it up
-                  stop
+                  # Sometimes the interrupt gets passed to test-discovery so assume it was meant for us
+                  BlueHydra.logger.info("BlueHydra Killed! Exiting... SIGINT")
+                  exit
                 end
               end
 
