@@ -206,7 +206,6 @@ module BlueHydra
     def start_btmon_thread
       BlueHydra.logger.info("Btmon thread starting")
       self.btmon_thread = Thread.new do
-        #Process.setproctitle("BlueHydra Btmon thread")
         begin
           # spawn the handler for btmon and pass in the shared raw queue as a
           # param so that it can feed data back into the runner threads
@@ -248,7 +247,6 @@ module BlueHydra
     def start_discovery_thread
       BlueHydra.logger.info("Discovery thread starting")
       self.discovery_thread = Thread.new do
-        #Process.setproctitle("BlueHydra Discovery thread")
         begin
 
           discovery_command = "#{File.expand_path('../../../bin/test-discovery', __FILE__)} -i #{BlueHydra.config["bt_device"]}"
@@ -465,7 +463,6 @@ module BlueHydra
     def start_ubertooth_thread
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
-        #Process.setproctitle("BlueHydra Ubertooth thread")
         begin
           loop do
             begin
@@ -512,7 +509,6 @@ module BlueHydra
     def start_cui_thread
       BlueHydra.logger.info("Command Line UI thread starting")
       self.cui_thread = Thread.new do
-        #Process.setproctitle("BlueHydra CUI thread")
         cui  = BlueHydra::CliUserInterface.new(self)
         cui.help_message
         cui.cui_loop
@@ -551,7 +547,6 @@ module BlueHydra
     def start_chunker_thread
       BlueHydra.logger.info("Chunker thread starting")
       self.chunker_thread = Thread.new do
-        #Process.setproctitle("BlueHydra Chunker thread")
         loop do
           begin
             # handler, pass in chunk queue for data to be fed back out
@@ -576,7 +571,6 @@ module BlueHydra
     def start_parser_thread
       BlueHydra.logger.info("Parser thread starting")
       self.parser_thread = Thread.new do
-        #Process.setproctitle("BlueHydra Parser thread")
         begin
 
           scan_results = {}
@@ -709,7 +703,6 @@ module BlueHydra
     def start_result_thread
       BlueHydra.logger.info("Result thread starting")
       self.result_thread = Thread.new do
-        #Process.setproctitle("BlueHydra Result thread")
         begin
 
           #debugging
