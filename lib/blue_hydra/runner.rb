@@ -679,7 +679,7 @@ module BlueHydra
                       if BlueHydra.config["aggressive_rssi"] && ( BlueHydra.pulse || BlueHydra.pulse_debug )
                         attrs[k].each do |x|
                           send_data = {
-                            type:   "bluetooth",
+                            type:   "bluetooth-aggressive-rssi",
                             source: "blue-hydra",
                             version: BlueHydra::VERSION,
                             data: {}
