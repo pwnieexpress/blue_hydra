@@ -78,6 +78,7 @@ trap('SIGINT') do
 end
 
 begin
+  BlueHydra.logger.info("BlueHydra Starting...")
   # Start the main workers...
   runner = BlueHydra::Runner.new
   runner.start
@@ -95,23 +96,26 @@ begin
     # check the status of the runner and make sure all threads are alive
     status = runner.status
 
-    threads = [ 
-      :btmon_thread, 
-      :chunker_thread, 
-      :parser_thread, 
-      :result_thread 
-    ]
+    unless status[:stopping]
+      threads = [
+        :btmon_thread,
+        :chunker_thread,
+        :parser_thread,
+        :result_thread
+      ]
 
-    unless BlueHydra.config["file"]
-      threads << :discovery_thread
-    end
-
-    threads.each do |thread_key|
-      if status[thread_key] == nil || status[thread_key] == false
-        raise FailedThreadError, thread_key
+      unless BlueHydra.config["file"]
+        threads << :discovery_thread
       end
-    end
 
+      threads.each do |thread_key|
+        if status[thread_key] == nil || status[thread_key] == false
+          raise FailedThreadError, thread_key
+        end
+      end
+    else
+      done = true
+    end
     sleep 1 unless done
   end
 

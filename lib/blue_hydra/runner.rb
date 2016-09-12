@@ -46,6 +46,7 @@ module BlueHydra
     #     the command to run, typically btmon -T -i hci0 but will be different
     #     if running in file mode
     def start(command=@@command)
+      @stopping = false
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
@@ -174,7 +175,8 @@ module BlueHydra
         btmon_thread:      self.btmon_thread.status,
         chunker_thread:    self.chunker_thread.status,
         parser_thread:     self.parser_thread.status,
-        result_thread:     self.result_thread.status
+        result_thread:     self.result_thread.status,
+        stopping:          @stopping
       }
 
       unless BlueHydra.config["file"]
@@ -190,7 +192,13 @@ module BlueHydra
     # stop method this stops the threads but attempts to allow the result queue
     # to drain before fully exiting to prevent data loss
     def stop
+      return if @stopping
+      @stopping = true
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
+      unless BlueHydra.config["file"]
+        self.discovery_thread.kill if self.discovery_thread
+        self.ubertooth_thread.kill if self.ubertooth_thread
+      end
       self.btmon_thread.kill if self.btmon_thread # stop this first thread so data stops flowing ...
 
       stop_condition = Proc.new do
@@ -201,27 +209,26 @@ module BlueHydra
 
       # clear queue...
       until stop_condition.call
-        BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
-        sleep 15
+        unless self.cui_thread
+          BlueHydra.logger.info("Remaining queue depth: #{self.result_queue.length}")
+          sleep 5
+        else
+          sleep 1
+        end
       end
 
       BlueHydra.logger.info("Queue clear! Exiting.")
+
+      self.chunker_thread.kill if self.chunker_thread
+      self.parser_thread.kill  if self.parser_thread
+      self.result_thread.kill  if self.result_thread
+      self.cui_thread.kill     if self.cui_thread
 
       self.raw_queue       = nil
       self.chunk_queue     = nil
       self.result_queue    = nil
       self.info_scan_queue = nil
       self.l2ping_queue    = nil
-
-      unless BlueHydra.config["file"]
-        self.discovery_thread.kill if self.discovery_thread
-        self.ubertooth_thread.kill if self.ubertooth_thread
-      end
-
-      self.chunker_thread.kill if self.chunker_thread
-      self.parser_thread.kill  if self.parser_thread
-      self.result_thread.kill  if self.result_thread
-      self.cui_thread.kill     if self.cui_thread
     end
 
     # Start the thread which runs the specified command
@@ -397,6 +404,10 @@ module BlueHydra
                   #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name org.bluez was not provided by any .service files
                   #  dbus.exceptions.DBusException: org.freedesktop.DBus.Error.ServiceUnknown: The name :1.[0-9]{3} was not provided by any .service files
                   raise BluetoothdDbusError
+                elsif discovery_errors =~ /KeyboardInterrupt/
+                  # Sometimes the interrupt gets passed to test-discovery so assume it was meant for us
+                  BlueHydra.logger.info("BlueHydra Killed! Exiting... SIGINT")
+                  exit
                 end
               end
 
