@@ -7,6 +7,7 @@ require 'securerandom'
 require 'zlib'
 require 'yaml'
 require 'fileutils'
+require 'socket'
 
 # Gems
 require 'dm-migrations'
@@ -16,42 +17,6 @@ require 'louis'
 
 # Add to Load Path
 $:.unshift(File.dirname(__FILE__))
-
-# set all String properties to have a default length of 255
-DataMapper::Property::String.length(255)
-
-LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
-DATA_DIR         = '/opt/pwnix/data'
-DB_DIR           = File.join(DATA_DIR, 'blue_hydra')
-DB_NAME          = 'blue_hydra.db'
-DB_PATH          = File.join(DB_DIR, DB_NAME)
-
-if Dir.exists?(DATA_DIR)
-  unless Dir.exists?(DB_DIR)
-    Dir.mkdir(DB_DIR)
-  end
-end
-
-if File.exists?(LEGACY_DB_PATH) && Dir.exists?(DB_DIR)
-  FileUtils.mv(LEGACY_DB_PATH, DB_PATH) unless File.exists?(DB_PATH)
-end
-
-# The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
-# which the Pwnie Express chef scripts have been run. Otherwise it will attempt
-# to create a sqlite db whereever the run was initiated.
-#
-# When running the rspec tets the BLUE_HYDRA environmental value will be set to
-# 'test' and all tests should run with an in-memory db.
-db_path = if ENV["BLUE_HYDRA"] == "test"
-            'sqlite::memory:?cache=shared'
-          elsif  Dir.exist?(DB_DIR)
-            "sqlite:#{DB_PATH}"
-          else
-            "sqlite:#{DB_NAME}"
-          end
-
-# create the db file
-DataMapper.setup(:default, db_path)
 
 # Helpful Errors to raise in specific cased.
 class BluetoothdDbusError < StandardError; end
@@ -63,11 +28,12 @@ class BtmonExitedError < StandardError; end
 module BlueHydra
   # 0.0.1 first stable verison
   # 0.0.2 timestamps, feedback loop for info scans, l2ping
-  # 0.1.0 first working version with frozen models for pulse
+  # 0.1.0 first working version with frozen models for Pwn Pulse
   # 1.0.0 many refactors, already in stable sensor release as per 1.7.2
   # 1.1.0 CUI, readability refactor, many small improvements
   # 1.1.1 Range monitoring based on TX power, OSS cleanup
-  VERSION = '1.1.1'
+  # 1.1.2 Add pulse reset
+  VERSION = '1.1.2'
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.
@@ -232,13 +198,24 @@ module BlueHydra
     @@pulse = setting
   end
 
+  # setter/getter/better
+  def pulse_debug
+    @@pulse_debug ||= false
+  end
+  def pulse_debug=(setting)
+    @@pulse_debug = setting
+  end
+
+
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
-                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=
+                  :pulse=, :rssi_logger, :demo_mode, :demo_mode=,
+                  :pulse_debug, :pulse_debug=
 end
 
 # require the actual code
 require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
+require 'blue_hydra/pulse'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 require 'blue_hydra/command'
@@ -270,6 +247,43 @@ rescue
   end
 end
 
+# set all String properties to have a default length of 255
+DataMapper::Property::String.length(255)
+
+LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
+DATA_DIR         = '/opt/pwnix/data'
+DB_DIR           = File.join(DATA_DIR, 'blue_hydra')
+DB_NAME          = 'blue_hydra.db'
+DB_PATH          = File.join(DB_DIR, DB_NAME)
+
+if Dir.exists?(DATA_DIR)
+  unless Dir.exists?(DB_DIR)
+    Dir.mkdir(DB_DIR)
+  end
+end
+
+if File.exists?(LEGACY_DB_PATH) && Dir.exists?(DB_DIR)
+  FileUtils.mv(LEGACY_DB_PATH, DB_PATH) unless File.exists?(DB_PATH)
+end
+
+
+# The database will be stored in /opt/pwnix/blue_hydra.db if we are on a system
+# which the Pwnie Express chef scripts have been run. Otherwise it will attempt
+# to create a sqlite db whereever the run was initiated.
+#
+# When running the rspec tets the BLUE_HYDRA environmental value will be set to
+# 'test' and all tests should run with an in-memory db.
+db_path = if ENV["BLUE_HYDRA"] == "test" || OPTIONS[:no_db]
+            'sqlite::memory:?cache=shared'
+          elsif Dir.exist?(DB_DIR)
+            "sqlite:#{DB_PATH}"
+          else
+            "sqlite:#{DB_NAME}"
+          end
+
+# create the db file
+DataMapper.setup(:default, db_path)
+
 # DB Migration and upgrade logic
 begin
   begin
@@ -282,8 +296,6 @@ begin
     BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
     File.rename(db_file, "#{db_file}.corrupt")   #=> 0
 
-    # TODO send message to pulse offline all clients if the above scenario
-    # happened.
     DataMapper.auto_upgrade!
   end
 

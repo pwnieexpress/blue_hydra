@@ -49,16 +49,25 @@ module BlueHydra
       begin
         BlueHydra.logger.info("Runner starting with '#{command}' ...")
 
-        # Since it is unknown how long it has been since the system run last
-        # we should look at the DB and mark timed out devices as offline before
-        # starting anything else
-        BlueHydra.logger.info("Marking older devices as 'offline'...")
-        BlueHydra::Device.mark_old_devices_offline
+        # Check if we have any devices
+        if BlueHydra::Device.count == 0
+          # if we have no devices, tell pulse we are starting clean
+          BlueHydra.logger.info("No devices found in DB, starting clean.")
+          BlueHydra::Pulse.reset
+        else
+          #If we have devices, make sure to clean up their states and sync it all
 
-        # Sync everything to pwnpulse if the system is connected to the Pwnie
-        # Express cloud
-        BlueHydra.logger.info("Syncing all hosts to Pulse...") if BlueHydra.pulse
-        BlueHydra::Device.sync_all_to_pulse
+          # Since it is unknown how long it has been since the system run last
+          # we should look at the DB and mark timed out devices as offline before
+          # starting anything else
+          BlueHydra.logger.info("Marking older devices as 'offline'...")
+          BlueHydra::Device.mark_old_devices_offline
+
+          # Sync everything to pwnpulse if the system is connected to the Pwnie
+          # Express cloud
+          BlueHydra.logger.info("Syncing all hosts to Pulse...") if BlueHydra.pulse
+          BlueHydra::Device.sync_all_to_pulse
+        end
 
         # Query History is used to track what addresses have been pinged
         self.query_history   = {}
@@ -656,7 +665,7 @@ module BlueHydra
 
                       # if aggressive_rssi is set send all rssis to pulse
                       # this should not be set where avoidable
-                      if BlueHydra.config["aggressive_rssi"] && BlueHydra.pulse
+                      if BlueHydra.config["aggressive_rssi"] && ( BlueHydra.pulse || BlueHydra.pulse_debug )
                         attrs[k].each do |x|
                           send_data = {
                             type:   "bluetooth",
@@ -668,19 +677,10 @@ module BlueHydra
                           send_data[:data][:address] = address
                           send_data[:data][k] = [x]
 
-                          begin
-                            # create the json
-                            json = JSON.generate(send_data)
-
-                            # write json data to result socket
-                            TCPSocket.open('127.0.0.1', 8244) do |sock|
-                              sock.write(json)
-                              sock.write("\n")
-                              sock.flush
-                            end
-                          rescue => e
-                            BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
-                          end
+                          # create the json
+                          json_msg = JSON.generate(send_data)
+                          #send the json
+                          BlueHydra::Pulse.do_send(json_msg)
                         end
                       end
 

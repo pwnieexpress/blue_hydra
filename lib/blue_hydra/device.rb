@@ -288,56 +288,49 @@ class BlueHydra::Device
     end
   end
 
-
   # sync record to pulse
   def sync_to_pulse(sync_all=false)
-    return unless BlueHydra.pulse
+    if BlueHydra.pulse || BlueHydra.pulse_debug
 
-    send_data = {
-      type:   "bluetooth",
-      source: "blue-hydra",
-      version: BlueHydra::VERSION,
-      data: {}
-    }
+      send_data = {
+        type:   "bluetooth",
+        source: "blue-hydra",
+        version: BlueHydra::VERSION,
+        data: {}
+      }
 
-    # always include uuid, address, status
-    send_data[:data][:uuid]    = self.uuid
-    send_data[:data][:status]  = self.status
+      # always include uuid, address, status
+      send_data[:data][:uuid]    = self.uuid
+      send_data[:data][:status]  = self.status
 
-    # TODO once pulse is using uuid to lookup records we can move
-    # address into the syncable_attributes list and only include it if
-    # changes, unless of course we want to handle the case where the db gets
-    # reset and we have to resync hosts based on address alone or something
-    # but, like, that'll never happen right?
-    send_data[:data][:address] = self.address
+      # TODO once pulse is using uuid to lookup records we can move
+      # address into the syncable_attributes list and only include it if
+      # changes, unless of course we want to handle the case where the db gets
+      # reset and we have to resync hosts based on address alone or something
+      # but, like, that'll never happen right?
+      send_data[:data][:address] = self.address
 
-    @filthy_attributes ||= []
+      @filthy_attributes ||= []
 
-    syncable_attributes.each do |attr|
-      # ignore nil value attributes
-      if @filthy_attributes.include?(attr) || sync_all
-        val = self.send(attr)
-        unless [nil, "[]"].include?(val)
-          if is_serialized?(attr)
-            send_data[:data][attr] = JSON.parse(val)
-          else
-            send_data[:data][attr] = val
+      syncable_attributes.each do |attr|
+        # ignore nil value attributes
+        if @filthy_attributes.include?(attr) || sync_all
+          val = self.send(attr)
+          unless [nil, "[]"].include?(val)
+            if is_serialized?(attr)
+              send_data[:data][attr] = JSON.parse(val)
+            else
+              send_data[:data][attr] = val
+            end
           end
         end
       end
-    end
 
-    # create the json
-    json = JSON.generate(send_data)
-
-    # write json data to result socket
-    TCPSocket.open('127.0.0.1', 8244) do |sock|
-      sock.write(json)
-      sock.write("\n")
-      sock.flush
+      # create the json
+      json_msg = JSON.generate(send_data)
+      # send the json
+      BlueHydra::Pulse.do_send(json_msg)
     end
-  rescue => e
-    BlueHydra.logger.warn "Unable to connect to Hermes (#{e.message}), unable to send to pulse"
   end
 
   # set the :name attribute from the :short_name key only if name is not already
