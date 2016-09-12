@@ -308,6 +308,10 @@ class BlueHydra::Device
       # changes, unless of course we want to handle the case where the db gets
       # reset and we have to resync hosts based on address alone or something
       # but, like, that'll never happen right?
+      # XXX for cases like Gimbal the only thing that prevents us from sending 60
+      # address updates a minute is the fact that address is *not* in syncable attributes
+      # and it only gets sent when something else changes (like rssi).
+      # This was originally unintentional but it's really saving out bacon, don't change this for now
       send_data[:data][:address] = self.address
 
       @filthy_attributes ||= []
