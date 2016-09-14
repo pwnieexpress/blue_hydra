@@ -302,10 +302,7 @@ class BlueHydra::Device
       }
 
       # always include uuid, address, status
-      #
-      # TODO uuid needs to go away, column should be called 'sync_id'
-      #
-      send_data[:data][:sync_id] = self.uuid
+      send_data[:data][:uuid]    = self.uuid
       send_data[:data][:status]  = self.status
       send_data[:data][:sync_version] = BlueHydra::SYNC_VERSION
 
