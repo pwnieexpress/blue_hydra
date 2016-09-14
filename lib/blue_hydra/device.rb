@@ -307,6 +307,7 @@ class BlueHydra::Device
       #
       send_data[:data][:sync_id] = self.uuid
       send_data[:data][:status]  = self.status
+      send_data[:data][:sync_version] = BlueHydra::SYNC_VERSION
 
       # TODO once pulse is using uuid to lookup records we can move
       # address into the syncable_attributes list and only include it if
