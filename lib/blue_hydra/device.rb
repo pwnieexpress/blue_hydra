@@ -8,6 +8,8 @@ class BlueHydra::Device
 
   # Attributes for the DB
   property :id,                            Serial
+
+  # TODO: migrate this column to be called sync_id
   property :uuid,                          String
 
   property :name,                          String
@@ -300,7 +302,10 @@ class BlueHydra::Device
       }
 
       # always include uuid, address, status
-      send_data[:data][:uuid]    = self.uuid
+      #
+      # TODO uuid needs to go away, column should be called 'sync_id'
+      #
+      send_data[:data][:sync_id] = self.uuid
       send_data[:data][:status]  = self.status
 
       # TODO once pulse is using uuid to lookup records we can move
