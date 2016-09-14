@@ -9,6 +9,7 @@ module BlueHydra
           type:    "reset",
           source:  "blue-hydra",
           version: BlueHydra::VERSION,
+          sync_version: BlueHydra::SYNC_VERSION,
         })
 
         BlueHydra::Pulse.do_send(json_msg)
