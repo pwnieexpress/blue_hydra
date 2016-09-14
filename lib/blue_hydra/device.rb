@@ -302,8 +302,8 @@ class BlueHydra::Device
       }
 
       # always include uuid, address, status
-      send_data[:data][:uuid]    = self.uuid
-      send_data[:data][:status]  = self.status
+      send_data[:data][:sync_id]    = self.uuid
+      send_data[:data][:status]     = self.status
       send_data[:data][:sync_version] = BlueHydra::SYNC_VERSION
 
       # TODO once pulse is using uuid to lookup records we can move
