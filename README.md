@@ -30,7 +30,8 @@ On Debian-based systems, these packages can be installed with the following comm
 ```sudo apt-get install bluez bluez-test-scripts python-bluez python-dbus libsqlite3-dev ubertooth```
 
 In addition to the Bluetooth packages listed above you will need to have Ruby
-version 2.1 or higher installed. With ruby installed add the `bundler` gem and
+version 2.1 or higher installed, as well as Ruby development headers for gem compilation (on
+Debian based systems, this is the `ruby-dev` package). With ruby installed add the `bundler` gem and
 then run `bundle install` inside the checkout directory. 
 
 Once all dependencies are met simply run `./bin/blue_hydra` to start discovery.
