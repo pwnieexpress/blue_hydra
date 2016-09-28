@@ -252,13 +252,14 @@ class BlueHydra::Device
 
   def syncable_attributes
     [
-      :name, :vendor, :appearance, :company_type, :lmp_version,
-      :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
-      :classic_features_bitmap, :classic_major_class, :classic_minor_class,
-      :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
-      :last_seen, :classic_tx_power, :le_features, :classic_features,
-      :le_service_uuids, :classic_service_uuids, :classic_channels,
-      :classic_class, :classic_rssi, :le_flags, :le_rssi, :le_company_uuid
+      :name, :vendor, :appearance, :company, :le_company_data, :company_type,
+      :lmp_version, :manufacturer, :le_features_bitmap, :firmware,
+      :classic_mode, :classic_features_bitmap, :classic_major_class,
+      :classic_minor_class, :le_mode, :le_address_type,
+      :le_random_address_type, :le_tx_power, :last_seen, :classic_tx_power,
+      :le_features, :classic_features, :le_service_uuids,
+      :classic_service_uuids, :classic_channels, :classic_class, :classic_rssi,
+      :le_flags, :le_rssi, :le_company_uuid
     ]
   end
 
@@ -314,11 +315,10 @@ class BlueHydra::Device
         send_data[:data][:le_minor_num] = self.le_minor_num
       end
 
-      if self.le_company_data
+      # always include both of these if they are both set, otherwise they will
+      # be set as part of syncable_attributes below
+      if self.le_company_data && self.company
         send_data[:data][:le_company_data] = self.le_company_data
-      end
-
-      if self.company
         send_data[:data][:company] = self.company
       end
 
@@ -328,6 +328,7 @@ class BlueHydra::Device
       # changes, unless of course we want to handle the case where the db gets
       # reset and we have to resync hosts based on address alone or something
       # but, like, that'll never happen right?
+      #
       # XXX for cases like Gimbal the only thing that prevents us from sending 60
       # address updates a minute is the fact that address is *not* in syncable attributes
       # and it only gets sent when something else changes (like rssi).
