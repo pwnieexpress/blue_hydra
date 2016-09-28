@@ -254,14 +254,14 @@ class BlueHydra::Device
 
   def syncable_attributes
     [
-      :name, :vendor, :appearance, :company, :company_type, :lmp_version,
-      :manufacturer, :le_features_bitmap, :firmware, :classic_mode,
-      :classic_features_bitmap, :classic_major_class, :classic_minor_class,
-      :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
-      :last_seen, :classic_tx_power, :le_features, :classic_features,
-      :le_service_uuids, :classic_service_uuids, :classic_channels,
-      :classic_class, :classic_rssi, :le_flags, :le_rssi, :le_company_data,
-      :le_company_uuid, :le_proximity_uuid, :le_major_num, :le_minor_num
+      :name, :vendor, :appearance, :company, :le_company_data, :company_type,
+      :lmp_version, :manufacturer, :le_features_bitmap, :firmware,
+      :classic_mode, :classic_features_bitmap, :classic_major_class,
+      :classic_minor_class, :le_mode, :le_address_type,
+      :le_random_address_type, :le_tx_power, :last_seen, :classic_tx_power,
+      :le_features, :classic_features, :le_service_uuids,
+      :classic_service_uuids, :classic_channels, :classic_class, :classic_rssi,
+      :le_flags, :le_rssi, :le_company_uuid
     ]
   end
 
@@ -306,11 +306,32 @@ class BlueHydra::Device
       send_data[:data][:status]     = self.status
       send_data[:data][:sync_version] = BlueHydra::SYNC_VERSION
 
+      if self.le_proximity_uuid
+        send_data[:data][:le_proximity_uuid] = self.le_proximity_uuid
+      end
+
+      if self.le_major_num
+        send_data[:data][:le_major_num] = self.le_major_num
+      end
+
+      if self.le_minor_num
+        send_data[:data][:le_minor_num] = self.le_minor_num
+      end
+
+      # always include both of these if they are both set, otherwise they will
+      # be set as part of syncable_attributes below
+      if self.le_company_data && self.company
+        send_data[:data][:le_company_data] = self.le_company_data
+        send_data[:data][:company] = self.company
+      end
+
+
       # TODO once pulse is using uuid to lookup records we can move
       # address into the syncable_attributes list and only include it if
       # changes, unless of course we want to handle the case where the db gets
       # reset and we have to resync hosts based on address alone or something
       # but, like, that'll never happen right?
+      #
       # XXX for cases like Gimbal the only thing that prevents us from sending 60
       # address updates a minute is the fact that address is *not* in syncable attributes
       # and it only gets sent when something else changes (like rssi).
