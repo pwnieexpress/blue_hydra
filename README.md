@@ -25,9 +25,19 @@ sqlite3
 libsqlite3-dev
 ```
 
+If your chosen distro is still on bluez 4 please choose a more up to date distro.  Bluez 5 was released in 2012 and is required.
+
 On Debian-based systems, these packages can be installed with the following command line:
 
 ```sudo apt-get install bluez bluez-test-scripts python-bluez python-dbus libsqlite3-dev ubertooth```
+
+To install the needed gems it may be helpful (but not required) to use bundler:
+
+```
+sudo apt-get install ruby-dev bundler
+(from inside the blue_hydra directory)
+bundle install
+```
 
 In addition to the Bluetooth packages listed above you will need to have Ruby
 version 2.1 or higher installed, as well as Ruby development headers for gem compilation (on
