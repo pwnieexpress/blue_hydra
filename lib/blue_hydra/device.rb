@@ -258,8 +258,7 @@ class BlueHydra::Device
       :le_mode, :le_address_type, :le_random_address_type, :le_tx_power,
       :last_seen, :classic_tx_power, :le_features, :classic_features,
       :le_service_uuids, :classic_service_uuids, :classic_channels,
-      :classic_class, :classic_rssi, :le_flags, :le_rssi, :le_company_data,
-      :le_company_uuid, :le_proximity_uuid, :le_major_num, :le_minor_num
+      :classic_class, :classic_rssi, :le_flags, :le_rssi, :le_company_uuid
     ]
   end
 
@@ -302,6 +301,23 @@ class BlueHydra::Device
       # always include uuid, address, status
       send_data[:data][:uuid]    = self.uuid
       send_data[:data][:status]  = self.status
+
+      if self.le_proximity_uuid
+        send_data[:data][:le_proximity_uuid] = self.le_proximity_uuid
+      end
+
+      if self.le_major_num
+        send_data[:data][:le_major_num] = self.le_major_num
+      end
+
+      if self.le_minor_num
+        send_data[:data][:le_minor_num] = self.le_minor_num
+      end
+
+      if self.le_company_data
+        send_data[:data][:le_company_data] = self.le_company_data
+      end
+
 
       # TODO once pulse is using uuid to lookup records we can move
       # address into the syncable_attributes list and only include it if
