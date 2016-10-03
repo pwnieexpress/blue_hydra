@@ -220,6 +220,7 @@ require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 require 'blue_hydra/command'
 require 'blue_hydra/device'
+require 'blue_hydra/sync_version'
 require 'blue_hydra/cli_user_interface'
 require 'blue_hydra/cli_user_interface_tracker'
 
@@ -313,3 +314,9 @@ rescue => e
   end
   exit 1
 end
+
+if BlueHydra::SyncVersion.count == 0
+  BlueHydra::SyncVersion.new.save
+end
+
+BlueHydra::SYNC_VERSION = BlueHydra::SyncVersion.first.version
