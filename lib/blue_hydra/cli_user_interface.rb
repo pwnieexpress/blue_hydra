@@ -81,7 +81,7 @@ HELP
 
 puts msg
 
-gets.chomp
+$stdin.gets.chomp
     end
 
     # the main work loop which prints the actual data to screen
