@@ -217,7 +217,17 @@ module BlueHydra
         end
       end
 
-      BlueHydra.logger.info("Queue clear! Exiting.")
+      if OPTIONS[:no_db]
+        # when we know we are storing no database it makes no sense to leave the devices online
+        # tell pulse in advance that we are clearing this database so things do not get confused
+        # when bringing an older database back online
+        # this is our protection against running "blue_hydra; blue_hydra --no-db; blue_hydra"
+        BlueHydra.logger.info("Queue clear! Resetting Pulse then exiting.")
+        BlueHydra::Pulse.reset
+        BlueHydra.logger.info("Pulse reset! Exiting.")
+      else
+        BlueHydra.logger.info("Queue clear! Exiting.")
+      end
 
       self.chunker_thread.kill if self.chunker_thread
       self.parser_thread.kill  if self.parser_thread

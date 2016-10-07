@@ -155,7 +155,29 @@ module BlueHydra
            when grp[0] =~ /Company:/
              vals = grp.map(&:strip)
 
-             set_attr(:company, vals.shift.split(': ')[1])
+             #hack because datamapper doesn't respect varchar255 setting
+             company_tmp = vals.shift.split(': ')[1]
+             if company_tmp.length > 49 && company_tmp.scan(/\(/).count == 2
+               company_tmp = company_tmp.split('(')
+               company_tmp.delete_at(1)
+               company_tmp = company_tmp.join('(')
+               if company_tmp.length > 49
+                 BlueHydra.logger.warn("Attempted to handle long company and still too long:")
+                 BlueHydra.logger.warn("company    : #{company}")
+                 BlueHydra.logger.warn("company_tmp: #{company_tmp}")
+                 BlueHydra.logger.warn("Truncating company...")
+                 company_tmp = company_tmp[0,49]
+               end
+             end
+             if company_tmp.length > 49
+               BlueHydra.logger.warn("Did not attempt to handle long company and still too long:")
+               BlueHydra.logger.warn("company    : #{company}")
+               BlueHydra.logger.warn("company_tmp: #{company_tmp}")
+               BlueHydra.logger.warn("Truncating company...")
+               company_tmp = company_tmp[0,49]
+             end
+
+             set_attr(:company, company_tmp)
 
              company_type = nil
              company_type_last_set = nil
