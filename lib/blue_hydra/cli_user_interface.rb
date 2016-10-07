@@ -124,7 +124,7 @@ $stdin.gets.chomp
         # handle the input character
         case
         when ["q","Q"].include?(input) # bail out yo
-          stop!
+          exit
         when input == "s" # change key used for sorting moving left to right
           if sort == sortable_keys.last
             # if current key is last key we just rotate back to the first key
