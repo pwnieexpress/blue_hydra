@@ -160,8 +160,8 @@ module BlueHydra
              if company_tmp.length > 49 && company_tmp.scan(/\(/).count == 2
                company_tmp = company_tmp.split('(')
                company_tmp.delete_at(1)
-               company_tmp.join('(')
-               if company_tmp.lenth > 49
+               company_tmp = company_tmp.join('(')
+               if company_tmp.length > 49
                  BlueHydra.logger.warn("Attempted to handle long company and still too long:")
                  BlueHydra.logger.warn("company    : #{company}")
                  BlueHydra.logger.warn("company_tmp: #{company_tmp}")
