@@ -217,7 +217,7 @@ module BlueHydra
         end
       end
 
-      if OPTIONS[:no_db]
+      if BlueHydra.no_db
         # when we know we are storing no database it makes no sense to leave the devices online
         # tell pulse in advance that we are clearing this database so things do not get confused
         # when bringing an older database back online

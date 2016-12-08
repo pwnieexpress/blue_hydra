@@ -15,6 +15,11 @@ task "sync_all" do
   end
 end
 
+desc "BlueHydra Console"
+task "console" do 
+  binding.pry
+end
+
 desc "Summarize Devices"
 task "summary" do
   BlueHydra::Device.all.each do |dev|
