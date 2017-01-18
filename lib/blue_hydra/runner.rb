@@ -54,7 +54,6 @@ module BlueHydra
         if BlueHydra::Device.count == 0
           # if we have no devices, tell pulse we are starting clean
           BlueHydra.logger.info("No devices found in DB, starting clean.")
-          BlueHydra::Pulse.reset
         else
           #If we have devices, make sure to clean up their states and sync it all
 
@@ -69,6 +68,7 @@ module BlueHydra
           BlueHydra.logger.info("Syncing all hosts to Pulse...") if BlueHydra.pulse
           BlueHydra::Device.sync_all_to_pulse
         end
+        BlueHydra::Pulse.reset
 
         # Query History is used to track what addresses have been pinged
         self.query_history   = {}
