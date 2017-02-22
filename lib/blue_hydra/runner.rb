@@ -708,12 +708,8 @@ module BlueHydra
 
                       # update this value no more than 1 x / minute to avoid
                       # flooding pulse with too much noise.
-                      if (current_time - last_seen_time) > 60
-                        scan_results[address][k] = attrs[k]
-                        needs_push = true
-                      else
-                        attrs.delete(k)
-                      end
+                      scan_results[address][k] = attrs[k]
+                      needs_push = true
                     end
                   end
                 end
