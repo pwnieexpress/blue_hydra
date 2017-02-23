@@ -324,7 +324,11 @@ module BlueHydra
         set_attr(:firmware, line.split(': ')[1])
 
       when line =~ /^Service Data \(/
-        set_attr("#{bt_mode}_service_uuids".to_sym, line.split('Service Data ')[1])
+        #this has a lot of data, data that can change, data we don't really care about
+        #(UUID 0xfe9f): 0000000000000000000000000000000000000000
+        full_service_data = line.split('Service Data ')[1]
+        extracted_service_uuid = full_service_data.scan(/\(([^)]+)\)/)
+        set_attr("#{bt_mode}_service_uuids".to_sym, extracted_service_uuid)
 
       #  "Appearance: Watch (0x00c0)"
       when line =~ /^Appearance:/

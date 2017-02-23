@@ -20,3 +20,10 @@ Some stuff to do
 W, [2016-01-27T15:51:44.838857 #18723]  WARN -- : 00:61:71:D0:E1:EF multiple values detected for classic_features_bitmap: ["0xbf 0xfe 0xcf 0xfe 0xdb 0xff 0x7b 0x87", "0x07 0x00 0x00 0x00 0x00 0x00 0x00 0x00", "0x000002a8"]. Using first value...
 ```
 ^^ this looks severely like we are missing an (most likely le) start block, because that looks like a classic features bitmap colliding with an le one.
+
+We should lookup 16 bit uuid's as they are assigned:
+- https://www.bluetooth.com/specifications/assigned-numbers/16-bit-uuids-for-members
+- https://www.bluetooth.com/specifications/assigned-numbers/16-bit-uuids-for-sdos
+
+We should look up more things which are assigned
+- https://www.bluetooth.com/specifications/assigned-numbers
