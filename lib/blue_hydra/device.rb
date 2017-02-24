@@ -437,7 +437,7 @@ class BlueHydra::Device
     current = JSON.parse(self.le_service_uuids || '[]')
     # this map/flatten handles removing the service data we used to capture and normalizing it to just show uuid
     # the uniq just helps to not go through the same values over and over again in the new.map! loop
-    new = (new_uuids + current.map{|x|x.scan(/\(.*\)/)}.flatten.uniq)
+    new = (new_uuids + current.map{|x|x.split(':')[0]}.flatten.uniq)
 
     new.map! do |uuid|
       if uuid =~ /\(/
