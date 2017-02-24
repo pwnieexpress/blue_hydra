@@ -110,26 +110,30 @@ module BlueHydra
     def formatter=(fm); end
   end
 
-  # set log level from config
-  @@logger = if @@config["log_level"]
-               Logger.new(LOGFILE)
-             else
-               NilLogger.new
-             end
-  @@logger.level = case @@config["log_level"]
-                   when "fatal"
-                     Logger::FATAL
-                   when "error"
-                     Logger::ERROR
-                   when "warn"
-                     Logger::WARN
-                   when "info"
-                     Logger::INFO
-                   when "debug"
-                     Logger::DEBUG
-                   else
-                     Logger::INFO
-                   end
+  def self.initialize_logger
+    # set log level from config
+    @@logger = if @@config["log_level"]
+                 Logger.new(LOGFILE)
+               else
+                 NilLogger.new
+               end
+    @@logger.level = case @@config["log_level"]
+                     when "fatal"
+                       Logger::FATAL
+                     when "error"
+                       Logger::ERROR
+                     when "warn"
+                       Logger::WARN
+                     when "info"
+                       Logger::INFO
+                     when "debug"
+                       Logger::DEBUG
+                     else
+                       Logger::INFO
+                     end
+  end
+
+  initialize_logger
 
   # the RSSI log will only get used if the appropriate config value is set
   #
