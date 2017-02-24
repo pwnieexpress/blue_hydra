@@ -176,7 +176,7 @@ class BlueHydra::Device
         # we should only get a single value for these so we need to warn if
         # we are getting multiple values for these keys.. it should NOT be...
         if result[attr].uniq.count > 1
-          BlueHydra.logger.warn(
+          BlueHydra.logger.debug(
             "#{address} multiple values detected for #{attr}: #{result[attr].inspect}. Using first value..."
           )
         end
