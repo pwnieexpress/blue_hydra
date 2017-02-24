@@ -324,7 +324,18 @@ module BlueHydra
         set_attr(:firmware, line.split(': ')[1])
 
       when line =~ /^Service Data \(/
-        set_attr("#{bt_mode}_service_uuids".to_sym, line.split('Service Data ')[1])
+        #this has a lot of data, data that can change, data we don't really care about
+        #(UUID 0xfe9f): 0000000000000000000000000000000000000000
+        full_service_data = line.split('Service Data ')[1]
+        extracted_service_uuid = full_service_data.scan(/\(([^)]+)\)/).flatten[0]
+        #"UUID 0xfe9f"
+        just_uuid = extracted_service_uuid.split('UUID ')[1]
+        #0xfe9f
+        # We are throwing multiple very different values into this field.  To normalize the output we *should*
+        # do a lookup on this uuid and reformat to be "Information (0xefef)" to match the other sources
+        # This gets wrapped as "Unknown (0xfe9f)" by device model, but we should do a lookup, probably in device
+        # model, to read who registered this if possible.
+        set_attr("#{bt_mode}_service_uuids".to_sym, just_uuid)
 
       #  "Appearance: Watch (0x00c0)"
       when line =~ /^Appearance:/

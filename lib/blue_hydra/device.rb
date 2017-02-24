@@ -435,7 +435,19 @@ class BlueHydra::Device
   #     new uuids
   def le_service_uuids=(new_uuids)
     current = JSON.parse(self.le_service_uuids || '[]')
-    new = (new_uuids + current)
+
+    #first we fix our old data if needed
+    current_fixed = current.map do |x|
+      if x.split(':')[1]
+        #example x "(UUID 0xfe9f): 0000000000000000000000000000000000000000"
+        # this split/scan handles removing the service data we used to capture and normalizing it to just show uuid
+        x.split(':')[0].scan(/\(([^)]+)\)/).flatten[0].split('UUID ')[1]
+      else
+        x
+      end
+    end
+
+    new = (new_uuids + current_fixed)
 
     new.map! do |uuid|
       if uuid =~ /\(/
