@@ -86,6 +86,10 @@ trap('SIGINT') do
   done = true
 end
 
+trap('SIGHUP') do
+  BlueHydra.initialize_logger
+end
+
 begin
   BlueHydra.logger.info("BlueHydra Starting...")
   # Start the main workers...
