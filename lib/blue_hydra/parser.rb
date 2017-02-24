@@ -327,8 +327,8 @@ module BlueHydra
         #this has a lot of data, data that can change, data we don't really care about
         #(UUID 0xfe9f): 0000000000000000000000000000000000000000
         full_service_data = line.split('Service Data ')[1]
-        extracted_service_uuid = full_service_data.scan(/\(([^)]+)\)/)
-        #UUID 0xfe9f
+        extracted_service_uuid = full_service_data.scan(/\(([^)]+)\)/).flatten[0]
+        #"UUID 0xfe9f"
         just_uuid = extracted_service_uuid.split('UUID ')[1]
         #0xfe9f
         # We are throwing multiple very different values into this field.  To normalize the output we *should*
