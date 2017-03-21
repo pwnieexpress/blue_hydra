@@ -87,8 +87,9 @@ trap('SIGINT') do
   done = true
 end
 
+got_sighup = false
 trap('SIGHUP') do
-  BlueHydra.initialize_logger
+  got_sighup = true
 end
 
 begin
@@ -105,6 +106,12 @@ begin
       BlueHydra.logger.info("BlueHydra Killed! Exiting... SIGINT")
       exit_status = 0
       break
+    end
+
+    if got_sighup
+      BlueHydra.initialize_logger
+      BlueHydra.update_logger
+      got_sighup = false
     end
 
     # check the status of the runner and make sure all threads are alive
