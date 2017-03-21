@@ -117,6 +117,10 @@ module BlueHydra
                else
                  NilLogger.new
                end
+    @@logger.level = Logger::DEBUG
+  end
+
+  def self.update_logger
     @@logger.level = case @@config["log_level"]
                      when "fatal"
                        Logger::FATAL
@@ -134,6 +138,7 @@ module BlueHydra
   end
 
   initialize_logger
+  update_logger
 
   # the RSSI log will only get used if the appropriate config value is set
   #

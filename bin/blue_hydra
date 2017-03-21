@@ -110,6 +110,7 @@ begin
 
     if got_sighup
       BlueHydra.initialize_logger
+      BlueHydra.update_logger
       got_sighup = false
     end
 
