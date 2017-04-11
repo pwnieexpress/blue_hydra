@@ -66,8 +66,8 @@ bluetooth dongle.
 
 ## Configuring Options
 
-The config file is located in `/opt/pwnix/pwnix-config/blue_hydra.yml` on
-Pwnie devices. On systems which do no have the /opt/pwnix/pwnix-config
+The config file is located in `/opt/pwnix/data/blue_hydra/blue_hydra.yml` on
+Pwnie devices. On systems which do no have the /opt/pwnix/data
 directory the service will default to looking in the root of the services
 directory (where this README file is located. It will still be called
 `blue_hydra.yml`
@@ -84,7 +84,30 @@ The following options can be set:
 * `rssi_log`: `true|false`, if set will log serialized RSSI values
 * `aggressive_rssi`: `true|false`, if set will agressively send RSSIs to Pulse
 
-Helping with Development
+
+## Usage
+
+It may also be useful to check blue_hydra --help for additional command line options.  At this time it looks like this:
+
+Usage: BlueHydra [options]
+    -d, --daemonize                  Suppress output and run in daemon mode
+    -z, --demo                       Hide mac addresses in CLI UI
+    -p, --pulse                      Send results to hermes
+        --pulse-debug                Store results in a file for review
+        --no-db                      Keep db in ram only
+    -h, --help                       Show this message
+
+
+## Logging
+
+All data is logged to an sqlite database (unless --no-db) is passed at the command line.  The database is located in the blue_hydra
+directory, unless /opt/pwnix/data exists (Pwnie Express sensors) and then it is placed in /opt/pwnix/data/blue_hydra.
+
+An example for a script wrapping blue_hydra and creating a csv output after run is available here:
+https://github.com/pwnieexpress/pwn_pad_sources/blob/develop/scripts/blue_hydra.sh
+This script will simply take a timestamp before blue_hydra starts, and then again after it exits, then grab a few interesting values from the db and output in csv format.
+
+## Helping with Development
 
 PR's should be targeted against the "develop" branch.
 Develop branch gets merged to master branch and tagged during the release process.
