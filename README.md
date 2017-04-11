@@ -89,6 +89,7 @@ The following options can be set:
 
 It may also be useful to check blue_hydra --help for additional command line options.  At this time it looks like this:
 
+```
 Usage: BlueHydra [options]
     -d, --daemonize                  Suppress output and run in daemon mode
     -z, --demo                       Hide mac addresses in CLI UI
@@ -96,7 +97,7 @@ Usage: BlueHydra [options]
         --pulse-debug                Store results in a file for review
         --no-db                      Keep db in ram only
     -h, --help                       Show this message
-
+```
 
 ## Logging
 
