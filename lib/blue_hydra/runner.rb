@@ -2,7 +2,7 @@ module BlueHydra
 
   # This class is a wrapper for all the core functionality of  Blue Hydra. It
   # is responsible for managing all the threads for device interaction, data
-  # processing and, when not in daemon mode, the CLI UI trhead and tracker.
+  # processing and, when not in daemon mode, the CLI UI thread and tracker.
   class Runner
 
     attr_accessor :command,
@@ -268,15 +268,16 @@ module BlueHydra
       # interface reset
       interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config["bt_device"]} reset")[:stderr]
       if interface_reset
-        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
-        interface_reset.split("\n").each do |ln|
-          BlueHydra.logger.error(ln)
-        end
         if interface_reset =~ /Connection timed out/i || interface_reset =~ /Operation not possible due to RF-kill/i
           ## TODO: check error number not description
           ## TODO: check for interface name "Can't init device hci0: Connection timed out (110)"
           ## TODO: check for interface name "Can't init device hci0: Operation not possible due to RF-kill (132)"
           raise BluezNotReadyError
+        else
+          BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
+          interface_reset.split("\n").each do |ln|
+            BlueHydra.logger.error(ln)
+          end
         end
       end
     end
@@ -399,10 +400,6 @@ module BlueHydra
               self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra.daemon_mode
               discovery_errors = BlueHydra::Command.execute3(discovery_command,45)[:stderr]
               if discovery_errors
-                BlueHydra.logger.error("Error with test-discovery script..")
-                discovery_errors.split("\n").each do |ln|
-                  BlueHydra.logger.error(ln)
-                end
                 if discovery_errors =~ /org.bluez.Error.NotReady/
                   raise BluezNotReadyError
                 elsif discovery_errors =~ /dbus.exceptions.DBusException/i
@@ -418,6 +415,11 @@ module BlueHydra
                   # Sometimes the interrupt gets passed to test-discovery so assume it was meant for us
                   BlueHydra.logger.info("BlueHydra Killed! Exiting... SIGINT")
                   exit
+                else
+                  BlueHydra.logger.error("Error with test-discovery script..")
+                  discovery_errors.split("\n").each do |ln|
+                    BlueHydra.logger.error(ln)
+                  end
                 end
               end
 
@@ -425,6 +427,7 @@ module BlueHydra
               bluetoothd_errors = 0
 
             rescue BluetoothdDbusError
+              BlueHydra.logger.info("Bluetoothd errors, attempting to recover...")
               bluetoothd_errors += 1
               if bluetoothd_errors == 1
                 # Is bluetoothd running?
@@ -440,7 +443,7 @@ module BlueHydra
                       self.cui_thread.kill if self.cui_thread
                       puts "Bluetoothd is running but not controlled by init or functioning, please restart it manually."
                     end
-                    BlueHydra.logger.error("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
+                    BlueHydra.logger.fatal("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
                     exit 1
                   end
                 else
@@ -461,10 +464,11 @@ module BlueHydra
                 if bluetoothd_restart[:stderr]
                   BlueHydra.logger.error("Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}")
                 end
-                BlueHydra.logger.error("Bluetoothd is not functioning as expected")
+                BlueHydra.logger.fatal("Bluetoothd is not functioning as expected and we failed to automatically recover.")
                 exit 1
               end
             rescue BluezNotReadyError
+              BlueHydra.logger.info("Bluez reports not ready, attempting to recover...")
               bluez_errors += 1
               if bluez_errors == 1
                 BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready, attempting to reset with rfkill")
@@ -480,7 +484,7 @@ module BlueHydra
                   puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to auto-reset with rfkill"
                   puts "Try removing and replugging the card, or toggling rfkill on and off"
                 end
-                BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
+                BlueHydra.logger.fatal("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
                 exit 1
               end
             rescue => e
