@@ -163,7 +163,6 @@ module BlueHydra
                company_tmp = company_tmp.join('(')
                if company_tmp.length > 49
                  BlueHydra.logger.warn("Attempted to handle long company and still too long:")
-                 BlueHydra.logger.warn("company    : #{company}")
                  BlueHydra.logger.warn("company_tmp: #{company_tmp}")
                  BlueHydra.logger.warn("Truncating company...")
                  company_tmp = company_tmp[0,49]
@@ -171,7 +170,6 @@ module BlueHydra
              end
              if company_tmp.length > 49
                BlueHydra.logger.warn("Did not attempt to handle long company and still too long:")
-               BlueHydra.logger.warn("company    : #{company}")
                BlueHydra.logger.warn("company_tmp: #{company_tmp}")
                BlueHydra.logger.warn("Truncating company...")
                company_tmp = company_tmp[0,49]
