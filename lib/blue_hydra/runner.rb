@@ -2,7 +2,7 @@ module BlueHydra
 
   # This class is a wrapper for all the core functionality of  Blue Hydra. It
   # is responsible for managing all the threads for device interaction, data
-  # processing and, when not in daemon mode, the CLI UI trhead and tracker.
+  # processing and, when not in daemon mode, the CLI UI thread and tracker.
   class Runner
 
     attr_accessor :command,
@@ -399,10 +399,6 @@ module BlueHydra
               self.scanner_status[:test_discovery] = Time.now.to_i unless BlueHydra.daemon_mode
               discovery_errors = BlueHydra::Command.execute3(discovery_command,45)[:stderr]
               if discovery_errors
-                BlueHydra.logger.error("Error with test-discovery script..")
-                discovery_errors.split("\n").each do |ln|
-                  BlueHydra.logger.error(ln)
-                end
                 if discovery_errors =~ /org.bluez.Error.NotReady/
                   raise BluezNotReadyError
                 elsif discovery_errors =~ /dbus.exceptions.DBusException/i
@@ -418,6 +414,11 @@ module BlueHydra
                   # Sometimes the interrupt gets passed to test-discovery so assume it was meant for us
                   BlueHydra.logger.info("BlueHydra Killed! Exiting... SIGINT")
                   exit
+                else
+                  BlueHydra.logger.error("Error with test-discovery script..")
+                  discovery_errors.split("\n").each do |ln|
+                    BlueHydra.logger.error(ln)
+                  end
                 end
               end
 
@@ -425,6 +426,7 @@ module BlueHydra
               bluetoothd_errors = 0
 
             rescue BluetoothdDbusError
+              BlueHydra.logger.info("Bluetoothd errors, attempting to recover...")
               bluetoothd_errors += 1
               if bluetoothd_errors == 1
                 # Is bluetoothd running?
@@ -461,7 +463,7 @@ module BlueHydra
                 if bluetoothd_restart[:stderr]
                   BlueHydra.logger.error("Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}")
                 end
-                BlueHydra.logger.error("Bluetoothd is not functioning as expected")
+                BlueHydra.logger.error("Bluetoothd is not functioning as expected and we failed to automatically recover.")
                 exit 1
               end
             rescue BluezNotReadyError
