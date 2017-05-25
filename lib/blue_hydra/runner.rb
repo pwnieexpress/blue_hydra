@@ -273,11 +273,11 @@ module BlueHydra
           ## TODO: check for interface name "Can't init device hci0: Connection timed out (110)"
           ## TODO: check for interface name "Can't init device hci0: Operation not possible due to RF-kill (132)"
           raise BluezNotReadyError
-        end
-      else
-        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
-        interface_reset.split("\n").each do |ln|
-          BlueHydra.logger.error(ln)
+        else
+          BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
+          interface_reset.split("\n").each do |ln|
+            BlueHydra.logger.error(ln)
+          end
         end
       end
     end
