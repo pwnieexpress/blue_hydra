@@ -268,15 +268,16 @@ module BlueHydra
       # interface reset
       interface_reset = BlueHydra::Command.execute3("hciconfig #{BlueHydra.config["bt_device"]} reset")[:stderr]
       if interface_reset
-        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
-        interface_reset.split("\n").each do |ln|
-          BlueHydra.logger.error(ln)
-        end
         if interface_reset =~ /Connection timed out/i || interface_reset =~ /Operation not possible due to RF-kill/i
           ## TODO: check error number not description
           ## TODO: check for interface name "Can't init device hci0: Connection timed out (110)"
           ## TODO: check for interface name "Can't init device hci0: Operation not possible due to RF-kill (132)"
           raise BluezNotReadyError
+        end
+      else
+        BlueHydra.logger.error("Error with hciconfig #{BlueHydra.config["bt_device"]} reset..")
+        interface_reset.split("\n").each do |ln|
+          BlueHydra.logger.error(ln)
         end
       end
     end
@@ -467,6 +468,7 @@ module BlueHydra
                 exit 1
               end
             rescue BluezNotReadyError
+              BlueHydra.logger.info("Bluez reports not ready, attempting to recover...")
               bluez_errors += 1
               if bluez_errors == 1
                 BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready, attempting to reset with rfkill")
