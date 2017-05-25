@@ -443,7 +443,7 @@ module BlueHydra
                       self.cui_thread.kill if self.cui_thread
                       puts "Bluetoothd is running but not controlled by init or functioning, please restart it manually."
                     end
-                    BlueHydra.logger.error("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
+                    BlueHydra.logger.fatal("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
                     exit 1
                   end
                 else
@@ -464,7 +464,7 @@ module BlueHydra
                 if bluetoothd_restart[:stderr]
                   BlueHydra.logger.error("Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}")
                 end
-                BlueHydra.logger.error("Bluetoothd is not functioning as expected and we failed to automatically recover.")
+                BlueHydra.logger.fatal("Bluetoothd is not functioning as expected and we failed to automatically recover.")
                 exit 1
               end
             rescue BluezNotReadyError
@@ -484,7 +484,7 @@ module BlueHydra
                   puts "Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to auto-reset with rfkill"
                   puts "Try removing and replugging the card, or toggling rfkill on and off"
                 end
-                BlueHydra.logger.error("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
+                BlueHydra.logger.fatal("Bluez reported #{BlueHydra.config["bt_device"]} not ready and failed to reset with rfkill")
                 exit 1
               end
             rescue => e
