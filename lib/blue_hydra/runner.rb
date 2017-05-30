@@ -752,8 +752,6 @@ module BlueHydra
 
           last_sync = Time.now
 
-          last_status_sync = Time.now.to_i
-
           loop do
             # 1 day in seconds == 24 * 60 * 60 == 86400
             # daily sync
@@ -818,12 +816,6 @@ module BlueHydra
             end
 
             BlueHydra::Device.mark_old_devices_offline
-
-            if (Time.now.to_i - BlueHydra.config["status_sync_rate"]) > last_status_sync && BlueHydra.pulse
-              BlueHydra.logger.info("Syncing all host statuses to Pulse...")
-              BlueHydra::Device.sync_statuses_to_pulse
-              last_status_sync = Time.now.to_i
-            end
 
             sleep 1
           end

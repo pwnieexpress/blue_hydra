@@ -80,14 +80,6 @@ class BlueHydra::Device
     end
   end
 
-  # sync device status to pulse rather than full attribute set
-  def self.sync_statuses_to_pulse
-    BlueHydra::Device.all.each do |dev|
-      dev.instance_variable_set(:@filthy_attributes, [:status])
-      dev.sync_to_pulse(false)
-    end
-  end
-
   # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline
     # classic mode devices have 15 min timeout
