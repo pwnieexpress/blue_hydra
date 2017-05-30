@@ -33,7 +33,8 @@ module BlueHydra
   # 1.1.0 CUI, readability refactor, many small improvements
   # 1.1.1 Range monitoring based on TX power, OSS cleanup
   # 1.1.2 Add pulse reset
-  VERSION = '1.1.2'
+  # 1.2.0 drop status sync, restart will use a reset message to reset statuses if we miss both the original message and the daily changed syncs
+  VERSION = '1.2.0'
 
   # Config file located in /opt/pwnix/pwnix-config/blue_hydra.yml on sensors
   # or in the local directory if run on a non-Pwnie device.
@@ -58,7 +59,6 @@ module BlueHydra
     "log_level" =>         "info",
     "bt_device" =>         "hci0",       # change for external ud100
     "info_scan_rate" =>    60,           # 1 minute in seconds
-    "status_sync_rate" =>  60 * 60 * 24, # 1 day in seconds
     "btmon_log" =>         false,        # if set will write used btmon output to a log file
     "btmon_rawlog" =>      false,        # if set will write raw btmon output to a log file
     "file" =>              false,        # if set will read from file, not hci dev
