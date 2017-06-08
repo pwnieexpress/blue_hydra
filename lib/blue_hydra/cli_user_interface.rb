@@ -471,6 +471,12 @@ $stdin.gets.chomp
         e.backtrace.each do |x|
           BlueHydra.logger.error("#{x}")
         end
+        BlueHydra::Pulse.send_event("blue_hydra",
+        {key:'blue_hydra_cui_thread_error',
+        title:'Blue Hydras CUI Thread Encountered An Error',
+        message:"#{e.message}",
+        severity:'ERROR'
+        })
       end
     end
   end
