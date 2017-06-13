@@ -464,8 +464,8 @@ module BlueHydra
                     BlueHydra.logger.fatal("Bluetoothd is running but not controlled by init or functioning, please restart it manually.")
                     BlueHydra::Pulse.send_event('blue_hydra',
                     {key:'blue_hydra_bluetoothd_error',
-                    title:'Blue Hydra Encounterd Unrecoverable Bluetoothd Error',
-                    message:"Bluetoothd is running but not controlled by init or functioning, please restart it manually.",
+                    title:'Blue Hydra Encounterd Unrecoverable bluetoothd Error',
+                    message:"bluetoothd is running but not controlled by init or functioning",
                     severity:'FATAL'
                     })
                     exit 1
@@ -489,7 +489,7 @@ module BlueHydra
                   BlueHydra.logger.error("Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}")
                   BlueHydra::Pulse.send_event('blue_hydra',
                   {key:'blue_hydra_bluetoothd_restart_failed',
-                  title:'Blue Hydra Failed To Restart Bluetoothd',
+                  title:'Blue Hydra Failed To Restart bluetoothd',
                   message:"Failed to restart bluetoothd: #{bluetoothd_restart[:stderr]}",
                   severity:'ERROR'
                   })

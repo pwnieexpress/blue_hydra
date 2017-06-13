@@ -317,13 +317,13 @@ begin
     # file and then create a new db to proceed.
     db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
     BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
-    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
     BlueHydra::Pulse.send_event("blue_hydra",
     {key:'blue_hydra_db_corrupt',
     title:"Blue Hydra DB Corrupt",
     message:"#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
     severity:'ERROR'
     })
+    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
     DataMapper.auto_upgrade!
   end
 
