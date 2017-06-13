@@ -75,7 +75,8 @@ else
 end
 
 if BlueHydra.pulse || BlueHydra.pulse_debug
-  require '/opt/pwnix/lib/sensor_event'
+  $LOAD_PATH << '/opt/pwnix/lib'
+  require 'sensor_event'
 end
 
 # This file is used by the service scan to kill the process and should be
