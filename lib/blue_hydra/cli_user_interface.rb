@@ -109,8 +109,17 @@ $stdin.gets.chomp
       end
 
       # figure out the terminal height using tput command
+      begin
       max_height = `tput lines`.chomp.to_i
-
+      rescue Errno::ENOMEM, NoMemoryError
+        BlueHydra::Pulse.send_event('blue_hydra',
+        {
+          key: "bluehydra_oom",
+          title: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+          message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+          severity: "ERROR"
+        })
+      end
       until reset do
         trap("SIGWINCH") do
           # when we we get SIGWINCH we want to reset the display so we break

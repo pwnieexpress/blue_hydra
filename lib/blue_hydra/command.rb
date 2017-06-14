@@ -8,6 +8,7 @@ module BlueHydra::Command
   # == Returns
   #   Hash containing :stdout, :stderr, :exit_code from the command
   def execute3(command, timeout=false, timeout_signal="SIGKILL")
+    begin
     BlueHydra.logger.debug("Executing Command: #{command}")
     output = {}
     if timeout
@@ -46,6 +47,15 @@ module BlueHydra::Command
     output[:exit_code] = thread.value.exitstatus
 
     output
+    rescue Errno::ENOMEM, NoMemoryError
+      BlueHydra::Pulse.send_event('blue_hydra',
+      {
+        key: "bluehydra_oom",
+        title: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+        message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+        severity: "ERROR"
+      })
+    end
   end
 
   module_function :execute3

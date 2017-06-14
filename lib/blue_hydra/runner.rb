@@ -447,6 +447,7 @@ module BlueHydra
             rescue BluetoothdDbusError
               BlueHydra.logger.info("Bluetoothd errors, attempting to recover...")
               bluetoothd_errors += 1
+              begin
               if bluetoothd_errors == 1
                 # Is bluetoothd running?
                 bluetoothd_pid = `pgrep bluetoothd`.chomp
@@ -478,6 +479,15 @@ module BlueHydra
                 unless bluetoothd_restart[:exit_code] == 0
                   bluetoothd_errors += 1
                 end
+              end
+              rescue Errno::ENOMEM, NoMemoryError
+                BlueHydra::Pulse.send_event('blue_hydra',
+                 {
+                  key: "bluehydra_oom",
+                  title: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+                  message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+                  severity: "ERROR"
+                 })
               end
               if bluetoothd_errors > 1
                 unless BlueHydra.daemon_mode
