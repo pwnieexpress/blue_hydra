@@ -1,7 +1,7 @@
 module BlueHydra
   module Pulse
     def send_event(key,hash)
-      if BlueHydra.pulse || BlueHydra.pulse_debug
+      if BlueHydra.pulse
         SensorEvent.send_event(key,hash)
       end
     end
