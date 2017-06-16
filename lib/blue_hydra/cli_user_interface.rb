@@ -119,6 +119,7 @@ $stdin.gets.chomp
           message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
           severity: "ERROR"
         })
+        exit 1
       end
       until reset do
         trap("SIGWINCH") do

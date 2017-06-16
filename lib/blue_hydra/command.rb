@@ -33,6 +33,7 @@ module BlueHydra::Command
         message:"Command: #{command} exited unnaturally.",
         severity:'WARN'
         })
+        exit 1
       end
     end
 

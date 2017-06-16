@@ -488,6 +488,7 @@ module BlueHydra
                   message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
                   severity: "ERROR"
                  })
+                exit 1
               end
               if bluetoothd_errors > 1
                 unless BlueHydra.daemon_mode
