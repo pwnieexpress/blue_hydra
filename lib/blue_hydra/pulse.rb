@@ -5,6 +5,7 @@ module BlueHydra
         SensorEvent.send_event(key,hash)
       end
     end
+
     def reset
       if BlueHydra.pulse ||  BlueHydra.pulse_debug
 
@@ -40,6 +41,6 @@ module BlueHydra
       File.open("pulse_debug.log", 'a') { |file| file.puts(json) }
     end
 
-    module_function :do_send, :reset, :do_debug
+    module_function :do_debug, :do_send, :send_event, :reset
   end
 end
