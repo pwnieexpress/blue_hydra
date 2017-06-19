@@ -262,7 +262,7 @@ rescue
     {key:'blue_hydra_bt_device_mac_read_error',
     title:"Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
     message:msg,
-    severity:'ERROR'
+    severity:'FATAL'
     })
     BlueHydra.logger.error(msg)
     puts msg unless BlueHydra.daemon_mode
@@ -345,7 +345,7 @@ rescue => e
   {key:'blue_hydra_db_error',
   title:"Blue Hydra Encountered DB Migration Error",
   message:log_message,
-  severity:'ERROR'
+  severity:'FATAL'
   })
   exit 1
 end

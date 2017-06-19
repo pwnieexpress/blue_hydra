@@ -486,7 +486,7 @@ module BlueHydra
                   key: "bluehydra_oom",
                   title: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
                   message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
-                  severity: "ERROR"
+                  severity: "FATAL"
                  })
                 exit 1
               end
