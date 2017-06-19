@@ -8,6 +8,7 @@ module BlueHydra::Command
   # == Returns
   #   Hash containing :stdout, :stderr, :exit_code from the command
   def execute3(command, timeout=false, timeout_signal="SIGKILL")
+    begin
     BlueHydra.logger.debug("Executing Command: #{command}")
     output = {}
     if timeout
@@ -26,6 +27,12 @@ module BlueHydra::Command
         Process.kill(timeout_signal, thread.pid) unless thread.status == false
       rescue Errno::ESRCH
         BlueHydra.logger.warn("Command: #{command} exited unnaturally.")
+        BlueHydra::Pulse.send_event("blue_hydra",
+        {key:'blue_hydra_command_error',
+        title:'Blue Hydra subprocess exited unnaturally',
+        message:"Command: #{command} exited unnaturally.",
+        severity:'WARN'
+        })
       end
     end
 
@@ -40,6 +47,16 @@ module BlueHydra::Command
     output[:exit_code] = thread.value.exitstatus
 
     output
+    rescue Errno::ENOMEM, NoMemoryError
+      BlueHydra::Pulse.send_event('blue_hydra',
+      {
+        key: "bluehydra_oom",
+        title: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+        message: "BlueHydra couldnt allocate enough memory to run external command. Sensor OOM.",
+        severity: "FATAL"
+      })
+      exit 1
+    end
   end
 
   module_function :execute3

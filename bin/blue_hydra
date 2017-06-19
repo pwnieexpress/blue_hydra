@@ -74,6 +74,11 @@ else
   BlueHydra.no_db = false
 end
 
+if BlueHydra.pulse
+  $LOAD_PATH << '/opt/pwnix/lib'
+  require 'sensor_event'
+end
+
 # This file is used by the service scan to kill the process and should be
 # cleaned up when this crashes or is killed via the service scan. 
 PID_FILE = '/var/run/blue_hydra.pid'
