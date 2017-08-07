@@ -70,6 +70,8 @@ The "VERS" column in the following table shows mode and version if available.
 
 The "RANGE" column shows distance in meters from the device if known.
 
+Press "f" to change filter mode to the next setting (then enter)
+Press "F" to change filter mode to the previous setting (then enter)
 Press "s" to change sort to the next column to the right (then enter)
 Press "S" to change sort to the next column to the left (then enter)
 Press "r" to reverse the sort order (then enter)
@@ -86,9 +88,10 @@ $stdin.gets.chomp
 
     # the main work loop which prints the actual data to screen
     def cui_loop
-      reset   = false # determine if we need to reset the loop by restarting method
-      sort  ||= :_seen # default sort attribute
-      order ||= "ascending" #default sort order
+      reset         = false # determine if we need to reset the loop by restarting method
+      sort        ||= :_seen # default sort attribute
+      filter_mode   = BlueHydra.config["ui_filter_mode"]
+      order       ||= "ascending" #default sort order
 
       # set default printable keys, aka column headers
       printable_keys ||= [
@@ -99,6 +102,15 @@ $stdin.gets.chomp
       sortable_keys ||= [
         :last_seen, :vers, :address, :rssi
       ]
+
+      #set default for filter modes
+      filter_modes ||= [
+        :hilight, :exclusive, :disabled
+      ]
+
+      unless filter_modes.include?(filter_mode)
+        filter_mode = :disabled
+      end
 
       # if we are in debug mode we will also print the UUID so we can figure
       # out what record is being displayed in the DB
@@ -135,6 +147,30 @@ $stdin.gets.chomp
         case
         when ["q","Q"].include?(input) # bail out yo
           exit
+        when input == "f" # change filter mode forward
+          if filter_mode == filter_modes.last
+            # if current key is last key we just rotate back to the first key
+            filter_mode = filter_modes.first
+
+          elsif filter_modes.include?(filter_mode)
+            # increment the index of the key used to go to the filter mode
+            filter_mode = filter_modes[filter_modes.index(sort) + 1]
+          else
+            # default filter_mode
+            filter_mode = :hilight
+          end
+        when input == "F" # change filter mode backward
+          if filter_mode == filter_modes.first
+            # if current key is first key we just rotate back to the last key
+            filter_mode = filter_modes.last
+
+          elsif filter_modes.include?(filter_mode)
+            # increment the index of the key used to go to the filter mode
+            filter_mode = filter_modes[filter_modes.index(sort) - 1]
+          else
+            # default filter mode
+            filter_mode = :hilight
+          end
         when input == "s" # change key used for sorting moving left to right
           if sort == sortable_keys.last
             # if current key is last key we just rotate back to the first key
@@ -194,7 +230,7 @@ $stdin.gets.chomp
 
         # render the cui with and get back list of currently sortable keys for
         # next iteration of loop
-        sortable_keys = render_cui(max_height,sort,order,printable_keys)
+        sortable_keys = render_cui(max_height,sort,order,printable_keys,filter_mode)
         if sortable_keys.nil? || !sortable_keys.include?(sort)
           # if we have remove the column we were sorting on
           # reset the sort order to the default
@@ -222,7 +258,7 @@ $stdin.gets.chomp
     #     to desc
     #   printable_keys ::
     #     list of keys to be printed as table headers
-    def render_cui(max_height,sort,order,printable_keys)
+    def render_cui(max_height,sort,order,printable_keys,filter_mode)
       begin
 
         # skip if we are reading from a file
@@ -277,7 +313,7 @@ $stdin.gets.chomp
         # about the status of the discovery and ubertooth timers from the
         # runner
         unless BlueHydra.config["file"]
-          pbuff <<  "Discovery status timers: #{discovery_time}, ubertooth status: #{ubertooth_time}\n"
+          pbuff <<  "Discovery status timer: #{discovery_time}, Ubertooth status: #{ubertooth_time}, Filter mode: #{filter_mode}\n"
           lines += 1
         end
 
@@ -400,6 +436,20 @@ $stdin.gets.chomp
 
           # iterate across the  sorted data
           d.each do |data|
+
+            #here we handle filter/hilight control
+            unless filter_mode == :disabled
+              skip_data = true
+              if BlueHydra.config["ui_inc_filter_mac"].empty? && BlueHydra.config["ui_inc_filter_prox"].empty?
+                skip_data = false
+              else
+                if BlueHydra.config["ui_inc_filter_mac"].include?(data[:address]) || BlueHydra.config["ui_inc_filter_prox"].include?(data[:le_proximity_uuid])
+                  skip_data = false
+                end
+              end
+              next if ( skip_data && filter_mode == :exclusive )
+            end
+
             #prevent classic devices from expiring by forcing them onto the l2ping queue
             unless BlueHydra.config["file"]
               if data[:vers] =~ /cl/i
