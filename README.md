@@ -84,8 +84,8 @@ The following options can be set:
 * `rssi_log`: `true|false`, if set will log serialized RSSI values
 * `aggressive_rssi`: `true|false`, if set will agressively send RSSIs to Pulse
 * `ui_filter_mode`: `:disabled|:hilight|:exclusive`, set ui filtering to this mode by default
-* `ui_inc_filter_mac`: `\n- FF:FF:00:00:59:25`, set inclusive filter on this mac, each goes on a newline proceeded by hiphon and space
-* `ui_inc_filter_prox`: `\n- 669a0c20-0008-9191-e411-1b11d05d7707-9001-3364`, set inclusive filter on this proximity uuid - major number -minor number
+* `ui_inc_filter_mac`: `- FF:FF:00:00:59:25`, set inclusive filter on this mac, each goes on a newline proceeded by hiphon and space
+* `ui_inc_filter_prox`: `- 669a0c20-0008-9191-e411-1b11d05d7707-9001-3364`, set inclusive filter on this proximity_uuid-major_number-minor_number, each goes on a newline proceeded by hiphon and space
 
 ## Usage
 
