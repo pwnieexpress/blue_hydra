@@ -438,6 +438,7 @@ $stdin.gets.chomp
           d.each do |data|
 
             #here we handle filter/hilight control
+            hilight = "0"
             unless filter_mode == :disabled
               skip_data = true
               if BlueHydra.config["ui_inc_filter_mac"].empty? && BlueHydra.config["ui_inc_filter_prox"].empty?
@@ -445,8 +446,10 @@ $stdin.gets.chomp
               else
                 if BlueHydra.config["ui_inc_filter_mac"].include?(data[:address])
                   skip_data = false
-                elsif BlueHydra.config["ui_inc_filter_prox"].include?(data[:le_proximity_uuid]) 
+                  hilight = "7" if filter_mode == :hilight
+                elsif BlueHydra.config["ui_inc_filter_prox"].include?("#{data[:le_proximity_uuid]}-#{data[:le_major_num]}-#{data[:le_minor_num]}")
                   skip_data = false
+                  hilight = "7" if filter_mode == :hilight
                 end
               end
               next if ( skip_data && filter_mode == :exclusive )
@@ -476,13 +479,13 @@ $stdin.gets.chomp
             # since initially detecting
             color = case
                     when data[:created] > Time.now.to_i - 10  # in last 10 seconds
-                      "\e[0;32m" # green
+                      "\e[#{hilight};32m" # green
                     when data[:created] > Time.now.to_i - 30  # in last 30 seconds
-                      "\e[0;33m" # yellow
+                      "\e[#{hilight};33m" # yellow
                     when data[:last_seen] < (Time.now.to_i - cui_timeout + 20) # within 20 seconds expiring
-                      "\e[0;31m" # red
+                      "\e[#{hilight};31m" # red
                     else
-                      ""
+                      "\e[#{hilight}m"
                     end
 
             # for each key determin if the data should be left or right
