@@ -1,7 +1,6 @@
 calibrate range for sena dongle
 migrate away from dbus/test-discovery
 do we need to send status with aggressive_rssi?
-do not create log files if log is set to false
 
 refactor pass & code cleanup
 extend tests a bit
