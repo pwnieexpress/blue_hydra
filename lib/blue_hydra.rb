@@ -63,10 +63,10 @@ module BlueHydra
     "btmon_rawlog"       => false,        # if set will write raw btmon output to a log file
     "file"               => false,        # if set will read from file, not hci dev
     "rssi_log"           => false,        # if set will log rssi
-    "aggressive_rssi"    => false,         # if set will sync all rssi to pulse
-    "ui_filter_mode"     => :disabled,
-    "ui_inc_filter_mac"  => ["00:EX:AM:PL:EM:AC"],
-    "ui_inc_filter_prox" => []
+    "aggressive_rssi"    => false,        # if set will sync all rssi to pulse
+    "ui_filter_mode"     => :disabled,    # default ui filter mode to start in
+    "ui_inc_filter_mac"  => [],           # inclusive ui filter by mac
+    "ui_inc_filter_prox" => []            # inclusive ui filter by prox uuid / major /minor
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
