@@ -35,6 +35,12 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+unless Process.uid == 0
+  puts "BlueHydra must be run as root to function"
+  exit 1
+end
+
+
 # require the actual Blue Hydra code from lib
 require 'blue_hydra'
 
