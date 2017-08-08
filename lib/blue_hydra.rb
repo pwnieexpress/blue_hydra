@@ -56,14 +56,17 @@ module BlueHydra
   #
   # Note: "file" can also be set but has no default value
   DEFAULT_CONFIG = {
-    "log_level" =>         "info",
-    "bt_device" =>         "hci0",       # change for external ud100
-    "info_scan_rate" =>    60,           # 1 minute in seconds
-    "btmon_log" =>         false,        # if set will write used btmon output to a log file
-    "btmon_rawlog" =>      false,        # if set will write raw btmon output to a log file
-    "file" =>              false,        # if set will read from file, not hci dev
-    "rssi_log" =>          false,        # if set will log rssi
-    "aggressive_rssi" =>   false         # if set will sync all rssi to pulse
+    "log_level"          => "info",
+    "bt_device"          => "hci0",       # change for external ud100
+    "info_scan_rate"     => 60,           # 1 minute in seconds
+    "btmon_log"          => false,        # if set will write used btmon output to a log file
+    "btmon_rawlog"       => false,        # if set will write raw btmon output to a log file
+    "file"               => false,        # if set will read from file, not hci dev
+    "rssi_log"           => false,        # if set will log rssi
+    "aggressive_rssi"    => false,         # if set will sync all rssi to pulse
+    "ui_filter_mode"     => :disabled,
+    "ui_inc_filter_mac"  => ["00:EX:AM:PL:EM:AC"],
+    "ui_inc_filter_prox" => []
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
