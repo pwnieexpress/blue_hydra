@@ -1,6 +1,5 @@
 calibrate range for sena dongle
 migrate away from dbus/test-discovery
-update pwnix chef to use --pulse in init script
 do we need to send status with aggressive_rssi?
 do not create log files if log is set to false
 
