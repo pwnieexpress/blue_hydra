@@ -154,7 +154,7 @@ $stdin.gets.chomp
 
           elsif filter_modes.include?(filter_mode)
             # increment the index of the key used to go to the filter mode
-            filter_mode = filter_modes[filter_modes.index(sort) + 1]
+            filter_mode = filter_modes[filter_modes.index(filter_mode) + 1]
           else
             # default filter_mode
             filter_mode = :hilight
@@ -166,7 +166,7 @@ $stdin.gets.chomp
 
           elsif filter_modes.include?(filter_mode)
             # increment the index of the key used to go to the filter mode
-            filter_mode = filter_modes[filter_modes.index(sort) - 1]
+            filter_mode = filter_modes[filter_modes.index(filter_mode) - 1]
           else
             # default filter mode
             filter_mode = :hilight
@@ -443,7 +443,9 @@ $stdin.gets.chomp
               if BlueHydra.config["ui_inc_filter_mac"].empty? && BlueHydra.config["ui_inc_filter_prox"].empty?
                 skip_data = false
               else
-                if BlueHydra.config["ui_inc_filter_mac"].include?(data[:address]) || BlueHydra.config["ui_inc_filter_prox"].include?(data[:le_proximity_uuid])
+                if BlueHydra.config["ui_inc_filter_mac"].include?(data[:address])
+                  skip_data = false
+                elsif BlueHydra.config["ui_inc_filter_prox"].include?(data[:le_proximity_uuid]) 
                   skip_data = false
                 end
               end
