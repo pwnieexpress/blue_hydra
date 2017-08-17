@@ -246,6 +246,11 @@ require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/pulse'
 require 'blue_hydra/chunker'
+if BlueHydra.signal_spitter
+  #require 'socket' blue_hydra already unconditionally requires socket for pulse
+  require 'timeout'
+  #require 'json' blue_hydra already unconditionally requires json for pulse
+end
 require 'blue_hydra/runner'
 require 'blue_hydra/command'
 require 'blue_hydra/device'

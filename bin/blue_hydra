@@ -149,6 +149,11 @@ begin
         threads << :discovery_thread
       end
 
+      if BlueHydra.signal_spitter
+        threads << :signal_spitter_thread
+        threads << :empty_spittoon_thread
+      end
+
       threads.each do |thread_key|
         if status[thread_key] == nil || status[thread_key] == false
           raise FailedThreadError, thread_key
