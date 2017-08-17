@@ -103,7 +103,7 @@ module BlueHydra
         start_chunker_thread
 
         # start the thread responsible for parsing the chunks into little data
-        # blobs to be sotred in teh db
+        # blobs to be sorted in the db
         start_parser_thread
 
         # start the result processing thread
@@ -113,10 +113,15 @@ module BlueHydra
         # we are in daemon mode
         start_cui_thread unless BlueHydra.daemon_mode
 
+        # RSSI API
+        start_signal_spitter_thread if BlueHydra.signal_spitter
+
         # unless we are reading from a file we need to determine if we have an
         # ubertooth available and then initialize a thread to manage that
         # device as needed
         unless BlueHydra.config["file"]
+          #I am hoping this sleep randomly fixing the display issue in cui
+          sleep 1
           # Handle ubertooth
           self.scanner_status[:ubertooth] = "Detecting"
           if system("ubertooth-util -v > /dev/null 2>&1")

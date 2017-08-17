@@ -66,7 +66,8 @@ module BlueHydra
     "aggressive_rssi"    => false,        # if set will sync all rssi to pulse
     "ui_filter_mode"     => :disabled,    # default ui filter mode to start in
     "ui_inc_filter_mac"  => [],           # inclusive ui filter by mac
-    "ui_inc_filter_prox" => []            # inclusive ui filter by prox uuid / major /minor
+    "ui_inc_filter_prox" => [],           # inclusive ui filter by prox uuid / major /minor
+    "signal_spitter"     => false         # make raw signal strength api available on localhost:1124
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
