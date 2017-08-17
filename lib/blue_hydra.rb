@@ -227,9 +227,18 @@ module BlueHydra
     @@no_db = setting
   end
 
+  def signal_spitter
+    @@signal_spitter ||= false
+  end
+
+  def signal_spitter=(setting)
+    @@signal_spitter = setting
+  end
+
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
                   :pulse=, :rssi_logger, :demo_mode, :demo_mode=,
-                  :pulse_debug, :pulse_debug=, :no_db, :no_db=
+                  :pulse_debug, :pulse_debug=, :no_db, :no_db=,
+                  :signal_spitter, :signal_spitter=
 end
 
 # require the actual code

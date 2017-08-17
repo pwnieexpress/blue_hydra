@@ -14,6 +14,7 @@ module BlueHydra
                   :ubertooth_thread,
                   :chunker_thread,
                   :parser_thread,
+                  :signal_spitter_thread,
                   :cui_status,
                   :cui_thread,
                   :info_scan_queue,
@@ -821,6 +822,13 @@ module BlueHydra
           severity:'ERROR'
           })
         end
+      end
+    end
+
+    def start_signal_spitter_thread
+      BlueHydra.logger.debug("RSSI API starting")
+      self.signal_spitter_thread = Thread.new do
+        puts "rssi"
       end
     end
 
