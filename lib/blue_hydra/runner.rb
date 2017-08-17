@@ -582,6 +582,7 @@ module BlueHydra
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
         begin
+          kill_yourself = false
           loop do
             begin
               # Do a scan with ubertooth
@@ -597,8 +598,15 @@ module BlueHydra
               ubertooth_output = BlueHydra::Command.execute3(@ubertooth_command,60)
               if ubertooth_output[:stderr]
                 BlueHydra.logger.error("Error with ubertooth_{scan,rx}..")
+                if ubertooth_output[:stderr] =~ /Please upgrade to latest released firmware/
+                  self.scanner_status[:ubertooth] = 'Disabled, firmware upgrade required'
+                  kill_yourself = true
+                end
                 ubertooth_output[:stderr].split("\n").each do |ln|
                   BlueHydra.logger.error(ln)
+                end
+                if kill_yourself
+                  self.ubertooth_thread.kill
                 end
               else
                 ubertooth_output[:stdout].each_line do |line|
