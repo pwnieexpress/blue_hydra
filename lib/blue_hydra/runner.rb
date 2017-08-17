@@ -84,6 +84,17 @@ module BlueHydra
         self.info_scan_queue = Queue.new # result thread  -> discovery thread
         self.l2ping_queue    = Queue.new # result thread  -> discovery thread
 
+        # start the result processing thread
+        start_result_thread
+
+        # start the thread responsible for parsing the chunks into little data
+        # blobs to be sorted in the db
+        start_parser_thread
+
+        # start the thread responsibly for breaking the filtered btmon output
+        # into chunks by device, basically a pre-parser
+        start_chunker_thread
+
         # start the thrad which runs the command, typically btmon so this is
         # the btmon thread but this thread will also run the xzcat, zcat or cat
         # commands for files
@@ -97,17 +108,6 @@ module BlueHydra
         # another thread which operates the actual device discovery, not needed
         # if reading from a file since btmon will just be getting replayed
         start_discovery_thread unless BlueHydra.config["file"]
-
-        # start the thread responsibly for breaking the filtered btmon output
-        # into chunks by device, basically a pre-parser
-        start_chunker_thread
-
-        # start the thread responsible for parsing the chunks into little data
-        # blobs to be sorted in the db
-        start_parser_thread
-
-        # start the result processing thread
-        start_result_thread
 
         # start the thread responsible for printing the CUI to screen unless
         # we are in daemon mode
