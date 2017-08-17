@@ -85,6 +85,8 @@ end
 
 if options[:signal_spitter] || BlueHydra.config["signal_spitter"]
   BlueHydra.signal_spitter = true
+  require 'timeout' #easier to do this here than anywhere else
+  # we also need json and socket but those are unconditional requirements of pulse (which should be conditional)
 else
   BlueHydra.signal_spitter = false
 end

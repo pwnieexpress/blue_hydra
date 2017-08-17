@@ -875,8 +875,6 @@ module BlueHydra
                   client.close
                   return
                 end
-                require 'pry'
-                binding.pry
                 if magic_word == 'bluetooth'
                   if @rssi_data
                     @rssi_data_mutex.synchronize {
