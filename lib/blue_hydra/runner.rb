@@ -789,9 +789,8 @@ module BlueHydra
                           end
                           if BlueHydra.signal_spitter
                             @rssi_data_mutex.synchronize {
-                              @rssi_data[address] ||= {}
-                              @rssi_data[address][:signal] ||= []
-                              @rssi_data[address][:signal] << {ts: ts, dbm: rssi}
+                              @rssi_data[address] ||= []
+                              @rssi_data[address] << {ts: ts, dbm: rssi}
                             }
                           end
                         end
@@ -867,7 +866,7 @@ module BlueHydra
             loop do
               Thread.start(server.accept) do |client|
                 begin
-                  magic_word = Timeout::timeout(10) do
+                  magic_word = Timeout::timeout(1) do
                     client.gets.chomp
                   end
                 rescue Timeout::Error
@@ -911,7 +910,7 @@ module BlueHydra
             sleep 1 #this is pretty agressive but it seems fine
             @rssi_data_mutex.synchronize {
               @rssi_data.each do |address, address_meta|
-                @rssi_data[address][:signal].select{|d| d[:ts] > Time.now.to_i - signal_timeout} if @rssi_data[address]
+                @rssi_data[address].select{|d| d[:ts] > Time.now.to_i - signal_timeout} if @rssi_data[address]
               end
             }
           end
