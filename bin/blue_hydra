@@ -29,6 +29,9 @@ OptionParser.new do |opts|
   opts.on("--no-db", "Keep db in ram only") do |v|
     options[:no_db] = true
   end
+  opts.on("--rssi-api", "Open 127.0.0.1:1124 to allow other processes to poll for seen devices and rssi") do |v|
+    options[:signal_spitter] = true
+  end
   opts.on_tail("-h", "--help", "Show this message") do
     puts opts
     exit
@@ -78,6 +81,14 @@ if options[:no_db]
   BlueHydra.no_db = true
 else
   BlueHydra.no_db = false
+end
+
+if options[:signal_spitter] || BlueHydra.config["signal_spitter"]
+  BlueHydra.signal_spitter = true
+  require 'timeout' #easier to do this here than anywhere else
+  # we also need json and socket but those are unconditional requirements of pulse (which should be conditional)
+else
+  BlueHydra.signal_spitter = false
 end
 
 if BlueHydra.pulse
@@ -138,6 +149,11 @@ begin
 
       unless BlueHydra.config["file"]
         threads << :discovery_thread
+      end
+
+      if BlueHydra.signal_spitter
+        threads << :signal_spitter_thread
+        threads << :empty_spittoon_thread
       end
 
       threads.each do |thread_key|

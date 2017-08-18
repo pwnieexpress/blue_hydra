@@ -14,6 +14,8 @@ module BlueHydra
                   :ubertooth_thread,
                   :chunker_thread,
                   :parser_thread,
+                  :signal_spitter_thread,
+                  :empty_spittoon_thread,
                   :cui_status,
                   :cui_thread,
                   :info_scan_queue,
@@ -84,7 +86,25 @@ module BlueHydra
         self.info_scan_queue = Queue.new # result thread  -> discovery thread
         self.l2ping_queue    = Queue.new # result thread  -> discovery thread
 
-        # start the thrad which runs the command, typically btmon so this is
+        # start the result processing thread
+        start_result_thread
+
+        # RSSI API
+        if BlueHydra.signal_spitter
+          @rssi_data_mutex = Mutex.new #this is used by parser thread too
+          start_signal_spitter_thread
+          start_empty_spittoon_thread
+        end
+
+        # start the thread responsible for parsing the chunks into little data
+        # blobs to be sorted in the db
+        start_parser_thread
+
+        # start the thread responsible for breaking the filtered btmon output
+        # into chunks by device, basically a pre-parser
+        start_chunker_thread
+
+        # start the thread which runs the command, typically btmon so this is
         # the btmon thread but this thread will also run the xzcat, zcat or cat
         # commands for files
         start_btmon_thread
@@ -98,25 +118,17 @@ module BlueHydra
         # if reading from a file since btmon will just be getting replayed
         start_discovery_thread unless BlueHydra.config["file"]
 
-        # start the thread responsibly for breaking the filtered btmon output
-        # into chunks by device, basically a pre-parser
-        start_chunker_thread
-
-        # start the thread responsible for parsing the chunks into little data
-        # blobs to be sotred in teh db
-        start_parser_thread
-
-        # start the result processing thread
-        start_result_thread
-
         # start the thread responsible for printing the CUI to screen unless
         # we are in daemon mode
         start_cui_thread unless BlueHydra.daemon_mode
+
 
         # unless we are reading from a file we need to determine if we have an
         # ubertooth available and then initialize a thread to manage that
         # device as needed
         unless BlueHydra.config["file"]
+          #I am hoping this sleep randomly fixing the display issue in cui
+          sleep 1
           # Handle ubertooth
           self.scanner_status[:ubertooth] = "Detecting"
           if system("ubertooth-util -v > /dev/null 2>&1")
@@ -190,6 +202,11 @@ module BlueHydra
         x[:ubertooth_thread] = self.ubertooth_thread.status if self.ubertooth_thread
       end
 
+      if BlueHydra.signal_spitter
+        x[:signal_spitter_thread] = self.signal_spitter_thread.status
+        x[:empty_spittoon_thread] = self.empty_spittoon_thread.status
+      end
+
       x[:cui_thread] = self.cui_thread.status unless BlueHydra.daemon_mode
 
       x
@@ -201,11 +218,11 @@ module BlueHydra
       return if @stopping
       @stopping = true
       BlueHydra.logger.info("Runner stopped. Exiting after clearing queue...")
-      unless BlueHydra.config["file"]
+      self.btmon_thread.kill if self.btmon_thread # stop this first thread so data stops flowing ...
+      unless BlueHydra.config["file"] #then stop doing anything if we are doing anything
         self.discovery_thread.kill if self.discovery_thread
         self.ubertooth_thread.kill if self.ubertooth_thread
       end
-      self.btmon_thread.kill if self.btmon_thread # stop this first thread so data stops flowing ...
 
       stop_condition = Proc.new do
         [nil, false].include?(result_thread.status) ||
@@ -235,10 +252,12 @@ module BlueHydra
         BlueHydra.logger.info("Queue clear! Exiting.")
       end
 
-      self.chunker_thread.kill if self.chunker_thread
-      self.parser_thread.kill  if self.parser_thread
-      self.result_thread.kill  if self.result_thread
-      self.cui_thread.kill     if self.cui_thread
+      self.chunker_thread.kill        if self.chunker_thread
+      self.parser_thread.kill         if self.parser_thread
+      self.result_thread.kill         if self.result_thread
+      self.cui_thread.kill            if self.cui_thread
+      self.signal_spitter_thread.kill if self.signal_spitter_thread
+      self.empty_spittoon_thread.kill if self.empty_spittoon_thread
 
       self.raw_queue       = nil
       self.chunk_queue     = nil
@@ -576,6 +595,7 @@ module BlueHydra
       BlueHydra.logger.info("Ubertooth thread starting")
       self.ubertooth_thread = Thread.new do
         begin
+          kill_yourself = false
           loop do
             begin
               # Do a scan with ubertooth
@@ -591,8 +611,15 @@ module BlueHydra
               ubertooth_output = BlueHydra::Command.execute3(@ubertooth_command,60)
               if ubertooth_output[:stderr]
                 BlueHydra.logger.error("Error with ubertooth_{scan,rx}..")
+                if ubertooth_output[:stderr] =~ /Please upgrade to latest released firmware/
+                  self.scanner_status[:ubertooth] = 'Disabled, firmware upgrade required'
+                  kill_yourself = true
+                end
                 ubertooth_output[:stderr].split("\n").each do |ln|
                   BlueHydra.logger.error(ln)
+                end
+                if kill_yourself
+                  self.ubertooth_thread.kill
                 end
               else
                 ubertooth_output[:stdout].each_line do |line|
@@ -695,6 +722,7 @@ module BlueHydra
         begin
 
           scan_results = {}
+          @rssi_data ||= {} if BlueHydra.signal_spitter
 
           # get the chunks and parse them, track history, update CUI and push
           # to data processing thread
@@ -744,23 +772,33 @@ module BlueHydra
                       last_seen_time = (scan_results[address][k][0][:t] rescue 0)
 
                       # if log_rssi is set log all values
-                      if BlueHydra.config["rssi_log"]
+                      if BlueHydra.config["rssi_log"] || BlueHydra.signal_spitter
                         attrs[k].each do |x|
                           # unix timestamp from btmon
                           ts = x[:t]
 
-                          # LE / CL for classic mode
-                          type = k.to_s.gsub('_rssi', '').upcase[0,2]
-
                           # '-90 dBm' ->  -90
-                          rssi = x[:rssi].split(' ')[0]
-                          msg = [ts, type, address, rssi].join(' ')
-                          BlueHydra.rssi_logger.info(msg)
+                          rssi = x[:rssi].split(' ')[0].to_i
+
+                          if BlueHydra.config["rssi_log"]
+                            # LE / CL for classic mode
+                            type = k.to_s.gsub('_rssi', '').upcase[0,2]
+
+                            msg = [ts, type, address, rssi].join(' ')
+                            BlueHydra.rssi_logger.info(msg)
+                          end
+                          if BlueHydra.signal_spitter
+                            @rssi_data_mutex.synchronize {
+                              @rssi_data[address] ||= []
+                              @rssi_data[address] << {ts: ts, dbm: rssi}
+                            }
+                          end
                         end
                       end
 
                       # if aggressive_rssi is set send all rssis to pulse
                       # this should not be set where avoidable
+                      # signal_spitter *should* make this irrelevant, remove?
                       if BlueHydra.config["aggressive_rssi"] && ( BlueHydra.pulse || BlueHydra.pulse_debug )
                         attrs[k].each do |x|
                           send_data = {
@@ -813,6 +851,78 @@ module BlueHydra
           {key:'blue_hydra_parser_thread_error',
           title:'Blue Hydras Parser Thread Encountered An Error',
           message:"Parser thread error: #{e.message}",
+          severity:'ERROR'
+          })
+        end
+      end
+    end
+
+    def start_signal_spitter_thread
+      BlueHydra.logger.debug("RSSI API starting")
+      self.signal_spitter_thread = Thread.new do
+        begin
+          loop do
+            server = TCPServer.new("127.0.0.1", 1124)
+            loop do
+              Thread.start(server.accept) do |client|
+                begin
+                  magic_word = Timeout::timeout(1) do
+                    client.gets.chomp
+                  end
+                rescue Timeout::Error
+                  client.puts "ah ah ah, you didn't say the magic word"
+                  client.close
+                  return
+                end
+                if magic_word == 'bluetooth'
+                  if @rssi_data
+                    @rssi_data_mutex.synchronize {
+                      client.puts JSON.generate(@rssi_data)
+                    }
+                  end
+                end
+                client.close
+              end
+            end
+          end
+        rescue => e
+          BlueHydra.logger.error("RSSI API thread #{e.message}")
+          e.backtrace.each do |x|
+            BlueHydra.logger.error("#{x}")
+          end
+          BlueHydra::Pulse.send_event('blue_hydra',
+          {key:'blue_hydra_rssi_api_thread_error',
+          title:'Blue Hydras RSSI API Thread Encountered An Error',
+          message:"RSSI API thread error: #{e.message}",
+          severity:'ERROR'
+          })
+        end
+      end
+    end
+
+    def start_empty_spittoon_thread
+      self.empty_spittoon_thread = Thread.new do
+        BlueHydra.logger.debug("RSSI cleanup starting")
+        begin
+          signal_timeout = 120
+          sleep signal_timeout #no point in cleaning until there is stuff to clean
+          loop do
+            sleep 1 #this is pretty agressive but it seems fine
+            @rssi_data_mutex.synchronize {
+              @rssi_data.each do |address, address_meta|
+                @rssi_data[address].select{|d| d[:ts] > Time.now.to_i - signal_timeout} if @rssi_data[address]
+              end
+            }
+          end
+        rescue => e
+          BlueHydra.logger.error("RSSI cleanup thread #{e.message}")
+          e.backtrace.each do |x|
+            BlueHydra.logger.error("#{x}")
+          end
+          BlueHydra::Pulse.send_event('blue_hydra',
+          {key:'blue_hydra_rssi_cleanup_thread_error',
+          title:'Blue Hydras RSSI Cleanup Thread Encountered An Error',
+          message:"RSSI CLEANUP thread error: #{e.message}",
           severity:'ERROR'
           })
         end
