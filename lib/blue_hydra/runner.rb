@@ -22,7 +22,8 @@ module BlueHydra
                   :query_history,
                   :scanner_status,
                   :l2ping_queue,
-                  :result_thread
+                  :result_thread,
+                  :stunned
 
     # if we have been passed the 'file' option in the config we should try to
     # read out the file as our data source. This allows for btmon captures to
@@ -74,6 +75,9 @@ module BlueHydra
 
         # Query History is used to track what addresses have been pinged
         self.query_history   = {}
+
+        # Stunned
+        self.stunned = false
 
         # the command used to capture data
         self.command         = command
@@ -832,11 +836,11 @@ module BlueHydra
                 end
 
                 if needs_push
-                  result_queue.push(attrs)
+                  result_queue.push(attrs) unless self.stunned
                 end
               else
                 scan_results[address] = attrs
-                result_queue.push(attrs)
+                result_queue.push(attrs) unless self.stunned
               end
 
             end
