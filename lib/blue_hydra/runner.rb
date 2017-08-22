@@ -990,13 +990,26 @@ module BlueHydra
               result = result_queue.pop
 
               #this seems like the most expensive possible way to calculate speed, but I'm sure it's not
-              unless processing_timer == Time.now.to_i
-                self.processing_speed = processing_tracker
+              if Time.now.to_i >= processing_timer + 10
+                if processing_tracker == 0
+                  self.processing_speed = 0
+                else
+                  self.processing_speed = processing_tracker.to_f/10
+                end
                 processing_tracker    = 0
                 processing_timer      = Time.now.to_i
               end
 
               processing_tracker += 1
+
+              unless BlueHydra.config["file"]
+                # arbitrary low end cut off on slow processing to avoid stunning too often
+                if self.processing_speed > 3 && result_queue.length >= self.processing_speed * 10
+                  self.stunned = true
+                elsif result_queue.length > 200
+                  self.stunned = true
+                end
+              end
 
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
@@ -1020,6 +1033,8 @@ module BlueHydra
             end
 
             BlueHydra::Device.mark_old_devices_offline
+
+            self.stunned = false
 
             sleep 1
           end
