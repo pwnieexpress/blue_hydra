@@ -23,7 +23,8 @@ module BlueHydra
                   :scanner_status,
                   :l2ping_queue,
                   :result_thread,
-                  :stunned
+                  :stunned,
+                  :processing_speed
 
     # if we have been passed the 'file' option in the config we should try to
     # read out the file as our data source. This allows for btmon captures to
@@ -939,7 +940,10 @@ module BlueHydra
         begin
 
           #debugging
-          maxdepth = 0
+          maxdepth              = 0
+          self.processing_speed = 0
+          processing_tracker    = 0
+          processing_timer      = 0
 
           last_sync = Time.now
 
@@ -984,6 +988,15 @@ module BlueHydra
               end
 
               result = result_queue.pop
+
+              #this seems like the most expensive possible way to calculate speed, but I'm sure it's not
+              unless processing_timer == Time.now.to_i
+                self.processing_speed = processing_tracker
+                processing_tracker    = 0
+                processing_timer      = Time.now.to_i
+              end
+
+              processing_tracker += 1
 
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)

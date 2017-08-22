@@ -300,13 +300,14 @@ $stdin.gets.chomp
         else
           pbuff <<  "Devices Seen in last #{cui_timeout}s"
         end
+        pbuff << ", processing_speed: #{@runner.processing_speed}/s, DB Stunned: #{@runner.stunned}"
         pbuff << "\n"
         lines += 1
 
         # second line, information about runner queues to help determine if we
         # have a backlog. backlogs mean that the data being displayed may be
         # delayed
-        pbuff << "Queue status: DB Stunned: #{@runner.stunned}, result_queue: #{result_queue.length}, info_scan_queue: #{info_scan_queue.length}, l2ping_queue: #{l2ping_queue.length}\n"
+        pbuff << "Queue status:  result_queue: #{result_queue.length}, info_scan_queue: #{info_scan_queue.length}, l2ping_queue: #{l2ping_queue.length}\n"
         lines += 1
 
         # unless we are reading from a file we add a line with information
