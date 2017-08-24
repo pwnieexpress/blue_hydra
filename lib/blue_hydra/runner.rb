@@ -22,7 +22,9 @@ module BlueHydra
                   :query_history,
                   :scanner_status,
                   :l2ping_queue,
-                  :result_thread
+                  :result_thread,
+                  :stunned,
+                  :processing_speed
 
     # if we have been passed the 'file' option in the config we should try to
     # read out the file as our data source. This allows for btmon captures to
@@ -74,6 +76,9 @@ module BlueHydra
 
         # Query History is used to track what addresses have been pinged
         self.query_history   = {}
+
+        # Stunned
+        self.stunned = false
 
         # the command used to capture data
         self.command         = command
@@ -832,11 +837,11 @@ module BlueHydra
                 end
 
                 if needs_push
-                  result_queue.push(attrs)
+                  result_queue.push(attrs) unless self.stunned
                 end
               else
                 scan_results[address] = attrs
-                result_queue.push(attrs)
+                result_queue.push(attrs) unless self.stunned
               end
 
             end
@@ -935,7 +940,10 @@ module BlueHydra
         begin
 
           #debugging
-          maxdepth = 0
+          maxdepth              = 0
+          self.processing_speed = 0
+          processing_tracker    = 0
+          processing_timer      = 0
 
           last_sync = Time.now
 
@@ -981,6 +989,28 @@ module BlueHydra
 
               result = result_queue.pop
 
+              #this seems like the most expensive possible way to calculate speed, but I'm sure it's not
+              if Time.now.to_i >= processing_timer + 10
+                if processing_tracker == 0
+                  self.processing_speed = 0
+                else
+                  self.processing_speed = processing_tracker.to_f/10
+                end
+                processing_tracker    = 0
+                processing_timer      = Time.now.to_i
+              end
+
+              processing_tracker += 1
+
+              unless BlueHydra.config["file"]
+                # arbitrary low end cut off on slow processing to avoid stunning too often
+                if self.processing_speed > 3 && result_queue.length >= self.processing_speed * 10
+                  self.stunned = true
+                elsif result_queue.length > 200
+                  self.stunned = true
+                end
+              end
+
               if result[:address]
                 device = BlueHydra::Device.update_or_create_from_result(result)
 
@@ -1003,6 +1033,8 @@ module BlueHydra
             end
 
             BlueHydra::Device.mark_old_devices_offline
+
+            self.stunned = false
 
             sleep 1
           end

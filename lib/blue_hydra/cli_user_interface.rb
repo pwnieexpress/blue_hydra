@@ -300,6 +300,7 @@ $stdin.gets.chomp
         else
           pbuff <<  "Devices Seen in last #{cui_timeout}s"
         end
+        pbuff << ", processing_speed: #{@runner.processing_speed.round}/s, DB Stunned: #{@runner.stunned}"
         pbuff << "\n"
         lines += 1
 
