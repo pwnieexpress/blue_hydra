@@ -81,22 +81,32 @@ class BlueHydra::Device
   end
 
   # mark hosts as 'offline' if we haven't seen for a while
-  def self.mark_old_devices_offline
+  def self.mark_old_devices_offline(startup=false)
+    if startup
+      # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
+      # OLD DBS)
+      BlueHydra::Device.all(
+        le_mode:       false,
+        classic_mode:  false,
+        status:        "online"
+      ).select{|x|
+        x.last_seen < (Time.now.to_i - (15*60))
+      }.each{|device|
+        device.status = 'offline'
+        device.save
+      }
+    end
+
+    # Kill old things with fire
+    BlueHydra::Device.all(:updated_at.lte => Time.at(Time.now.to_i - 604800*2)).each do |dev|
+      dev.status = 'offline'
+      dev.sync_to_pulse(true)
+      BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
+      dev.destroy
+    end
+
     # classic mode devices have 15 min timeout
     BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-      x.last_seen < (Time.now.to_i - (15*60))
-    }.each{|device|
-      device.status = 'offline'
-      device.save
-    }
-
-    # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
-    # OLD DBS)
-    BlueHydra::Device.all(
-      le_mode:       false,
-      classic_mode:  false,
-      status:        "online"
-    ).select{|x|
       x.last_seen < (Time.now.to_i - (15*60))
     }.each{|device|
       device.status = 'offline'

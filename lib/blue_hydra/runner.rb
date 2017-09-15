@@ -52,7 +52,7 @@ module BlueHydra
     def start(command=@@command)
       @stopping = false
       begin
-        BlueHydra.logger.info("Runner starting with '#{command}' ...")
+        BlueHydra.logger.debug("Runner starting with command: '#{command}' ...")
 
         # Check if we have any devices
         if BlueHydra::Device.count == 0
@@ -65,7 +65,7 @@ module BlueHydra
           # we should look at the DB and mark timed out devices as offline before
           # starting anything else
           BlueHydra.logger.info("Marking older devices as 'offline'...")
-          BlueHydra::Device.mark_old_devices_offline
+          BlueHydra::Device.mark_old_devices_offline(true)
 
           # Sync everything to pwnpulse if the system is connected to the Pwnie
           # Express cloud
@@ -1036,7 +1036,8 @@ module BlueHydra
 
             self.stunned = false
 
-            sleep 1
+            # only sleep if we still have nothing to do, seconds count
+            sleep 1 if result_queue.empty?
           end
 
         rescue => e
