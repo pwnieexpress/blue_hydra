@@ -83,6 +83,12 @@ class BlueHydra::Device
   # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline(startup=false)
     if startup
+      # efficiently kill old things with fire
+      if DataMapper.repository.adapter.select("select uuid from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" limit 5000;").count == 5000
+        DataMapper.repository.adapter.select("delete from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" ;")
+        BlueHydra::Pulse.hard_reset
+      end
+
       # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
       # OLD DBS)
       BlueHydra::Device.all(

@@ -55,10 +55,7 @@ module BlueHydra
         BlueHydra.logger.debug("Runner starting with command: '#{command}' ...")
 
         # Check if we have any devices
-        if BlueHydra::Device.count == 0
-          # if we have no devices, tell pulse we are starting clean
-          BlueHydra.logger.info("No devices found in DB, starting clean.")
-        else
+        if !BlueHydra::Device.first.nil?
           #If we have devices, make sure to clean up their states and sync it all
 
           # Since it is unknown how long it has been since the system run last
@@ -71,6 +68,8 @@ module BlueHydra
           # Express cloud
           BlueHydra.logger.info("Syncing all hosts to Pulse...") if BlueHydra.pulse
           BlueHydra::Device.sync_all_to_pulse
+        else
+          BlueHydra.logger.info("No devices found in DB, starting clean.")
         end
         BlueHydra::Pulse.reset
 

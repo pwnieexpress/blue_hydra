@@ -22,6 +22,22 @@ module BlueHydra
       end
     end
 
+    def hard_reset
+      if BlueHydra.pulse ||  BlueHydra.pulse_debug
+
+        BlueHydra.logger.info("Sending db hard reset to pulse")
+
+        json_msg = JSON.generate({
+          type:    "reset",
+          source:  "blue-hydra",
+          version: BlueHydra::VERSION,
+          sync_version: "ANYTHINGBUTTHISVERSION",
+        })
+
+        BlueHydra::Pulse.do_send(json_msg)
+      end
+    end
+
     def do_send(json)
       BlueHydra::Pulse.do_debug(json) if BlueHydra.pulse_debug
       return unless BlueHydra.pulse
@@ -41,6 +57,6 @@ module BlueHydra
       File.open("pulse_debug.log", 'a') { |file| file.puts(json) }
     end
 
-    module_function :do_debug, :do_send, :send_event, :reset
+    module_function :do_debug, :do_send, :send_event, :reset, :hard_reset
   end
 end
