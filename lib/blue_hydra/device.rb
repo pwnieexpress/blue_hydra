@@ -128,16 +128,7 @@ class BlueHydra::Device
     }
   end
 
-  # this class method is take a result Hash and convert it into a new or update
-  # an existing record
-  #
-  # == Parameters :
-  #   result ::
-  #     Hash of results from parser
-  def self.update_or_create_from_result(result)
-
-    result = result.dup
-
+  def self.find_match(result)
     address = result[:address].first
 
     lpu  = result[:le_proximity_uuid].first if result[:le_proximity_uuid]
@@ -146,19 +137,50 @@ class BlueHydra::Device
 
     c = result[:company].first              if result[:company]
     d = result[:le_company_data].first      if result[:le_company_data]
+    starttime = Time.now.to_f
+    result = self.first_matching_address(address) ||
+    self.find_by_uap_lap(address) ||
+    self.le_match(lpu,lmn,lmn2) ||
+    self.company_match(c,d) ||
+    self.new
+    time = Time.now.to_f - starttime
+    BlueHydra.logger.info("lookup time: #{time}")
+    return result
+  end
+  def self.first_matching_address(address)
+    match_id = DataMapper.repository.adapter.select("select id from blue_hydra_devices where address = \"#{address}\" limit 1;").first
+    return nil unless match_id
+    return self.get(match_id)
+  end
+  def self.find_by_uap_lap(address)
+    uap_lap = address.split(":")[2,4].join(":")
+    match_id = DataMapper.repository.adapter.select("select id from blue_hydra_devices where uap_lap = \"#{uap_lap}\" limit 1;").first
+    return nil unless match_id
+    return self.get(match_id)
+  end
+  def self.le_match(lpu,lmn,lmn2)
+    return nil unless lpu && lmn && lmn2
+    match_id = DataMapper.repository.adapter.select("select id from blue_hydra_devices where le_proximity_uuid = \"#{lpu}\" and le_major_num = \"#{lmn}\" and le_minor_num = \"#{lmn2}\" limit 1;").first
+    return nil unless match_id
+    return self.get(match_id)
+  end
+  def self.company_match(c,d)
+    return nil unless c && d && c =~ /Gimbal/i
+    match_id = DataMapper.repository.adapter.select("select id from blue_hydra_devices where le_company_data = \"#{d}\" limit 1;").first
+    return nil unless match_id
+    return self.get(match_id)
+  end
+  # this class method is take a result Hash and convert it into a new or update
+  # an existing record
+  #
+  # == Parameters :
+  #   result ::
+  #     Hash of results from parser
+  def self.update_or_create_from_result(result)
 
-    record = self.all(address: address).first ||
-             self.find_by_uap_lap(address) ||
-             (lpu && lmn && lmn2 && self.all(
-               le_proximity_uuid: lpu,
-               le_major_num: lmn,
-               le_minor_num: lmn2
-             ).first) ||
-             (c && d && c =~ /Gimbal/i && self.all(
-               le_company_data: d
-             ).first) ||
-             self.new
+    result = result.dup#why are you duping this
 
+    record = self.find_match(result)
     # if we are processing things here we have, implicitly seen them so
     # mark as online?
     record.status = "online"
@@ -254,11 +276,6 @@ class BlueHydra::Device
     self[:uap_lap] = self.address.split(":")[2,4].join(":")
   end
 
-  # lookup helper method for uap_lap
-  def self.find_by_uap_lap(address)
-    uap_lap = address.split(":")[2,4].join(":")
-    self.all(uap_lap: uap_lap).first
-  end
 
   def syncable_attributes
     [
