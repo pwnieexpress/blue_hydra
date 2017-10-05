@@ -117,6 +117,8 @@ end
 begin
   BlueHydra.logger.info("BlueHydra Starting...")
   # Start the main workers...
+  GC.enable
+  GC.start(full_mark:true,immediate_sweep:true)
   runner = BlueHydra::Runner.new
   runner.start
 

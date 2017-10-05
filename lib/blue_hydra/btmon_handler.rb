@@ -5,6 +5,17 @@ module BlueHydra
   # recorded bluetooth scans.
   class BtmonHandler
 
+    KNOWN_COLORS = [
+      "\e[0;30m", "\e[1;30m",
+      "\e[0;31m", "\e[1;31m",
+      "\e[0;32m", "\e[1;32m",
+      "\e[0;33m", "\e[1;33m",
+      "\e[0;34m", "\e[1;34m",
+      "\e[0;35m", "\e[1;35m",
+      "\e[0;36m", "\e[1;36m",
+      "\e[0;37m", "\e[1;37m",
+      "\e[0m",
+    ].freeze
     # initialize an instance of the class to run a command and push filtered
     # output into the parsing and processing pipeline
     #
@@ -38,6 +49,19 @@ module BlueHydra
       end
     end
 
+    def stripcolor(line)
+      begin
+        KNOWN_COLORS.each do |c|
+          line.gsub!(c,'') if line.include?(c)
+        end
+        return line
+      rescue ArgumentError
+        BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line.chomp}")
+        return nil
+      end
+    end
+
+    #EMPTY_STRING = ''.freeze
     # spawn a PTY to run @command
     def spawn
       PTY.spawn(@command) do |stdout, stdin, pid|
@@ -49,33 +73,15 @@ module BlueHydra
         begin
           # handle the streaming output line by line
           stdout.each do |line|
-
+            next if line.empty?
             # log used btmon output for review if we are in debug mode
             if BlueHydra.config["btmon_rawlog"] && !BlueHydra.config["file"]
               @rawlog_writer.puts(line.chomp)
             end
 
             # strip out color codes
-            known_colors = [
-              "\e[0;30m", "\e[1;30m",
-              "\e[0;31m", "\e[1;31m",
-              "\e[0;32m", "\e[1;32m",
-              "\e[0;33m", "\e[1;33m",
-              "\e[0;34m", "\e[1;34m",
-              "\e[0;35m", "\e[1;35m",
-              "\e[0;36m", "\e[1;36m",
-              "\e[0;37m", "\e[1;37m",
-              "\e[0m",
-            ]
-
-            begin
-              known_colors.each do |c|
-                line = line.gsub(c, "")
-              end
-            rescue ArgumentError
-              BlueHydra.logger.warn("Non UTF-8 encoding in line: #{line.chomp}")
-              next
-            end
+            line = stripcolor(line)
+            next if line.nil? || line.empty?
 
             # Messages are indented under a header as follows
             #

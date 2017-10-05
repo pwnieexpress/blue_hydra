@@ -45,10 +45,7 @@ module BlueHydra
       end
     end
 
-    # test if the message indicates the start of a new message
-    def starting_chunk?(chunk=[])
-
-      chunk_zero_strings =[
+    CHUNK_ZERO_STRINGS = [
         "Connect Complete",
         "Role Change",
         "Extended Inqu",
@@ -56,11 +53,14 @@ module BlueHydra
         "Remote Name Req",
         "Remote Host Supported",
         "Connect Request"
-      ]
+    ].join('|').freeze
+    # test if the message indicates the start of a new message
+    def starting_chunk?(chunk=[])
+
 
       # if the first line of the message chunk matches one of these patterns
       # it indicates a start chunk
-      if chunk[0] =~ /#{chunk_zero_strings.join('|')}/
+      if chunk[0] =~ /#{CHUNK_ZERO_STRINGS}/
         true
 
       # LE start chunks are identified by patterns in their first and second

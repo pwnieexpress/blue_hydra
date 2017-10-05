@@ -1,19 +1,19 @@
 # Core Libs
 require 'pty'
 require 'logger'
-require 'json'
 require 'open3'
+require 'json'
 require 'securerandom'
+require 'sqlite3'
 require 'zlib'
 require 'yaml'
 require 'fileutils'
 require 'socket'
+require 'date'
 
 # Gems
-require 'dm-migrations'
-require 'dm-timestamps'
-require 'dm-validations'
 require 'louis'
+require 'oj'
 
 # Add to Load Path
 $:.unshift(File.dirname(__FILE__))
@@ -23,7 +23,6 @@ class BluetoothdDbusError < StandardError; end
 class BluezNotReadyError < StandardError; end
 class FailedThreadError < StandardError; end
 class BtmonExitedError < StandardError; end
-
 # Primary
 module BlueHydra
   # 0.0.1 first stable verison
@@ -71,7 +70,7 @@ module BlueHydra
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
-    old_config = JSON.parse(
+    old_config = Oj.load(
       File.read(LEGACY_CONFIG_FILE)
     )
     File.unlink(LEGACY_CONFIG_FILE)
@@ -242,6 +241,7 @@ module BlueHydra
 end
 
 # require the actual code
+require 'blue_hydra/db'
 require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/pulse'
@@ -283,8 +283,6 @@ rescue
   end
 end
 
-# set all String properties to have a default length of 255
-DataMapper::Property::String.length(255)
 
 LEGACY_DB_PATH   = '/opt/pwnix/blue_hydra.db'
 DATA_DIR         = '/opt/pwnix/data'
@@ -317,54 +315,61 @@ db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
             "sqlite:#{DB_NAME}"
           end
 
-# create the db file
-DataMapper.setup(:default, db_path)
+#TODO FINISH
+BlueHydra::DB.create_db unless BlueHydra::DB.db_exist?
 
+BlueHydra::DB.query('PRAGMA synchronous = OFF')
+BlueHydra::DB.query('PRAGMA journal_mode = MEMORY')
+
+#TODO SQLITE3?
+# set all String properties to have a default length of 255
+#DataMapper::Property::String.length(255)
+
+#TODO sqlite
 # DB Migration and upgrade logic
-begin
-  begin
-    # Upgrade the db..
-    DataMapper.auto_upgrade!
-  rescue DataObjects::ConnectionError
-    # in the case of an invalid / blank/ corrupt DB file we will back up the old
-    # file and then create a new db to proceed.
-    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
-    BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
-    BlueHydra::Pulse.send_event("blue_hydra",
-    {key:'blue_hydra_db_corrupt',
-    title:"Blue Hydra DB Corrupt",
-    message:"#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
-    severity:'ERROR'
-    })
-    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
-    DataMapper.auto_upgrade!
-  end
-
-  DataMapper.finalize
-
-  # massive speed up of sqlite by using in memory journal, this results in an
-  # increased potential of corrupted DBs so the above code is used to protect
-  # against that.
-  DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
-  DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')
-rescue => e
-  BlueHydra.logger.error("#{e.class}: #{e.message}")
-  log_message = ""
-  e.backtrace.each do |line|
-    BlueHydra.logger.error(line)
-    log_message << line
-  end
-  BlueHydra::Pulse.send_event("blue_hydra",
-  {key:'blue_hydra_db_error',
-  title:"Blue Hydra Encountered DB Migration Error",
-  message:log_message,
-  severity:'FATAL'
-  })
-  exit 1
-end
+#begin
+#  begin
+#    # Upgrade the db..
+#    DataMapper.auto_upgrade!
+#  rescue DataObjects::ConnectionError
+#    # in the case of an invalid / blank/ corrupt DB file we will back up the old
+#    # file and then create a new db to proceed.
+#    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
+#    BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
+#    BlueHydra::Pulse.send_event("blue_hydra",
+#    {key:'blue_hydra_db_corrupt',
+#    title:"Blue Hydra DB Corrupt",
+#    message:"#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
+#    severity:'ERROR'
+#    })
+#    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
+#    DataMapper.auto_upgrade!
+#  end
+#
+#  DataMapper.finalize
+#
+#  # massive speed up of sqlite by using in memory journal, this results in an
+#  # increased potential of corrupted DBs so the above code is used to protect
+#  # against that.
+#rescue => e
+#  BlueHydra.logger.error("#{e.class}: #{e.message}")
+#  log_message = ""
+#  e.backtrace.each do |line|
+#    BlueHydra.logger.error(line)
+#    log_message << line
+#  end
+#  BlueHydra::Pulse.send_event("blue_hydra",
+#  {key:'blue_hydra_db_error',
+#  title:"Blue Hydra Encountered DB Migration Error",
+#  message:log_message,
+#  severity:'FATAL'
+#  })
+#  exit 1
+#end
 
 if BlueHydra::SyncVersion.count == 0
-  BlueHydra::SyncVersion.new.save
+  BlueHydra::SyncVersion.create_new.save
 end
+
 
 BlueHydra::SYNC_VERSION = BlueHydra::SyncVersion.first.version

@@ -19,12 +19,15 @@ module BlueHydra
                   :cui_status,
                   :cui_thread,
                   :info_scan_queue,
+                  #LOL memory
                   :query_history,
                   :scanner_status,
                   :l2ping_queue,
                   :result_thread,
+                  :vitals_thread,
                   :stunned,
-                  :processing_speed
+                  :processing_speed,
+                  :processing_tracker
 
     # if we have been passed the 'file' option in the config we should try to
     # read out the file as our data source. This allows for btmon captures to
@@ -92,6 +95,7 @@ module BlueHydra
 
         # start the result processing thread
         start_result_thread
+        start_vitals_thread
 
         # RSSI API
         if BlueHydra.signal_spitter
@@ -198,6 +202,7 @@ module BlueHydra
         chunker_thread:    self.chunker_thread.status,
         parser_thread:     self.parser_thread.status,
         result_thread:     self.result_thread.status,
+        vitals_thread:     self.vitals_thread.status,
         stopping:          @stopping
       }
 
@@ -259,6 +264,7 @@ module BlueHydra
       self.chunker_thread.kill        if self.chunker_thread
       self.parser_thread.kill         if self.parser_thread
       self.result_thread.kill         if self.result_thread
+      self.vitals_thread.kill         if self.vitals_thread
       self.cui_thread.kill            if self.cui_thread
       self.signal_spitter_thread.kill if self.signal_spitter_thread
       self.empty_spittoon_thread.kill if self.empty_spittoon_thread
@@ -817,7 +823,7 @@ module BlueHydra
                           send_data[:data][k] = [x]
 
                           # create the json
-                          json_msg = JSON.generate(send_data)
+                          json_msg = Oj.dump(send_data)
                           #send the json
                           BlueHydra::Pulse.do_send(json_msg)
                         end
@@ -881,7 +887,7 @@ module BlueHydra
                 if magic_word == 'bluetooth'
                   if @rssi_data
                     @rssi_data_mutex.synchronize {
-                      client.puts JSON.generate(@rssi_data)
+                      client.puts Oj.dump(@rssi_data)
                     }
                   end
                 end
@@ -933,20 +939,116 @@ module BlueHydra
       end
     end
 
+    def processing_part_1
+      unless BlueHydra.config["file"]
+        # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
+        #   l2ping them :  "l2ping -c 3 result[:address]"
+        starttime = Time.now.to_f
+        data = BlueHydra::Device.all(classic_mode: true)
+        #BlueHydra.logger.info("device.all(classic_mode true) time: #{Time.now.to_f - starttime}")
+        data.select!{|x|
+          x.last_seen < (Time.now.to_i - (60 * 7)) && x.last_seen > (Time.now.to_i - (60*15))
+        }
+        return nil if data.nil? || data.empty?
+        data.each do |device|
+          self.query_history[device.address] ||= {}
+          if (Time.now.to_i - (60 * 7)) >= self.query_history[device.address][:l2ping].to_i
+
+            l2ping_queue.push({
+              command: :l2ping,
+              address: device.address
+            })
+
+            self.query_history[device.address][:l2ping] = Time.now.to_i
+          end
+        end
+        data = nil
+      end
+      return nil
+    end
+
+    def start_vitals_thread
+      self.vitals_thread ||= Thread.new do
+        processing_timer ||= 0
+        now ||= Time.now.to_i
+        loop do
+          sleep 1
+          now += 1
+          if now >= processing_timer + 1
+            if self.processing_tracker == 0
+              self.processing_speed = 0
+            else
+              self.processing_speed = self.processing_tracker
+            end
+            self.processing_tracker    = 0
+            processing_timer      = now
+          end
+        end
+        return nil
+      end
+    end
+
+    def processing_part_2(maxdepth)
+      until result_queue.empty?
+        #this seems like the most expensive possible way to calculate speed, but I'm sure it's not
+        if BlueHydra.daemon_mode
+          queue_depth = result_queue.length
+          if queue_depth > 250
+            if (maxdepth < queue_depth)
+              maxdepth = result_queue.length
+              BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
+            else
+              BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
+            end
+          end
+        end
+        result = result_queue.pop
+        self.processing_tracker += 1
+
+        unless BlueHydra.config["file"]
+          # arbitrary low end cut off on slow processing to avoid stunning too often
+          if self.processing_speed > 3 && result_queue.length >= self.processing_speed * 10
+            self.stunned = true
+          elsif result_queue.length > 200
+            self.stunned = true
+          end
+        end
+
+        if result[:address]
+          device = BlueHydra::Device.update_or_create_from_result(result)
+          unless BlueHydra.config["file"]
+            if device.le_mode
+              #do not info scan beacon type devices, they do not respond while in advertising mode
+              if device.company_type !~ /iBeacon/i && device.company !~ /Gimbal/i
+                push_to_queue(:le, device.address)
+              end
+            end
+            if device.classic_mode
+              push_to_queue(:classic, device.address)
+            end
+          end
+          device = nil
+        else
+          BlueHydra.logger.warn("Device without address #{Oj.dump(result)}")
+        end
+      end
+      return nil
+    end
+
     def start_result_thread
       BlueHydra.logger.info("Result thread starting")
-      self.result_thread = Thread.new do
+      self.result_thread ||= Thread.new do
         begin
 
           #debugging
           maxdepth              = 0
           self.processing_speed = 0
-          processing_tracker    = 0
-          processing_timer      = 0
-
+          self.processing_tracker = 0
           last_sync = Time.now
+          gcd = false
 
           loop do
+            BlueHydra::Device.mark_old_devices_offline
             # 1 day in seconds == 24 * 60 * 60 == 86400
             # daily sync
             if Time.now.to_i - 86400 >=  last_sync.to_i
@@ -954,89 +1056,29 @@ module BlueHydra
               last_sync = Time.now
             end
 
-            unless BlueHydra.config["file"]
-              # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
-              #   l2ping them :  "l2ping -c 3 result[:address]"
-              BlueHydra::Device.all(classic_mode: true).select{|x|
-                x.last_seen < (Time.now.to_i - (60 * 7)) && x.last_seen > (Time.now.to_i - (60*15))
-              }.each do |device|
-                self.query_history[device.address] ||= {}
-                if (Time.now.to_i - (60 * 7)) >= self.query_history[device.address][:l2ping].to_i
-
-                  l2ping_queue.push({
-                    command: :l2ping,
-                    address: device.address
-                  })
-
-                  self.query_history[device.address][:l2ping] = Time.now.to_i
-                end
+            if !result_queue.empty?
+              GC.start(full_mark:false,immediate_sweep:true)
+              #BlueHydra.logger.info("runner gc")
+              gcd=false
+            else
+              if !gcd
+                GC.start(full_mark:true,immediate_sweep:true)
+                #BlueHydra.logger.info("flush runner gc")
+                gcd=true
               end
             end
 
-            until result_queue.empty?
-              if BlueHydra.daemon_mode
-                queue_depth = result_queue.length
-                if queue_depth > 250
-                  if (maxdepth < queue_depth)
-                    maxdepth = result_queue.length
-                    BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} and rising")
-                  else
-                    BlueHydra.logger.warn("Popping off result queue. Max Depth: #{maxdepth} Currently: #{queue_depth}")
-                  end
-                end
-              end
-
-              result = result_queue.pop
-
-              #this seems like the most expensive possible way to calculate speed, but I'm sure it's not
-              if Time.now.to_i >= processing_timer + 10
-                if processing_tracker == 0
-                  self.processing_speed = 0
-                else
-                  self.processing_speed = processing_tracker.to_f/10
-                end
-                processing_tracker    = 0
-                processing_timer      = Time.now.to_i
-              end
-
-              processing_tracker += 1
-
-              unless BlueHydra.config["file"]
-                # arbitrary low end cut off on slow processing to avoid stunning too often
-                if self.processing_speed > 3 && result_queue.length >= self.processing_speed * 10
-                  self.stunned = true
-                elsif result_queue.length > 200
-                  self.stunned = true
-                end
-              end
-
-              if result[:address]
-                device = BlueHydra::Device.update_or_create_from_result(result)
-
-                unless BlueHydra.config["file"]
-                  if device.le_mode
-                    #do not info scan beacon type devices, they do not respond while in advertising mode
-                    if device.company_type !~ /iBeacon/i && device.company !~ /Gimbal/i
-                      push_to_queue(:le, device.address)
-                    end
-                  end
-
-                  if device.classic_mode
-                    push_to_queue(:classic, device.address)
-                  end
-                end
-
-              else
-                BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
-              end
+            begin
+              self.processing_part_1
             end
 
-            BlueHydra::Device.mark_old_devices_offline
+            begin
+              self.processing_part_2(maxdepth)
+            end
 
             self.stunned = false
-
             # only sleep if we still have nothing to do, seconds count
-            sleep 1 if result_queue.empty?
+            sleep 0.5 if result_queue.empty?
           end
 
         rescue => e

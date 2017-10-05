@@ -45,7 +45,14 @@ module BlueHydra::Command
     end
 
     output[:exit_code] = thread.value.exitstatus
-
+    stdout.close
+    stderr.close
+    thread.kill if thread
+    stdin = nil
+    stdout = nil
+    stderr = nil
+    thread = nil
+    GC.start
     output
     rescue Errno::ENOMEM, NoMemoryError
       BlueHydra::Pulse.send_event('blue_hydra',
