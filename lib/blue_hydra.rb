@@ -332,8 +332,12 @@ def brains_to_floor(db_path)
                                severity:'ERROR'
   })
   File.rename(db_file, "#{db_file}.corrupt")   #=> 0
-  DataMapper.setup(:default, db_path)
-  DataMapper.auto_upgrade!
+  BlueHydra.logger.fatal("Blue_Hydra needs to be restarted for this to take effect.")
+  puts("Blue_Hydra needs to be restarted for this to take effect.")
+  exit 1
+  ## I really wish this works but it doesn't reopen the file and holds the handle on the renamed file
+  #DataMapper.setup(:default, db_path)
+  #DataMapper.auto_upgrade!
 end
 
 # DB Migration and upgrade logic
