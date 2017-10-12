@@ -271,11 +271,11 @@ rescue
     puts "Failed to find mac address for #{BlueHydra.config["bt_device"]}, faking for tests"
   else
     msg = "Unable to read the mac address from #{BlueHydra.config["bt_device"]}"
-    BlueHydra::Pulse.send_event("blue_hydra",
-    {key:'blue_hydra_bt_device_mac_read_error',
-    title:"Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
-    message:msg,
-    severity:'FATAL'
+    BlueHydra::Pulse.send_event("blue_hydra", {
+      key:       'blue_hydra_bt_device_mac_read_error',
+      title:     "Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
+      message:   msg,
+      severity:  'FATAL'
     })
     BlueHydra.logger.error(msg)
     puts msg unless BlueHydra.daemon_mode
@@ -320,31 +320,46 @@ db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
 # create the db file
 DataMapper.setup(:default, db_path)
 
+def brains_to_floor(db_path)
+  # in the case of an invalid / blank/ corrupt DB file we will back up the old
+  # file and then create a new db to proceed.
+  db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
+  BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
+  BlueHydra::Pulse.send_event("blue_hydra", {
+    key:       'blue_hydra_db_corrupt',
+    title:     'Blue Hydra DB Corrupt',
+    message:   "#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
+    severity:  'ERROR'
+  })
+  File.rename(db_file, "#{db_file}.corrupt")   #=> 0
+  BlueHydra.logger.fatal("Blue_Hydra needs to be restarted for this to take effect.")
+  puts("Blue_Hydra needs to be restarted for this to take effect.")
+  exit 1
+  ## I really wish this works but it doesn't reopen the file and holds the handle on the renamed file
+  #DataMapper.setup(:default, db_path)
+  #DataMapper.auto_upgrade!
+end
+
 # DB Migration and upgrade logic
 begin
   begin
     # Upgrade the db..
     DataMapper.auto_upgrade!
   rescue DataObjects::ConnectionError
-    # in the case of an invalid / blank/ corrupt DB file we will back up the old
-    # file and then create a new db to proceed.
-    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
-    BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
-    BlueHydra::Pulse.send_event("blue_hydra",
-    {key:'blue_hydra_db_corrupt',
-    title:"Blue Hydra DB Corrupt",
-    message:"#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
-    severity:'ERROR'
-    })
-    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
-    DataMapper.auto_upgrade!
+    brains_to_floor(db_path)
+  end
+
+  #okay, database doesn't appear corrupt at first glance, but let's try a little bit harder...
+  we_cool = DataMapper.repository.adapter.select('PRAGMA integrity_check')
+  unless we_cool == ["ok"]
+    brains_to_floor(db_path)
   end
 
   DataMapper.finalize
 
   # massive speed up of sqlite by using in memory journal, this results in an
-  # increased potential of corrupted DBs so the above code is used to protect
-  # against that.
+  # increased potential of corrupted DBs so the above code is used to recover
+  # from that.
   DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
   DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')
 rescue => e
@@ -354,11 +369,11 @@ rescue => e
     BlueHydra.logger.error(line)
     log_message << line
   end
-  BlueHydra::Pulse.send_event("blue_hydra",
-  {key:'blue_hydra_db_error',
-  title:"Blue Hydra Encountered DB Migration Error",
-  message:log_message,
-  severity:'FATAL'
+  BlueHydra::Pulse.send_event("blue_hydra", {
+    key:       'blue_hydra_db_error',
+    title:     'Blue Hydra Encountered DB Migration Error',
+    message:   log_message,
+    severity:  'FATAL'
   })
   exit 1
 end
