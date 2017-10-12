@@ -271,11 +271,11 @@ rescue
     puts "Failed to find mac address for #{BlueHydra.config["bt_device"]}, faking for tests"
   else
     msg = "Unable to read the mac address from #{BlueHydra.config["bt_device"]}"
-    BlueHydra::Pulse.send_event("blue_hydra",
-    {key:'blue_hydra_bt_device_mac_read_error',
-    title:"Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
-    message:msg,
-    severity:'FATAL'
+    BlueHydra::Pulse.send_event("blue_hydra", {
+      key:       'blue_hydra_bt_device_mac_read_error',
+      title:     "Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
+      message:   msg,
+      severity:  'FATAL'
     })
     BlueHydra.logger.error(msg)
     puts msg unless BlueHydra.daemon_mode
@@ -325,11 +325,11 @@ def brains_to_floor(db_path)
   # file and then create a new db to proceed.
   db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
   BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
-  BlueHydra::Pulse.send_event("blue_hydra",
-                              {key:'blue_hydra_db_corrupt',
-                               title:"Blue Hydra DB Corrupt",
-                               message:"#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
-                               severity:'ERROR'
+  BlueHydra::Pulse.send_event("blue_hydra", {
+    key:       'blue_hydra_db_corrupt',
+    title:     'Blue Hydra DB Corrupt',
+    message:   "#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
+    severity:  'ERROR'
   })
   File.rename(db_file, "#{db_file}.corrupt")   #=> 0
   BlueHydra.logger.fatal("Blue_Hydra needs to be restarted for this to take effect.")
@@ -369,11 +369,11 @@ rescue => e
     BlueHydra.logger.error(line)
     log_message << line
   end
-  BlueHydra::Pulse.send_event("blue_hydra",
-  {key:'blue_hydra_db_error',
-  title:"Blue Hydra Encountered DB Migration Error",
-  message:log_message,
-  severity:'FATAL'
+  BlueHydra::Pulse.send_event("blue_hydra", {
+    key:       'blue_hydra_db_error',
+    title:     'Blue Hydra Encountered DB Migration Error',
+    message:   log_message,
+    severity:  'FATAL'
   })
   exit 1
 end
