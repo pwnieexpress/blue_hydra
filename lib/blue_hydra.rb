@@ -354,8 +354,8 @@ begin
   DataMapper.finalize
 
   # massive speed up of sqlite by using in memory journal, this results in an
-  # increased potential of corrupted DBs so the above code is used to protect
-  # against that.
+  # increased potential of corrupted DBs so the above code is used to recover
+  # from that.
   DataMapper.repository.adapter.select('PRAGMA synchronous = OFF')
   DataMapper.repository.adapter.select('PRAGMA journal_mode = MEMORY')
 rescue => e
