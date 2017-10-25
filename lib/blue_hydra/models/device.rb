@@ -240,7 +240,6 @@ class BlueHydra::Device < BlueHydra::SQLModel
     end
   end
 
-
   # set the last 4 octets of the mac as the uap_lap values
   #
   # These values are from mac addresses for bt devices as follows
@@ -258,8 +257,6 @@ class BlueHydra::Device < BlueHydra::SQLModel
     uap_lap = address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
     self.all(:uap_lap => uap_lap,:limit => 1).first
   end
-
-
 
   # This is a helper method to track what attributes change because all
   # attributes lose their 'dirty' status after save and the sync method is an
@@ -328,12 +325,11 @@ class BlueHydra::Device < BlueHydra::SQLModel
         if @filthy_attributes.include?(attr) || sync_all
           val = self.send(attr)
           unless [nil, "[]"].include?(val)
-          #  if self.is_serialized?(attr)
-          #    # parse the json data avoid double json things
-          #    send_data[:data][attr] = val
-          #  else
+            if self.is_serialized?(attr)
+              send_data[:data][attr] = JSON.parse(val)
+            else
               send_data[:data][attr] = val
-          #  end
+            end
           end
         end
       end
