@@ -1002,6 +1002,12 @@ module BlueHydra
             end
           end
         end
+        #if result_queue.length < 500 && !@stopit
+        #  while result_queue.length < 500
+        #    sleep 1
+        #  end
+        #  @stopit = true
+        #end
         result = result_queue.pop
         self.processing_tracker += 1
 

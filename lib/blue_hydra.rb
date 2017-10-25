@@ -241,15 +241,16 @@ module BlueHydra
 end
 
 # require the actual code
-require 'blue_hydra/db'
+require 'blue_hydra/models/sqlmodel'
+require 'blue_hydra/models/sync_version'
+require 'blue_hydra/models/device'
+require 'blue_hydra/db/db'
 require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/pulse'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 require 'blue_hydra/command'
-require 'blue_hydra/device'
-require 'blue_hydra/sync_version'
 require 'blue_hydra/cli_user_interface'
 require 'blue_hydra/cli_user_interface_tracker'
 

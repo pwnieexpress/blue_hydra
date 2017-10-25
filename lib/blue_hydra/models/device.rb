@@ -1,198 +1,93 @@
 #l this is the bluetooth Device model stored in the DB
-class BlueHydra::Device < BlueHydra::DB::SQLModel
+class BlueHydra::Device < BlueHydra::SQLModel
+# boilerplate model setup
   TABLE_NAME = 'blue_hydra_devices'.freeze
   def table_name
     TABLE_NAME
   end
-  # set up properties
-  BlueHydra::DB.keys(TABLE_NAME).each do |key,type|
-    sql_model_attr_accessor key
-  end
-  # validate the address. the only validation currently
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i.freeze
-  VALIDATION_MAP= { :address => MAC_REGEX }.freeze
+  EXISTS = /^.+$/.freeze
+  SCHEMA = { :id => {type: :integer, validate: EXISTS},
+             :status => {type: :string, validate: EXISTS},
+             :address => {type: :string, validate: MAC_REGEX},
+             :uuid => {type: :string},
+             :uap_lap => {type: :string},
+             :created_at => {type: :datetime},
+             :updated_at => {type: :datetime},
+             #syncable
+             :name => {type: :string, sync: true},
+             :vendor => {type: :string, sync: true},
+             :appearance => {type: :string, sync:true},
+             :company => {type: :string, sync: true},
+             :company_type => {type: :string, sync: true},
+             :lmp_version => {type: :string, sync: true},
+             :manufacturer => {type: :string, sync: true},
+             :firmware => {type: :string, sync: true},
+             :classic_mode => {type: :boolean, sync: true},
+             :classic_major_class => {type: :string, sync: true},
+             :classic_minor_class => {type: :string, sync: true},
+             :classic_tx_power => {type: :string, sync: true},
+             :le_mode => {type: :boolean, sync: true},
+             :le_address_type => {type: :string, sync: true},
+             :le_random_address_type => {type: :string, sync: true},
+             :le_company_data => {type: :string, sync: true},
+             :le_company_uuid => {type: :string, sync: true},
+             :le_proximity_uuid => {type: :string, sync: true},
+             :le_major_num => {type: :string, sync: true},
+             :le_minor_num => {type: :string, sync: true},
+             :le_tx_power => {type: :string, sync: true},
+             :ibeacon_range => {type: :string, sync: true},
+             :last_seen => {type: :integer, sync: true},
+             :classic_service_uuids => {type: :json, sync: true, serialized: true},
+             :classic_channels => {type: :json, sync: true, serialized: true},
+             :classic_class => {type: :json, sync: true, serialized: true},
+             :classic_rssi => {type: :json, sync: true, serialized: true},
+             :classic_features => {type: :json, sync: true, serialized: true},
+             :le_service_uuids => {type: :json, sync: true, serialized: true},
+             :le_flags => {type: :json, sync: true, serialized: true},
+             :le_rssi => {type: :json, sync: true, serialized: true},
+             :le_features => {type: :json, sync: true, serialized: true},
+             :le_features_bitmap => {type: :json, sync: true, serialized: true },
+             :classic_features_bitmap => {type: :json, sync: true, serialized: true }
+           }.freeze
+  # set up properties
+  SCHEMA.each do |property,metadata|
+    sql_model_attr_accessor property
+  end
+  def self.schema
+    SCHEMA
+  end
+  SYNCABLE_ATTRIBUTES = SCHEMA.select{|p,h| h.keys.include?(:sync)}.keys
+  SERIALIZED_ATTRIBUTES = SCHEMA.select{|p,h| h[:type] == :json}.keys
+  INTERNAL_USE_ATTRIBUTES = [:id]
+  NORMAL_ATTRIBUTES = ((SCHEMA.keys - SERIALIZED_ATTRIBUTES) - INTERNAL_USE_ATTRIBUTES)
+  valid = {}
+  SCHEMA.select{|p,h| h.keys.include?(:validate)}.each{|p,h| valid[p] = h[:validate]}
+  VALIDATION_MAP = valid
   def validation_map
     VALIDATION_MAP
   end
-  # map because results come back as symbol key and i didnt wanna change everything right now also didnt wanna dynamically generate symbols vs keys
-  NORMAL_ATTRS = {'address' => :address,
-                  'name' => :name,
-                  'manufacturer' => :manufacturer,
-                  'short_name' => :short_name,
-                  'lmp_version' => :lmp_version,
-                  'firmware' => :firmware,
-                  'classic_major_class' => :classic_major_class,
-                  'classic_minor_class' => :classic_minor_class,
-                  'le_tx_power' => :le_tx_power,
-                  'classic_tx_power' => :classic_tx_power,
-                  'company' => :company,
-                  'company_type' => :company_type,
-                  'appearance' => :appearance,
-                  'le_address_type' => :le_address_type,
-                  'le_random_address_type' => :le_random_address_type,
-                  'le_company_uuid' => :le_company_uuid,
-                  'le_company_data' => :le_company_data,
-                  'le_proximity_uuid' => :le_proximity_uuid,
-                  'le_major_num' => :le_major_num,
-                  'le_minor_num' => :le_minor_num,
-                  'classic_mode' => :classic_mode,
-                  'le_mode' => :le_mode
-                  }.freeze
-  ARRAY_ATTRS = {'classic_features' => :classic_features,
-                  'le_features' => :le_features,
-                  'le_flags' => :le_flags,
-                  'classic_channels' => :classic_channels,
-                  'classic_class' => :classic_class,
-                  'le_rssi' => :le_rssi,
-                  'classic_rssi' => :classic_rssi,
-                  'le_service_uuids' => :le_service_uuids,
-                  'classic_service_uuids' => :classic_service_uuids,
-                  'le_features_bitmap' => :le_features_bitmap,
-                  'classic_features_bitmap' => :classic_features_bitmap
-                  }.freeze
-
-  SYNCABLE_ATTRS = [
-                    :name, :vendor, :appearance, :company, :le_company_data, :company_type,
-                    :lmp_version, :manufacturer, :le_features_bitmap, :firmware,
-                    :classic_mode, :classic_features_bitmap, :classic_major_class,
-                    :classic_minor_class, :le_mode, :le_address_type,
-                    :le_random_address_type, :le_tx_power, :last_seen, :classic_tx_power,
-                    :le_features, :classic_features, :le_service_uuids,
-                    :classic_service_uuids, :classic_channels, :classic_class, :classic_rssi,
-                    :le_flags, :le_rssi, :le_company_uuid
-                   ].freeze
-
   def syncable_attributes
-    SYNCABLE_ATTRS
+    SYNCABLE_ATTRIBUTES
   end
-
-  SERIALIZED_ATTRS= [
-                     :classic_channels,
-                     :classic_class,
-                     :classic_features,
-                     :le_features,
-                     :le_flags,
-                     :le_service_uuids,
-                     :classic_service_uuids,
-                     :classic_rssi,
-                     :le_rssi
-                    ].freeze
-
   def self.is_serialized?(attr)
-    SERIALIZED_ATTRS.include?(attr)
+    SERIALIZED_ATTRIBUTES.include?(attr)
   end
-
   def initialize(id=nil)
-     super(self)
+     setup
      load_row(id) if id
      self
   end
 
-  def self.create_new
-    newobj = BlueHydra::Device.new
-    newobj.id = newobj.create_new_row
-    return newobj
-  end
-
-  def load_row(id=nil)
-    id = self.id if id.nil?
-    return nil if id.nil?
-    sql_to_model_conversion(BlueHydra::DB.query("select * from #{TABLE_NAME} where id = #{id} limit 1;").first)
-    return nil
-    #self
-  end
-
-  def attributes
-#TODO
-  end
-
-  def destroy!
-#todo
-  end
-
   def save
-     return false unless self.valid?
      set_vendor
      set_uap_lap
      set_uuid
      prepare_the_filth
-     self.set_updated_at
-     self.set_created_at if self.new_row
-     statement = "update #{TABLE_NAME} set #{self.model_to_sql_conversion} where id = #{self.id} limit 1;"
-     BlueHydra::DB.query(statement)
-     statement = nil
-     BlueHydra::DB.query("commit;") if self.transaction_open
-     self.new_row = false
-     self.transaction_open = false if self.transaction_open
-     self.sync_to_pulse
-     return nil
-     #self
+     super
+     sync_to_pulse
   end
-
-
-  def save_subset(rows)
-    #update without entire row
-  end
-
-  def self.first
-    model = BlueHydra::Device.new(false)
-      model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{TABLE_NAME} order by id asc limit 1;").map{|r| r.to_h}.first)
-      return model
-  end
-
-  def self.last
-    model = BlueHydra::Device.new(false)
-      model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{TABLE_NAME} order by id desc limit 1;").map{|r| r.to_h}.first)
-      return model
-  end
-
-  def self.get(id)
-    return nil unless BlueHydra::Device.id_exist?(id)
-    self.new(id)
-  end
-
-  def self.id_exist?(id)
-    row_ids = BlueHydra::DB.query("select id from #{TABLE_NAME} where id = #{id} limit 1;")
-    return false if row_ids.nil? || row_ids.first.nil?
-    return true
-  end
-
-  def self.all(query={})
-    basequery = "select * from #{TABLE_NAME}"
-    unless query.empty?
-      statement = " WHERE "
-      endstatement = ""
-      if query.keys.include?(:order)
-        endstatement << " order by "
-        endstatement << "#{query.delete(:order)}"
-      end
-      if query.keys.include?(:limit)
-        endstatement << " limit "
-        endstatement << "#{query.delete(:limit)}"
-      end
-      query.each do |key, val|
-        val = self.boolean_to_string(val) if BlueHydra::DB.keys(TABLE_NAME)[key] == :boolean
-        statement << "#{key} = '#{val}'"
-        statement << " AND " unless key == query.keys.last
-      end
-      basequery << statement
-      basequery << endstatement unless endstatement.empty?
-    end
-    records = []
-    row_hashes = BlueHydra::DB.query("#{basequery};").map{|r| r.to_h}
-    #BlueHydra.logger.info("#{basequery};")
-    row_hashes.each do |row|
-      obj = BlueHydra::Device.new(false)
-      obj.sql_to_model_conversion(row)
-      records << obj
-    end
-    basequery = nil
-    statement = nil
-    endstatement = nil
-    row_hashes = nil
-    query = nil
-    records
-  end
+# END boilerplate model setup
 
   # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline(startup=false)
@@ -284,26 +179,20 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
       record.last_seen = Time.now.to_i
     end
 
-    NORMAL_ATTRS.each do |attr, sym_key|
+    NORMAL_ATTRIBUTES.each do |sym_key|
       if result[sym_key]
         if result[sym_key].uniq.count > 1
           BlueHydra.logger.debug(
-            "#{record.address} multiple values detected for #{attr}: #{result[sym_key].inspect}. Using first value..."
+            "#{record.address} multiple values detected for #{sym_key}: #{result[sym_key].inspect}. Using first value..."
           )
         end
-        if result[sym_key].uniq.first != record[attr]
-          record.send("#{attr}=", result.delete(sym_key).uniq.first)
-        end
+        record.send("#{sym_key}=", result.delete(sym_key).uniq.first)
       end
     end
 
-    ARRAY_ATTRS.each do |attr, sym_key|
+    SERIALIZED_ATTRIBUTES.each do |sym_key|
       if result[sym_key]
-        if !(result[sym_key] == "[]" || result[sym_key] == [])
-          if result[sym_key] != record[attr]
-            record.send("#{attr}=", result.delete(sym_key))
-          end
-        end
+        record.send("#{sym_key}=", result.delete(sym_key))
       end
     end
 
@@ -314,10 +203,8 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
         BlueHydra.logger.warn("Duplicate UAP/LAP detected: #{record.uap_lap}.")
       end
     else
-      BlueHydra.logger.warn("#{record.address} can not save.")
-      record.errors.keys.each do |key|
-        BlueHydra.logger.warn("#{key.to_s}: #{record.errors[key].inspect} (#{record[key]})")
-      end
+      require 'pry'
+      binding.pry
     end
 
     record
@@ -325,9 +212,9 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
 
   # look up the vendor for the address in the Louis gem
   # and set it
-  RANDOM_ADDRESS = "N/A - Random Address".freeze
-  UNKNOWN = "Unknown".freeze
-  RANDOM = "Random".freeze
+  RANDOM_ADDRESS = "N/A - Random Address"
+  UNKNOWN = "Unknown"
+  RANDOM = "Random"
   def set_vendor(force=false)
     if self.le_address_type == RANDOM
       self.vendor = RANDOM_ADDRESS unless self.vendor == RANDOM_ADDRESS
@@ -361,7 +248,7 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   # |NAP    |UAP |LAP
   # DE : AD : BE : EF : CA : FE
 
-  ADDRESS_DELIM = ":".freeze
+  ADDRESS_DELIM = ":"
   def set_uap_lap
     self[:uap_lap] = self.address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
   end
@@ -441,11 +328,12 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
         if @filthy_attributes.include?(attr) || sync_all
           val = self.send(attr)
           unless [nil, "[]"].include?(val)
-            if self.is_serialized?(attr)
+          #  if self.is_serialized?(attr)
+          #    # parse the json data avoid double json things
+          #    send_data[:data][attr] = val
+          #  else
               send_data[:data][attr] = val
-            else
-              send_data[:data][attr] = val
-            end
+          #  end
           end
         end
       end
@@ -476,10 +364,10 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   channels ::
   #     new channels
   def classic_channels=(channels)
-    new = channels.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = self.classic_channels || []
-    new_to_set = (new + current).uniq
-    self[:classic_channels] = new_to_set unless self[:classic_channels] == new_to_set
+    newd = channels.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.classic_channels || '[]')
+    new_to_set = (newd + current).uniq
+    self[:classic_channels] = JSON.generate(new_to_set)
   end
 
   # set the :classic_class attribute by merging with previously seen values
@@ -488,10 +376,10 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   new_classes ::
   #     new classes
   def classic_class=(new_classes)
-    new = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
-    current = self.classic_class || []
-    new_to_set = (new + current).uniq
-    self[:classic_class] = new_to_set unless self[:classic_class] == new_to_set
+    newd = new_classes.flatten.uniq.reject{|x| x =~ /^0x/}
+    current = JSON.parse(self.classic_class || '[]')
+    new_to_set = (newd + current).uniq
+    self[:classic_class] = JSON.generate(new_to_set)
   end
 
   # set the :classic_features attribute by merging with previously seen values
@@ -500,10 +388,10 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   new_features ::
   #     new features
   def classic_features=(new_features)
-    new = new_features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = self.classic_features || []
-    new_to_set = (new + current).uniq
-    self[:classic_features] = new_to_set unless self[:classic_features] == new_to_set
+    newd = new_features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.classic_features || '[]')
+    new_to_set = (newd + current).uniq
+    self[:classic_features] = JSON.generate(new_to_set)
   end
 
   # set the :le_features attribute by merging with previously seen values
@@ -512,10 +400,10 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   new_features ::
   #     new features
   def le_features=(new_features)
-    new = new_features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = self.le_features || []
-    new_to_set = (new + current).uniq
-    self[:le_features] = new_to_set unless self[:le_features] == new_to_set
+    newd = new_features.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.le_features || '[]')
+    new_to_set = (newd + current).uniq
+    self[:le_features] = JSON.generate(new_to_set)
   end
 
   # set the :le_flags attribute by merging with previously seen values
@@ -524,10 +412,10 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   new_flags ::
   #     new flags
   def le_flags=(flags)
-    new = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
-    current = self.le_flags || []
-    new_to_set = (new + current).uniq
-    self[:le_flags] = new_to_set unless self[:le_flags] == new_to_set
+    newd = flags.map{|x| x.split(", ").reject{|x| x =~ /^0x/}}.flatten.sort.uniq
+    current = JSON.parse(self.le_flags ||'[]')
+    new_to_set = (newd + current).uniq
+    self[:le_flags] = JSON.generate(new_to_set)
   end
 
   # set the :le_service_uuids attribute by merging with previously seen values
@@ -536,7 +424,7 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   new_uuids ::
   #     new uuids
   def le_service_uuids=(new_uuids)
-    current = self.le_service_uuids || []
+    current = JSON.parse(self.le_service_uuids || '[]')
     #first we fix our old data if needed
     current_fixed = current.map do |x|
       if x.split(':')[1]
@@ -547,15 +435,15 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
         x
       end
     end
-    new = (new_uuids + current_fixed)
-    new.map! do |uuid|
+    newd = (new_uuids + current_fixed)
+    newd.map! do |uuid|
       if uuid =~ /\(/
         uuid
       else
         "Unknown (#{ uuid })"
       end
     end
-    self[:le_service_uuids] = new.uniq unless self[:le_service_uuids] == new.uniq
+    self[:le_service_uuids] = JSON.generate(newd.uniq)
   end
 
   # set the :cassic_service_uuids attribute by merging with previously seen values
@@ -566,16 +454,16 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   new_uuids ::
   #     new uuids
   def classic_service_uuids=(new_uuids)
-    current = self.classic_service_uuids || []
-    new = (new_uuids + current)
-    new.map! do |uuid|
+    current = JSON.parse(self.classic_service_uuids || '[]')
+    newd = (new_uuids + current)
+    newd.map! do |uuid|
       if uuid =~ /\(/
         uuid
       else
         "Unknown (#{ uuid })"
       end
     end
-    self[:classic_service_uuids] = new.uniq unless self[:classic_service_uuids] == new.uniq
+    self[:classic_service_uuids] = JSON.generate(newd.uniq)
   end
 
 
@@ -587,12 +475,12 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   rssis ::
   #     new rssis
   def classic_rssi=(rssis)
-    current = self.classic_rssi || []
-    new = current + rssis
-    until new.count <= 100
-      new.shift
+    current = JSON.parse(self.classic_rssi ||'[]')
+    newd = current + rssis
+    until newd.count <= 100
+      newd.shift
     end
-    self[:classic_rssi] = new unless self[:classic_rssi] == new
+    self[:classic_rssi] = JSON.generate(newd)
   end
 
   # set the :le_rss attribute by merging with previously seen values
@@ -603,12 +491,12 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   #   rssis ::
   #     new rssis
   def le_rssi=(rssis)
-    current = self.le_rssi || []
-    new = current + rssis
-    until new.count <= 100
-      new.shift
+    current = JSON.parse(self.le_rssi ||'[]')
+    newd = current + rssis
+    until newd.count <= 100
+      newd.shift
     end
-    self[:le_rssi] = new unless self[:le_rssi] == new
+    self[:le_rssi] = JSON.generate(newd)
   end
 
   # set the :le_address_type carefully , may also result in the
@@ -641,12 +529,12 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   # set the addres field but only conditionally set vendor based on some whether
   # or not we have an appropriate address to use for vendor lookup. Don't do
   # vendor lookups if address starts with 00:00
-  def address=(new)
-    if new
+  def address=(newd)
+    if newd
       current = self.address
-      unless new == self[:address]
-        self[:address] = new
-        if current =~ /^00:00/ || new !~ /^00:00/
+      unless newd == self[:address]
+        self[:address] = newd
+        if current =~ /^00:00/ || newd !~ /^00:00/
           set_vendor(true)
         end
       end
@@ -654,19 +542,19 @@ class BlueHydra::Device < BlueHydra::DB::SQLModel
   end
 
   def le_features_bitmap=(arr)
-    current = self.le_features_bitmap||{}
+    current = JSON.parse(self.le_features_bitmap||'{}')
     arr.each do |(page, bitmap)|
       current[page] = bitmap
     end
-    self[:le_features_bitmap] = current unless self[:le_features_bitmap] == current
+    self[:le_features_bitmap] = JSON.generate(current)
   end
 
   def classic_features_bitmap=(arr)
-    current = self.classic_features_bitmap||{}
+    current = JSON.parse(self.classic_features_bitmap||'{}')
     arr.each do |(page, bitmap)|
       current[page] = bitmap
     end
-    self[:classic_features_bitmap] = current unless self[:classic_features_bitmap] == current
+    self[:classic_features_bitmap] = JSON.generate(current)
   end
 
   # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
