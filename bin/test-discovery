@@ -8,6 +8,8 @@ import dbus.mainloop.glib
 import sys
 #gentoo
 sys.path.append('/usr/lib64/bluez/test')
+#gentoo - arm
+sys.path.append('/usr/lib/bluez/test')
 #kali2
 sys.path.append('/usr/share/doc/bluez-test-scripts/examples')
 #ubuntu

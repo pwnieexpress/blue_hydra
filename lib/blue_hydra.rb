@@ -272,11 +272,11 @@ rescue
     puts "Failed to find mac address for #{BlueHydra.config["bt_device"]}, faking for tests"
   else
     msg = "Unable to read the mac address from #{BlueHydra.config["bt_device"]}"
-    BlueHydra::Pulse.send_event("blue_hydra",
-    {key:'blue_hydra_bt_device_mac_read_error',
-    title:"Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
-    message:msg,
-    severity:'FATAL'
+    BlueHydra::Pulse.send_event("blue_hydra", {
+      key:       'blue_hydra_bt_device_mac_read_error',
+      title:     "Blue Hydra cant read mac from BT device #{BlueHydra.config["bt_device"]}",
+      message:   msg,
+      severity:  'FATAL'
     })
     BlueHydra.logger.error(msg)
     puts msg unless BlueHydra.daemon_mode
@@ -318,9 +318,6 @@ db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
 
 #TODO FINISH
 BlueHydra::DB.create_db unless BlueHydra::DB.db_exist?
-
-BlueHydra::DB.query('PRAGMA synchronous = OFF')
-BlueHydra::DB.query('PRAGMA journal_mode = MEMORY')
 
 #TODO SQLITE3?
 # set all String properties to have a default length of 255
