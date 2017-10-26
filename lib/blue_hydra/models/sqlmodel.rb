@@ -9,12 +9,13 @@ class Class
       define_method "#{method_name}=" do |new_value|
         self.instance_variable_set inst_variable_name, new_value
         self.dirty_attributes << method_name.to_sym unless [:@id,:@dirty_attributes].include?(inst_variable_name)
+        return nil
       end
 		end
 end
-module BlueHydra
-class SQLModel
-  attr_accessor :dirty_attributes,:new_row,:transaction_open
+
+class BlueHydra::SQLModel
+  attr_accessor :dirty_attributes,:new_row
 
   def valid?
     self.validation_map.each do |key,value|
@@ -29,11 +30,7 @@ class SQLModel
   end
 
   def [](key)
-    get_key = "@#{key}"
-    data = self.instance_variable_get(get_key)
-    get_key = nil
-    key = nil
-    return data
+    return self.instance_variable_get("@#{key}")
   end
 
   def []=(key,data)
@@ -46,7 +43,11 @@ class SQLModel
   end
 
   def destroy!
-#TODO
+     statement = "delete from #{self.table_name} where id = #{self.id} limit 1;"
+     BlueHydra::DB.query(statement)
+     statement = nil
+     BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
+     return nil
   end
 
   def load_row(id=nil)
@@ -57,19 +58,32 @@ class SQLModel
   end
 
   def save_subset(rows)
-    #update without entire row
+     return false unless self.valid?
+     updatestatement = self.model_to_sql_conversion(BlueHydra::DB.keys(self.table_name).select{|k,v| rows.include?(k)})
+     statement = "update #{self.table_name} set #{updatestatement} where id = #{self.id} limit 1;"
+     BlueHydra::DB.query(statement)
+     statement = nil
+     updatestatement = nil
+     BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
+     return nil
   end
 
   def save
      return false unless self.valid?
+     # performance shortcut, only update what changes
+     # at a minimum this is updated at
+     unless self.new_row
+      return false if self.dirty_attributes.empty?
+      self.save_subset(self.dirty_attributes)
+      return nil
+     end
      self.set_updated_at
      self.set_created_at if self.new_row
      statement = "update #{self.table_name} set #{self.model_to_sql_conversion} where id = #{self.id} limit 1;"
      BlueHydra::DB.query(statement)
      statement = nil
-     BlueHydra::DB.query("commit;") if self.transaction_open
+     BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
      self.new_row = false
-     self.transaction_open = false if self.transaction_open
      return nil
   end
 
@@ -83,6 +97,7 @@ class SQLModel
 
   def self.attributes
     puts BlueHydra::DB.schema[self.table_name].keys
+    return nil
   end
 
   def self.id_exist?(id)
@@ -115,8 +130,17 @@ class SQLModel
     return newobj
   end
 
-  def self.all(query={})
+  def self.all_not(query={})
+    self.all(query,true)
+  end
+
+  def self.all(query={},negate=false)
     basequery = "select * from #{self::TABLE_NAME}"
+    if negate
+      op = "!="
+    else
+      op = "="
+    end
     unless query.empty?
       statement = " WHERE "
       endstatement = ""
@@ -130,7 +154,7 @@ class SQLModel
       end
       query.each do |key, val|
         val = self.boolean_to_string(val) if BlueHydra::DB.keys(self::TABLE_NAME)[key][:type] == :boolean
-        statement << "#{key} = '#{val}'"
+        statement << "#{key} #{op} '#{val}'"
         statement << " AND " unless key == query.keys.last
       end
       basequery << statement
@@ -153,48 +177,47 @@ class SQLModel
 
   def self.create_new_row
     BlueHydra::DB.query("begin transaction;")
-#TODO optimize one call
     BlueHydra::DB.query("insert into #{self::TABLE_NAME} default values;")
-    newid = BlueHydra::DB.query("select id from #{self::TABLE_NAME} order by id desc limit 1;").first[:id]
-#TODO replace with commit call
-    BlueHydra::DB.query("commit;")
+    newid = BlueHydra::DB.db.last_insert_row_id
+    BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
     BlueHydra.logger.debug("--DB new row id: #{newid}")
     return newid
   end
 
-  def load_row_subset(keys=[])
-    return nil if keys.empty?
-    statement = ""
-    keys.each do |k|
-      statement << "#{k}"
-      statement << "," unless k == keys.last
-    end
-    self.new_row = true
-    self.transaction_open = true
-    result = BlueHydra::DB.query("select #{statement} from #{self.table_name} where id = #{self.id} limit 1;").first
-    statement = nil
-    keys = nil
-    return result
-  end
+  # for eventual lazy loading nightmare
+  #def load_row_subset(keys=[])
+  #  return nil if keys.empty?
+  #  statement = ""
+  #  keys.each do |k|
+  #    statement << "#{k}"
+  #    statement << "," unless k == keys.last
+  #  end
+  #  self.new_row = true
+  #  result = BlueHydra::DB.query("select #{statement} from #{self.table_name} where id = #{self.id} limit 1;").first
+  #  statement = nil
+  #  keys = nil
+  #  return result
+  #end
 
-  def model_to_sql_conversion
+  THROWOUT = [nil,[],'',{},'[]','{}']
+  def model_to_sql_conversion(rows=nil)
+    rows = BlueHydra::DB.keys(self.table_name) unless rows
     statement = ""
     excluded = ['created_at','id']
     excluded.shift if self.new_row
-    BlueHydra::DB.keys(self.table_name).each do |key, type|
+    rows.each do |key, type|
       next if excluded.include?(key)
       type = type[:type]
       if type == :json
         data = self.instance_variable_get("@#{key}")
-        next if data.nil? || data.empty?
+        next if THROWOUT.include?(data)
         data.gsub!("'","\'\'")
         #jsondata = JSON.generate(data)
-        jsondata = data
-        statement << "#{key} = '#{jsondata}'"
+        statement << "#{key} = '#{data}'"
         data = nil
       elsif type == :string
         data = self.instance_variable_get("@#{key}").to_s
-        if data.nil? || data.empty?
+        if THROWOUT.include?(data)
           data = nil
           next
         end
@@ -203,61 +226,50 @@ class SQLModel
         data = nil
       elsif type == :integer
         data = self.instance_variable_get("@#{key}")
-        next if data.nil?
+        next if THROWOUT.include?(data)
         statement << "#{key} = #{data.to_i}"
         data = nil
       elsif type == :boolean
         data = self.instance_variable_get("@#{key}")
-        next if data.nil?
-        sqlbool = BlueHydra::SQLModel.boolean_to_string(data)
-        statement << "#{key} = '#{sqlbool}'"
+        next if THROWOUT.include?(data)
+        statement << "#{key} = '#{BlueHydra::SQLModel.boolean_to_string(data)}'"
         data = nil
-        sqlbool = nil
       elsif type == :datetime
         data = self.instance_variable_get("@#{key}")
-        next if data.nil?
+        next if THROWOUT.include?(data)
         statement << "#{key} = '#{data}'"
         data = nil
       end
-      statement << ","
+      statement << ", "
     end
     instance_variables = nil
-    statement = statement[0..statement.length-2]
-    #GC.start(immedaite_sweep: true, full_mark:false)
+    statement = statement.chomp(", ")
     return statement
   end
 
-  THROWOUT = [nil,[],'',{},'[]','{}']
   def sql_to_model_conversion(results={})
     return nil if results.nil? || results.empty?
     BlueHydra::DB.keys(self.table_name).each do |key, type|
       model_key = "@#{key}"
       type = type[:type]
       if type == :json
-        unless results[key].nil? || results[key].empty?
-          new_data = results.delete(key)
           #jsondata = JSON.parse(new_data)
-          jsondata = new_data
-          unless THROWOUT.include?(jsondata)
-            self.instance_variable_set(model_key,jsondata)
-          end
-          jsondata = nil
-          new_data = nil
-        end
+          # json fields are managed in the setter functions
+          # this gives us a lazy, lazy loading since JSON encoding/decoding uses so many intermediate objects
+          self.instance_variable_set(model_key,results.delete(key)) unless THROWOUT.include?(results[key])
+          next
       elsif type == :string
-        self.instance_variable_set(model_key, results.delete(key).to_s) unless results[key].nil? || results[key].empty?
+        self.instance_variable_set(model_key, results.delete(key).to_s) unless THROWOUT.include?(results[key])
+        next
       elsif type == :integer
-        self.instance_variable_set(model_key, results.delete(key).to_i) unless results[key].nil?
+        self.instance_variable_set(model_key, results.delete(key).to_i) unless THROWOUT.include?(results[key])
+        next
       elsif type == :boolean
-        unless results[key].nil?
-          data = results.delete(key)
-          mdata = BlueHydra::SQLModel.string_to_boolean(data)
-          self.instance_variable_set(model_key, mdata)
-          data = nil
-          mdata = nil
-        end
+        self.instance_variable_set(model_key,BlueHydra::SQLModel.string_to_boolean(results.delete(key))) unless THROWOUT.include?(results[key])
+        next
       elsif type == :datetime
-        self.instance_variable_set(model_key, results.delete(key)) unless results[key].nil?
+        self.instance_variable_set(model_key, results.delete(key)) unless THROWOUT.include?(results[key])
+        next
       end
       model_key = nil
     end
@@ -296,5 +308,4 @@ class SQLModel
     self.dirty_attributes.include?(col)
   end
 
-end
 end

@@ -2,77 +2,84 @@
 class BlueHydra::Device < BlueHydra::SQLModel
 # boilerplate model setup
   TABLE_NAME = 'blue_hydra_devices'.freeze
+  MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i.freeze
+  EXISTS = /^.+$/.freeze
   def table_name
     TABLE_NAME
   end
-  MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i.freeze
-  EXISTS = /^.+$/.freeze
-  SCHEMA = { :id => {type: :integer, validate: EXISTS},
-             :status => {type: :string, validate: EXISTS},
-             :address => {type: :string, validate: MAC_REGEX},
-             :uuid => {type: :string},
-             :uap_lap => {type: :string},
-             :created_at => {type: :datetime},
-             :updated_at => {type: :datetime},
-             #syncable
-             :name => {type: :string, sync: true},
-             :vendor => {type: :string, sync: true},
-             :appearance => {type: :string, sync:true},
-             :company => {type: :string, sync: true},
-             :company_type => {type: :string, sync: true},
-             :lmp_version => {type: :string, sync: true},
-             :manufacturer => {type: :string, sync: true},
-             :firmware => {type: :string, sync: true},
-             :classic_mode => {type: :boolean, sync: true},
-             :classic_major_class => {type: :string, sync: true},
-             :classic_minor_class => {type: :string, sync: true},
-             :classic_tx_power => {type: :string, sync: true},
-             :le_mode => {type: :boolean, sync: true},
-             :le_address_type => {type: :string, sync: true},
-             :le_random_address_type => {type: :string, sync: true},
-             :le_company_data => {type: :string, sync: true},
-             :le_company_uuid => {type: :string, sync: true},
-             :le_proximity_uuid => {type: :string, sync: true},
-             :le_major_num => {type: :string, sync: true},
-             :le_minor_num => {type: :string, sync: true},
-             :le_tx_power => {type: :string, sync: true},
-             :ibeacon_range => {type: :string, sync: true},
-             :last_seen => {type: :integer, sync: true},
-             :classic_service_uuids => {type: :json, sync: true, serialized: true},
-             :classic_channels => {type: :json, sync: true, serialized: true},
-             :classic_class => {type: :json, sync: true, serialized: true},
-             :classic_rssi => {type: :json, sync: true, serialized: true},
-             :classic_features => {type: :json, sync: true, serialized: true},
-             :le_service_uuids => {type: :json, sync: true, serialized: true},
-             :le_flags => {type: :json, sync: true, serialized: true},
-             :le_rssi => {type: :json, sync: true, serialized: true},
-             :le_features => {type: :json, sync: true, serialized: true},
-             :le_features_bitmap => {type: :json, sync: true, serialized: true },
-             :classic_features_bitmap => {type: :json, sync: true, serialized: true }
+
+  SCHEMA =  { id:                       {type: :integer},
+              status:                   {type: :string},
+              address:                  {type: :string,     validate: MAC_REGEX},
+              uuid:                     {type: :string},
+              uap_lap:                  {type: :string},
+              created_at:               {type: :datetime},
+              updated_at:               {type: :datetime},
+              name:                     {type: :string,  sync: true},
+              vendor:                   {type: :string,  sync: true},
+              appearance:               {type: :string,  sync: true},
+              company:                  {type: :string,  sync: true},
+              company_type:             {type: :string,  sync: true},
+              lmp_version:              {type: :string,  sync: true},
+              manufacturer:             {type: :string,  sync: true},
+              firmware:                 {type: :string,  sync: true},
+              classic_major_class:      {type: :string,  sync: true},
+              classic_minor_class:      {type: :string,  sync: true},
+              classic_tx_power:         {type: :string,  sync: true},
+              le_address_type:          {type: :string,  sync: true},
+              le_random_address_type:   {type: :string,  sync: true},
+              le_company_data:          {type: :string,  sync: true},
+              le_company_uuid:          {type: :string,  sync: true},
+              le_proximity_uuid:        {type: :string,  sync: true},
+              le_major_num:             {type: :string,  sync: true},
+              le_minor_num:             {type: :string,  sync: true},
+              le_tx_power:              {type: :string,  sync: true},
+              ibeacon_range:            {type: :string,  sync: true},
+              last_seen:                {type: :integer, sync: true},
+              classic_mode:             {type: :boolean, sync: true},
+              le_mode:                  {type: :boolean, sync: true},
+              classic_service_uuids:    {type: :json,    sync: true},
+              classic_channels:         {type: :json,    sync: true},
+              classic_class:            {type: :json,    sync: true},
+              classic_rssi:             {type: :json,    sync: true},
+              classic_features:         {type: :json,    sync: true},
+              le_service_uuids:         {type: :json,    sync: true},
+              le_flags:                 {type: :json,    sync: true},
+              le_rssi:                  {type: :json,    sync: true},
+              le_features:              {type: :json,    sync: true},
+              le_features_bitmap:       {type: :json,    sync: true},
+              classic_features_bitmap:  {type: :json,    sync: true}
            }.freeze
+
   # set up properties
   SCHEMA.each do |property,metadata|
     sql_model_attr_accessor property
   end
+
   def self.schema
     SCHEMA
   end
+
   SYNCABLE_ATTRIBUTES = SCHEMA.select{|p,h| h.keys.include?(:sync)}.keys
   SERIALIZED_ATTRIBUTES = SCHEMA.select{|p,h| h[:type] == :json}.keys
-  INTERNAL_USE_ATTRIBUTES = [:id]
-  NORMAL_ATTRIBUTES = ((SCHEMA.keys - SERIALIZED_ATTRIBUTES) - INTERNAL_USE_ATTRIBUTES)
+  INTERNAL_ATTRIBUTES = [:id]
+  NORMAL_ATTRIBUTES = ((SCHEMA.keys - SERIALIZED_ATTRIBUTES) - INTERNAL_ATTRIBUTES)
   valid = {}
   SCHEMA.select{|p,h| h.keys.include?(:validate)}.each{|p,h| valid[p] = h[:validate]}
   VALIDATION_MAP = valid
+
   def validation_map
     VALIDATION_MAP
   end
+
   def syncable_attributes
     SYNCABLE_ATTRIBUTES
   end
-  def self.is_serialized?(attr)
+
+  def is_serialized?(attr)
     SERIALIZED_ATTRIBUTES.include?(attr)
   end
+
   def initialize(id=nil)
      setup
      load_row(id) if id
@@ -87,17 +94,18 @@ class BlueHydra::Device < BlueHydra::SQLModel
      super
      sync_to_pulse
   end
+
 # END boilerplate model setup
 
   # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline(startup=false)
+    GC.start(immedaiate_sweep:true,full_mark:true)
     if startup
       # efficiently kill old things with fire
       if BlueHydra::DB.query("select uuid from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" limit 5000;").count == 5000
         BlueHydra::DB.query("delete from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" ;")
         BlueHydra::Pulse.hard_reset
       end
-
       # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
       # OLD DBS)
       BlueHydra::Device.all(
@@ -110,32 +118,36 @@ class BlueHydra::Device < BlueHydra::SQLModel
         device.status = 'offline'
         device.save
       }
+      GC.start(immedaiate_sweep:true,full_mark:true)
+      # Kill old things with fire
+      BlueHydra::Device.all(status:'online').each do |dev|
+        next if dev.updated_at.nil? || dev.updated_at.empty?
+        if DateTime.parse(dev.updated_at) <= DateTime.parse(Time.at(Time.now.to_i - 604800*2).to_s)
+          dev.status = 'offline'
+          dev.save
+          dev.sync_to_pulse(true)
+          BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
+          dev.destroy!
+        end
+      end
+      GC.start(immedaiate_sweep:true,full_mark:true)
     end
-
-#TODO fix
-    # Kill old things with fire
-   # BlueHydra::Device.all(:updated_at.lte => Time.at(Time.now.to_i - 604800*2)).each do |dev|
-   #   dev.status = 'offline'
-   #   dev.sync_to_pulse(true)
-   #   BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
-   #   dev.destroy
-   # end
-
-   # # classic mode devices have 15 min timeout
-   # BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-   #   x.last_seen < (Time.now.to_i - (15*60))
-   # }.each{|device|
-   #   device.status = 'offline'
-   #   device.save
-   # }
-
-   # # le mode devices have 3 min timeout
-   # BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-   #   x.last_seen < (Time.now.to_i - (60*3))
-   # }.each{|device|
-   #   device.status = 'offline'
-   #   device.save
-   # }
+    # classic mode devices have 15 min timeout
+    BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (15*60))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+    GC.start(immedaiate_sweep:true,full_mark:true)
+    # le mode devices have 3 min timeout
+    BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (60*3))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+    GC.start(immedaiate_sweep:true,full_mark:true)
   end
 
   # this class method is take a result Hash and convert it into a new or update
@@ -249,7 +261,8 @@ class BlueHydra::Device < BlueHydra::SQLModel
 
   ADDRESS_DELIM = ":"
   def set_uap_lap
-    self[:uap_lap] = self.address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
+    newd = self.address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
+    self[:uap_lap] = newd unless self[:uap_lap] == newd
   end
 
   # lookup helper method for uap_lap
@@ -325,7 +338,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
         if @filthy_attributes.include?(attr) || sync_all
           val = self.send(attr)
           unless [nil, "[]"].include?(val)
-            if self.is_serialized?(attr)
+            if is_serialized?(attr)
               send_data[:data][attr] = JSON.parse(val)
             else
               send_data[:data][attr] = val
@@ -335,11 +348,12 @@ class BlueHydra::Device < BlueHydra::SQLModel
       end
 
       # create the json
-      json_msg = Oj.dump(send_data)
+      json_msg = JSON.generate(send_data)
       # send the json
-      self.dirty_attributes = []
       BlueHydra::Pulse.do_send(json_msg)
+      self.dirty_attributes = []
     end
+      return nil
   end
 
   # set the :name attribute from the :short_name key only if name is not already
@@ -352,6 +366,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     unless ["",nil].include?(new) || self.name
       self[:name] = new unless self[:name] == new
     end
+    return nil
   end
 
   # set the :classic_channels attribute by merging with previously seen values
@@ -364,6 +379,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     current = JSON.parse(self.classic_channels || '[]')
     new_to_set = (newd + current).uniq
     self[:classic_channels] = JSON.generate(new_to_set)
+    return nil
   end
 
   # set the :classic_class attribute by merging with previously seen values
@@ -376,6 +392,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     current = JSON.parse(self.classic_class || '[]')
     new_to_set = (newd + current).uniq
     self[:classic_class] = JSON.generate(new_to_set)
+    return nil
   end
 
   # set the :classic_features attribute by merging with previously seen values
@@ -388,6 +405,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     current = JSON.parse(self.classic_features || '[]')
     new_to_set = (newd + current).uniq
     self[:classic_features] = JSON.generate(new_to_set)
+    return nil
   end
 
   # set the :le_features attribute by merging with previously seen values
@@ -400,6 +418,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     current = JSON.parse(self.le_features || '[]')
     new_to_set = (newd + current).uniq
     self[:le_features] = JSON.generate(new_to_set)
+    return nil
   end
 
   # set the :le_flags attribute by merging with previously seen values
@@ -412,6 +431,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     current = JSON.parse(self.le_flags ||'[]')
     new_to_set = (newd + current).uniq
     self[:le_flags] = JSON.generate(new_to_set)
+    return nil
   end
 
   # set the :le_service_uuids attribute by merging with previously seen values
@@ -440,6 +460,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
       end
     end
     self[:le_service_uuids] = JSON.generate(newd.uniq)
+    return nil
   end
 
   # set the :cassic_service_uuids attribute by merging with previously seen values
@@ -460,6 +481,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
       end
     end
     self[:classic_service_uuids] = JSON.generate(newd.uniq)
+    return nil
   end
 
 
@@ -477,6 +499,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
       newd.shift
     end
     self[:classic_rssi] = JSON.generate(newd)
+    return nil
   end
 
   # set the :le_rss attribute by merging with previously seen values
@@ -493,6 +516,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
       newd.shift
     end
     self[:le_rssi] = JSON.generate(newd)
+    return nil
   end
 
   # set the :le_address_type carefully , may also result in the
@@ -509,6 +533,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     elsif type =~ /Random/
       self[:le_address_type] = type unless self[:le_address_type] == type
     end
+    return nil
   end
 
   # set the :le_random_address_type unless the le_address_type is set
@@ -520,6 +545,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     unless le_address_type && le_address_type =~ /Public/
       self[:le_random_address_type] = type unless self[:le_random_address_type] == type
     end
+    return nil
   end
 
   # set the addres field but only conditionally set vendor based on some whether
@@ -535,6 +561,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
         end
       end
     end
+    return nil
   end
 
   def le_features_bitmap=(arr)
@@ -543,6 +570,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
       current[page] = bitmap
     end
     self[:le_features_bitmap] = JSON.generate(current)
+    return nil
   end
 
   def classic_features_bitmap=(arr)
@@ -551,6 +579,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
       current[page] = bitmap
     end
     self[:classic_features_bitmap] = JSON.generate(current)
+    return nil
   end
 
   # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
@@ -558,6 +587,7 @@ class BlueHydra::Device < BlueHydra::SQLModel
     BlueHydra::Device.all.each do |dev|
       dev.sync_to_pulse(true)
     end
+    GC.start
     return nil
   end
 

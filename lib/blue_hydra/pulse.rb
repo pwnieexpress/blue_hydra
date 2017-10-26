@@ -11,7 +11,7 @@ module BlueHydra
 
         BlueHydra.logger.info("Sending db reset to pulse")
 
-        json_msg = Oj.dump({
+        json_msg = JSON.generate({
           type:    "reset",
           source:  "blue-hydra",
           version: BlueHydra::VERSION,
@@ -27,7 +27,7 @@ module BlueHydra
 
         BlueHydra.logger.info("Sending db hard reset to pulse")
 
-        json_msg = Oj.dump({
+        json_msg = JSON.generate({
           type:    "reset",
           source:  "blue-hydra",
           version: BlueHydra::VERSION,

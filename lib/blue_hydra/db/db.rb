@@ -22,26 +22,29 @@ module BlueHydra::DB
     return @db
   end
 
-  def self.query(statement,args={})
-    #query = self.db.prepare(statement)
-    #resultset = query.execute
-    begin
-      resultset = self.db.query(statement)
-    rescue
-      BlueHydra.logger.error(statement)
-      require 'pry'
-      binding.pry
+  @dbmutex = Mutex.new
+  def self.query(statement)
+    @dbmutex.synchronize do
+      begin
+        resultset = self.db.query(statement)
+      rescue
+        BlueHydra.logger.error(statement)
+        require 'pry'
+        binding.pry
+        return []
+      end
+      result_array = []
+      resultset.each_hash do |h|
+        result_array << h.inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
+      end
+      resultset.reset
+      resultset.close
+      resultset = nil
+      statement = nil
+      query = nil
+      GC.start(full_mark:false,immediate_sweep:true)
+      return result_array
     end
-    result_array = []
-    resultset.each_hash do |h|
-      result_array << h.inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
-    end
-    resultset.reset
-    resultset.close
-    resultset = nil
-    query = nil
-    GC.start(full_mark:false,immediate_sweep:true)
-    return result_array
   end
 
   def create_db

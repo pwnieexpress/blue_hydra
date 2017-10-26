@@ -10,10 +10,10 @@ require 'yaml'
 require 'fileutils'
 require 'socket'
 require 'date'
+require 'thread'
 
 # Gems
 require 'louis'
-require 'oj'
 
 # Add to Load Path
 $:.unshift(File.dirname(__FILE__))
@@ -70,7 +70,7 @@ module BlueHydra
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
-    old_config = Oj.load(
+    old_config = JSON.parse(
       File.read(LEGACY_CONFIG_FILE)
     )
     File.unlink(LEGACY_CONFIG_FILE)

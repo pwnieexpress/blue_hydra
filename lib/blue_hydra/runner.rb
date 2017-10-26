@@ -19,7 +19,6 @@ module BlueHydra
                   :cui_status,
                   :cui_thread,
                   :info_scan_queue,
-                  #LOL memory
                   :query_history,
                   :scanner_status,
                   :l2ping_queue,
@@ -823,7 +822,7 @@ module BlueHydra
                           send_data[:data][k] = [x]
 
                           # create the json
-                          json_msg = Oj.dump(send_data)
+                          json_msg = JSON.generate(send_data)
                           #send the json
                           BlueHydra::Pulse.do_send(json_msg)
                         end
@@ -887,7 +886,7 @@ module BlueHydra
                 if magic_word == 'bluetooth'
                   if @rssi_data
                     @rssi_data_mutex.synchronize {
-                      client.puts Oj.dump(@rssi_data)
+                      client.puts JSON.generate(@rssi_data)
                     }
                   end
                 end
@@ -944,22 +943,22 @@ module BlueHydra
         # if their last_seen value is > 7 minutes ago and not > 15 minutes ago
         #   l2ping them :  "l2ping -c 3 result[:address]"
         starttime = Time.now.to_f
-        data = BlueHydra::Device.all(classic_mode: true)
+        data = BlueHydra::DB.query("select last_seen,address from blue_hydra_devices where classic_mode = 'True'")
         #BlueHydra.logger.info("device.all(classic_mode true) time: #{Time.now.to_f - starttime}")
         data.select!{|x|
-          x.last_seen < (Time.now.to_i - (60 * 7)) && x.last_seen > (Time.now.to_i - (60*15))
+          x[:last_seen] < (Time.now.to_i - (60 * 7)) && x[:last_seen] > (Time.now.to_i - (60*15))
         }
         return nil if data.nil? || data.empty?
         data.each do |device|
-          self.query_history[device.address] ||= {}
-          if (Time.now.to_i - (60 * 7)) >= self.query_history[device.address][:l2ping].to_i
+          self.query_history[device[:address]] ||= {}
+          if (Time.now.to_i - (60 * 7)) >= self.query_history[device[:address]][:l2ping].to_i
 
             l2ping_queue.push({
               command: :l2ping,
-              address: device.address
+              address: device[:address]
             })
 
-            self.query_history[device.address][:l2ping] = Time.now.to_i
+            self.query_history[device[:address]][:l2ping] = Time.now.to_i
           end
         end
         data = nil
@@ -1013,10 +1012,12 @@ module BlueHydra
 
         unless BlueHydra.config["file"]
           # arbitrary low end cut off on slow processing to avoid stunning too often
-          if self.processing_speed > 3 && result_queue.length >= self.processing_speed * 10
+          if self.processing_speed > 10 && result_queue.length >= self.processing_speed * 10
             self.stunned = true
-          elsif result_queue.length > 200
+          elsif result_queue.length > 1000
             self.stunned = true
+          else
+            self.stunned = false
           end
         end
 
@@ -1035,8 +1036,9 @@ module BlueHydra
           end
           device = nil
         else
-          BlueHydra.logger.warn("Device without address #{Oj.dump(result)}")
+          BlueHydra.logger.warn("Device without address #{JSON.generate(result)}")
         end
+        result = nil
       end
       return nil
     end
@@ -1052,9 +1054,13 @@ module BlueHydra
           self.processing_tracker = 0
           last_sync = Time.now
           gcd = false
+          last_offline = 0
 
           loop do
-            BlueHydra::Device.mark_old_devices_offline
+            if Time.now.to_i - last_offline > 180
+              last_offline = Time.now.to_i
+              BlueHydra::Device.mark_old_devices_offline
+            end
             # 1 day in seconds == 24 * 60 * 60 == 86400
             # daily sync
             if Time.now.to_i - 86400 >=  last_sync.to_i
@@ -1064,7 +1070,6 @@ module BlueHydra
 
             if !result_queue.empty?
               GC.start(full_mark:false,immediate_sweep:true)
-              #BlueHydra.logger.info("runner gc")
               gcd=false
             else
               if !gcd
@@ -1074,17 +1079,12 @@ module BlueHydra
               end
             end
 
-            begin
-              self.processing_part_1
-            end
+            self.processing_part_1
 
-            begin
-              self.processing_part_2(maxdepth)
-            end
+            self.processing_part_2(maxdepth)
 
-            self.stunned = false
             # only sleep if we still have nothing to do, seconds count
-            sleep 0.5 if result_queue.empty?
+            sleep 0.1 if result_queue.empty?
           end
 
         rescue => e
