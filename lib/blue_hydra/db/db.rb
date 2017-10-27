@@ -11,31 +11,42 @@ module BlueHydra::DB
              #BlueHydra::NewModelHere,
              BlueHydra::SyncVersion ]
   tmp = {}
-  MODELS.map do |model|
-   tmp[model::TABLE_NAME] = model.schema
-  end
   tmpstring = ""
-  MODELS.each do |model|
-    tmpstring << model.build_model_schema + " "
+  MODELS.map do |model|
+   tmp[model::TABLE_NAME] = {model: model, schema: model.schema}
+   tmpstring << model.build_model_schema + " "
   end
-
   SCHEMA = tmp
   SQLSCHEMA =  tmpstring.chomp(" ")
 
+  # SCHEMA = { "table_name" => {model: <SQLModel>, schema: <SQLModel>.schema},
+  #   etc,
+  #   etc }
   def self.schema
     SCHEMA
   end
 
-  def keys(table)
-   SCHEMA[table]
+  # return model object by string table name
+  def self.model_by_table_name(name)
+    SCHEMA[name][:model]
   end
 
-  def db_exist?
+  # return schema by string table name
+  def self.schema_by_table_name(name)
+    SCHEMA[name][:schema]
+  end
+
+  # return schema based on string table name
+  def self.keys(table)
+   SCHEMA[table][:schema]
+  end
+
+  def self.db_exist?
     return true if File.exist?(DATABASE_LOCATION)
     return false
   end
 
-  def create_db
+  def self.create_db
     `touch /opt/pwnix/data/blue_hydra/blue_hydra.db`
     `sqlite3 /opt/pwnix/data/blue_hydra/blue_hydra.db \"#{@sqlschema}\"`
   end
@@ -158,7 +169,7 @@ module BlueHydra::DB
     master_columns.each do |t,c|
       if c.sort != disk_columns[t].sort
         BlueHydra.logger.info("adding missing columns")
-        self.add_missing_columns((c.sort - disk_columns[t].sort))
+        self.add_missing_columns(t,(c.sort - disk_columns[t].sort))
       end
     end
     GC.start
@@ -168,18 +179,23 @@ module BlueHydra::DB
   def self.add_missing_tables(tables)
     tables.each do |m|
      BlueHydra.logger.info("adding missing table #{m}")
-     # todo lookup model/table in MODELS list, call build_model_schema and run that automatically
-     self.do_migration(m)
+     missing_table_model = self.model_by_table_name(table)
+     create_stmt = missing_table_model.build_model_schema
+     self.do_automatic_migration(create_stmt)
     end
   end
 
   # trigger migration file based on the missing column name
-  def self.add_missing_columns(columns)
+  def self.add_missing_columns(table,columns)
     columns.each do |m|
-     # todo pass model, lookup model in SCHEMA, lookup column in _, auto generate alter table add column
      BlueHydra.logger.info("adding missing column #{m}")
-     self.do_migration(m)
+     missing_column_type = self.schema_by_table_name(table)[m.to_sym][:sqldef]
+     self.do_automatic_migration("ALTER TABLE #{table} ADD COLUMN #{m} #{missing_column_type};")
     end
+  end
+
+  def self.do_automatic_migration(script)
+    `sqlite3 #{DATABASE_LOCATION} < '#{script}'`
   end
 
   # MIGRATION FILES NEED TO BE NAMED THE MISSING TABLE OR COLUMN NAME EXACTLY
@@ -212,6 +228,5 @@ module BlueHydra::DB
   # End migration logic
   ########################################
 
-  module_function :keys,:db_exist?,:create_db
 end
 

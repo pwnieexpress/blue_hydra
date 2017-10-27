@@ -129,7 +129,7 @@ class BlueHydra::SQLModel
   # return hash based on schema of attributes for this model
   def attributes
     attrs = {}
-    BlueHydra::DB.schema[self.table_name].each do |key,metadata|
+    BlueHydra::DB.keys[self.table_name].each do |key,metadata|
       attrs[key] = self[key]
     end
     return attrs
@@ -137,7 +137,7 @@ class BlueHydra::SQLModel
 
   # puts attribute list for this model
   def self.attributes
-    puts BlueHydra::DB.schema[self.table_name].keys
+    puts BlueHydra::DB.keys[self::TABLE_NAME].keys
     return nil
   end
 
