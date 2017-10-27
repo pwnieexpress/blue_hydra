@@ -308,28 +308,25 @@ end
 #
 # When running the rspec tets the BLUE_HYDRA environmental value will be set to
 # 'test' and all tests should run with an in-memory db.
-db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
+DATABASE_LOCATION = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
+#TODO test
             'sqlite::memory:?cache=shared'
           elsif Dir.exist?(DB_DIR)
-            "sqlite:#{DB_PATH}"
+            "#{DB_PATH}"
           else
-            "sqlite:#{DB_NAME}"
+            "#{DB_NAME}"
           end
 
-#TODO FINISH
 BlueHydra::DB.create_db unless BlueHydra::DB.db_exist?
 
-#TODO SQLITE3?
-# set all String properties to have a default length of 255
-#DataMapper::Property::String.length(255)
 
 #TODO sqlite
 # DB Migration and upgrade logic
 #begin
 #  begin
 #    # Upgrade the db..
-#    DataMapper.auto_upgrade!
-#  rescue DataObjects::ConnectionError
+     #TODO BlueHyda::DB.auto_upgrade!
+#  rescue #TODO fix this DataObjects::ConnectionError
 #    # in the case of an invalid / blank/ corrupt DB file we will back up the old
 #    # file and then create a new db to proceed.
 #    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
@@ -341,14 +338,10 @@ BlueHydra::DB.create_db unless BlueHydra::DB.db_exist?
 #    severity:'ERROR'
 #    })
 #    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
-#    DataMapper.auto_upgrade!
+     #TODO
+     #BlueHydra::DB.create_db
 #  end
 #
-#  DataMapper.finalize
-#
-#  # massive speed up of sqlite by using in memory journal, this results in an
-#  # increased potential of corrupted DBs so the above code is used to protect
-#  # against that.
 #rescue => e
 #  BlueHydra.logger.error("#{e.class}: #{e.message}")
 #  log_message = ""
@@ -364,6 +357,10 @@ BlueHydra::DB.create_db unless BlueHydra::DB.db_exist?
 #  })
 #  exit 1
 #end
+
+# go fast, maybe bloat memory
+BlueHydra::DB.query("PRAGMA synchronous = OFF")
+BlueHydra::DB.query("PRAGMA journal_mode = MEMORY")
 
 if BlueHydra::SyncVersion.count == 0
   BlueHydra::SyncVersion.create_new.save

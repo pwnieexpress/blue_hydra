@@ -91,6 +91,8 @@ class BlueHydra::Device < BlueHydra::SQLModel
      set_uap_lap
      set_uuid
      prepare_the_filth
+     set_updated_at
+     set_created_at if self.new_row
      super
      sync_to_pulse
   end

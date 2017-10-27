@@ -24,6 +24,9 @@ class BlueHydra::SQLModel
     end
     return true
   end
+  def validation_map
+    {}
+  end
 
   def self.table_count(table)
     BlueHydra::DB.query("select id from #{table};").count
@@ -77,8 +80,6 @@ class BlueHydra::SQLModel
       self.save_subset(self.dirty_attributes)
       return nil
      end
-     self.set_updated_at
-     self.set_created_at if self.new_row
      statement = "update #{self.table_name} set #{self.model_to_sql_conversion} where id = #{self.id} limit 1;"
      BlueHydra::DB.query(statement)
      statement = nil
@@ -108,7 +109,7 @@ class BlueHydra::SQLModel
 
   def self.first
     model = self.new
-    model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id asc limit 1;").map{|r| r.to_h}.first)
+    return nil unless model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id asc limit 1;").map{|r| r.to_h}.first)
     return model
   end
 
@@ -119,7 +120,7 @@ class BlueHydra::SQLModel
 
   def self.last
     model = self.new
-    model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id desc limit 1;").map{|r| r.to_h}.first)
+    return nil unless model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id desc limit 1;").map{|r| r.to_h}.first)
     return model
   end
 
@@ -248,7 +249,7 @@ class BlueHydra::SQLModel
   end
 
   def sql_to_model_conversion(results={})
-    return nil if results.nil? || results.empty?
+    return nil if THROWOUT.include?(results)
     BlueHydra::DB.keys(self.table_name).each do |key, type|
       model_key = "@#{key}"
       type = type[:type]
@@ -274,6 +275,7 @@ class BlueHydra::SQLModel
       model_key = nil
     end
     results = nil
+    return true
   end
 
   def set_created_at
