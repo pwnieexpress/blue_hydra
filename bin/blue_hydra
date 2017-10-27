@@ -190,7 +190,7 @@ rescue => e
 ensure
   runner.stop
   File.unlink(PID_FILE)
-  BlueHydra.logger.warn("GOODBYE! ^_^")
+  BlueHydra.logger.info("GOODBYE! >_<")
   exit_status ||= 7
   exit exit_status
 end
