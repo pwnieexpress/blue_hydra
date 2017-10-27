@@ -4,8 +4,8 @@ class BlueHydra::SyncVersion < BlueHydra::SQLModel
   def table_name
     TABLE_NAME
   end
-  SCHEMA = { id:       {type: :integer},
-             version:  {type: :string}
+  SCHEMA = { id:       {type: :integer, sqldef: ID},
+             version:  {type: :string, sqldef: VARCHAR50}
             }.freeze
   def self.schema
     SCHEMA

@@ -22,7 +22,28 @@ end
 # classes inherit from this to gain sqlite3 functionality and functions BH expects to exist
 # on the object in order to hook into the application
 class BlueHydra::SQLModel
+  VARCHAR50 = "VARCHAR(50)".freeze
+  VARCHAR255 = "VARCHAR(255)".freeze
+  TEXT = "TEXT".freeze
+  INTEGER = "INTEGER".freeze
+  BOOLEANF = "BOOLEAN DEFAULT 'f'".freeze
+  BOOLEANT = "BOOLEAN DEFAULT 't'".freeze
+  BOOLEAN = "BOOLEAN".freeze
+  TIMESTAMP = "TIMESTAMP".freeze
+  ID = "INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT".freeze
   attr_accessor :dirty_attributes,:new_row
+
+  def self.build_model_schema
+    "CREATE TABLE #{self::TABLE_NAME} (#{self.build_column_schema});"
+  end
+
+  def self.build_column_schema
+    columns = ""
+    self::SCHEMA.each do |col,metadata|
+      columns << "#{col} #{metadata[:sqldef]}, "
+    end
+    return columns.chomp(", ")
+  end
 
   # runs validations defined by validation map
   def valid?

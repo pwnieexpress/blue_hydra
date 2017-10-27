@@ -1,17 +1,26 @@
 module BlueHydra::DB
-  # master schema defines table names and the schema for each table
-  # any changes to any of the models and the schema need to be reflected here below
-  #
-  # Helpers:
-  # current disk schema = BlueHydra::DB.current_disk_schema
-  # master sql schema = BlueHydra::DB.current_master_schema
-  # ruby obj schema = BlueHydra::DB.schema
-  @sqlschema = "CREATE TABLE blue_hydra_devices (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, uuid VARCHAR(50), name VARCHAR(50), status VARCHAR(50), address VARCHAR(50), uap_lap VARCHAR(50), vendor TEXT, appearance VARCHAR(50), company VARCHAR(255), company_type VARCHAR(50), lmp_version VARCHAR(50), manufacturer VARCHAR(50), firmware VARCHAR(50), classic_mode BOOLEAN DEFAULT 'f', classic_service_uuids TEXT, classic_channels TEXT, classic_major_class VARCHAR(50), classic_minor_class VARCHAR(50), classic_class TEXT, classic_rssi TEXT, classic_tx_power TEXT, classic_features TEXT, classic_features_bitmap TEXT, le_mode BOOLEAN DEFAULT 'f', le_service_uuids TEXT, le_address_type VARCHAR(50), le_random_address_type VARCHAR(50), le_company_data VARCHAR(255), le_company_uuid VARCHAR(50), le_proximity_uuid VARCHAR(50), le_major_num VARCHAR(50), le_minor_num VARCHAR(50), le_flags TEXT, le_rssi TEXT, le_tx_power TEXT, le_features TEXT, le_features_bitmap TEXT, ibeacon_range VARCHAR(50), created_at TIMESTAMP, updated_at TIMESTAMP, last_seen INTEGER); CREATE TABLE blue_hydra_sync_versions (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, version VARCHAR(50));"
+  # DB Helpers:
+  # current disk schema call BlueHydra::DB.current_disk_schema
+  # generated master sql schema call BlueHydra::DB.current_master_schema
+  # generated ruby obj schema call BlueHydra::DB.schema
 
-  # This is the master schema map for the ruby object side of things
-  SCHEMA  = { BlueHydra::Device::TABLE_NAME =>       BlueHydra::Device.schema,
-              #BlueHydra::NewModel::TABLE_NAME =>    BlueHydra::NewModel.schema,
-              BlueHydra::SyncVersion::TABLE_NAME =>  BlueHydra::SyncVersion.schema }.freeze
+  ####################################
+  # Master Model List
+  ####################################
+  MODELS = [ BlueHydra::Device,
+             #BlueHydra::NewModelHere,
+             BlueHydra::SyncVersion ]
+  tmp = {}
+  MODELS.map do |model|
+   tmp[model::TABLE_NAME] = model.schema
+  end
+  tmpstring = ""
+  MODELS.each do |model|
+    tmpstring << model.build_model_schema + " "
+  end
+
+  SCHEMA = tmp
+  SQLSCHEMA =  tmpstring.chomp(" ")
 
   def self.schema
     SCHEMA
@@ -159,6 +168,7 @@ module BlueHydra::DB
   def self.add_missing_tables(tables)
     tables.each do |m|
      BlueHydra.logger.info("adding missing table #{m}")
+     # todo lookup model/table in MODELS list, call build_model_schema and run that automatically
      self.do_migration(m)
     end
   end
@@ -166,6 +176,7 @@ module BlueHydra::DB
   # trigger migration file based on the missing column name
   def self.add_missing_columns(columns)
     columns.each do |m|
+     # todo pass model, lookup model in SCHEMA, lookup column in _, auto generate alter table add column
      BlueHydra.logger.info("adding missing column #{m}")
      self.do_migration(m)
     end
@@ -183,7 +194,8 @@ module BlueHydra::DB
   end
 
   def self.current_master_schema
-    @sqlschema
+    #@sqlschema
+    SQLSCHEMA
   end
 
   def self.current_disk_schema
