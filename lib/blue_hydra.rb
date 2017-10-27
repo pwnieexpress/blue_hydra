@@ -317,46 +317,28 @@ DATABASE_LOCATION = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
             "#{DB_NAME}"
           end
 
-BlueHydra::DB.create_db unless BlueHydra::DB.db_exist?
-
-
-#TODO sqlite
+if !BlueHydra::DB.db_exist?
+  BlueHydra::DB.create_db
+else
 # DB Migration and upgrade logic
-#begin
-#  begin
-#    # Upgrade the db..
-     #TODO BlueHyda::DB.auto_upgrade!
-#  rescue #TODO fix this DataObjects::ConnectionError
-#    # in the case of an invalid / blank/ corrupt DB file we will back up the old
-#    # file and then create a new db to proceed.
-#    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
-#    BlueHydra.logger.error("#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...")
-#    BlueHydra::Pulse.send_event("blue_hydra",
-#    {key:'blue_hydra_db_corrupt',
-#    title:"Blue Hydra DB Corrupt",
-#    message:"#{db_file} is not valid. Backing up to #{db_file}.corrupt and recreating...",
-#    severity:'ERROR'
-#    })
-#    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
-     #TODO
-     #BlueHydra::DB.create_db
-#  end
-#
-#rescue => e
-#  BlueHydra.logger.error("#{e.class}: #{e.message}")
-#  log_message = ""
-#  e.backtrace.each do |line|
-#    BlueHydra.logger.error(line)
-#    log_message << line
-#  end
-#  BlueHydra::Pulse.send_event("blue_hydra",
-#  {key:'blue_hydra_db_error',
-#  title:"Blue Hydra Encountered DB Migration Error",
-#  message:log_message,
-#  severity:'FATAL'
-#  })
-#  exit 1
-#end
+  begin
+    # Upgrade the db..
+     BlueHydra::DB.auto_migrate!
+  rescue
+    # in the case of an invalid / blank/ corrupt DB file we will back up the old
+    # file and then create a new db to proceed.
+    db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
+    BlueHydra.logger.error("#{db_file} is not valid or migration failed. Backing up to #{db_file}.corrupt and recreating...")
+    BlueHydra::Pulse.send_event("blue_hydra",
+    {key:'blue_hydra_db_corrupt',
+    title:"Blue Hydra DB Corrupt",
+    message:"#{db_file} is not valid or migration failed. Backing up to #{db_file}.corrupt and recreating...",
+    severity:'ERROR'
+    })
+    File.rename(db_file, "#{db_file}.corrupt")   #=> 0
+    BlueHydra::DB.create_db
+  end
+end
 
 # go fast, maybe bloat memory
 BlueHydra::DB.query("PRAGMA synchronous = OFF")

@@ -30,16 +30,35 @@ module BlueHydra::DB
     return false
   end
 
+  def self.needs_type_change_migration?
+    # le mode and classic mode had a default added
+    return true unless current_disk_schema.include?("le_mode BOOLEAN DEFAULT 'f'") && current_disk_schema.include?("classic_mode BOOLEAN DEFAULT 'f'")
+    return false
+  end
+
   def self.auto_migrate!
+    BlueHydra.logger.info("DB Auto Upgrade...")
     unless self.db_exist?
+      BlueHydra.logger.info("No DB found. DB created...")
       self.create_db
       return true
     end
+    migrated = false
+    # make tables whole
     if self.needs_schema_update?
+      BlueHydra.logger.info("DB missing columns...")
       self.diff_and_update
-      return true
+      migrated = true
     end
-    return false
+    # upgrade default values with new table migration
+    if self.needs_type_change_migration?
+      BlueHydra.logger.info("DB MIGRATION: adding missing boolean default values...")
+      do_migration("default_boolean_fix")
+      migrated = true
+    end
+    BlueHydra.logger.info("DB Upgrade Complete. Changes Made: #{migrated}")
+    GC.start
+    return migrated
   end
 
   # migrations support for adding tables and columns
@@ -107,8 +126,8 @@ module BlueHydra::DB
   def self.get_disk_schema
     return nil unless self.db_exist?
     tables = BlueHydra::DB.query("SELECT sql FROM sqlite_master ORDER BY tbl_name, type DESC, name").map{|h| h.values}.flatten
-    tables.select!{|t| SCHEMA.keys.include?(t.split(" ")[2])}
-    return tables
+    @tables ||= tables.select!{|t| SCHEMA.keys.include?(t.split(" ")[2])}
+    return @tables
   end
 
   @dbmutex = Mutex.new
