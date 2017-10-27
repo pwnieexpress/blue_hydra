@@ -1,22 +1,30 @@
+# hack to programatically generate getters and setters for models as well as hook into dirty attributes
 class Class
-    def sql_model_attr_accessor(method_name)
-      at_name = "@#{method_name}"
-      inst_variable_name = at_name.to_sym
-      key = inst_variable_name
-      define_method method_name do
-        self.instance_variable_get inst_variable_name
-      end
-      define_method "#{method_name}=" do |new_value|
-        self.instance_variable_set inst_variable_name, new_value
-        self.dirty_attributes << method_name.to_sym unless [:@id,:@dirty_attributes].include?(inst_variable_name)
-        return nil
-      end
-		end
+  def sql_model_attr_accessor(method_name)
+    at_name = "@#{method_name}"
+    inst_variable_name = at_name.to_sym
+    key = inst_variable_name
+    # getter
+    define_method method_name do
+      self.instance_variable_get inst_variable_name
+    end
+    # setter
+    # hooks into dirty_attributes defined on SQLModels (Parent of blue hydra models)
+    define_method "#{method_name}=" do |new_value|
+      self.instance_variable_set inst_variable_name, new_value
+      self.dirty_attributes << method_name.to_sym unless [:@id,:@dirty_attributes].include?(inst_variable_name)
+      return nil
+    end
+	end
 end
 
+# Abstract parent class for persistent data models in blue hydra,
+# classes inherit from this to gain sqlite3 functionality and functions BH expects to exist
+# on the object in order to hook into the application
 class BlueHydra::SQLModel
   attr_accessor :dirty_attributes,:new_row
 
+  # runs validations defined by validation map
   def valid?
     self.validation_map.each do |key,value|
       val = self[key].to_s =~ value
@@ -24,6 +32,8 @@ class BlueHydra::SQLModel
     end
     return true
   end
+
+  # child overrides this to define validations per property/column
   def validation_map
     {}
   end
@@ -32,10 +42,13 @@ class BlueHydra::SQLModel
     BlueHydra::DB.query("select id from #{table};").count
   end
 
+  # getter for properties
   def [](key)
     return self.instance_variable_get("@#{key}")
   end
-
+  # setter for properties
+  # custom json setters call this function last so as a pattern access properties by their function
+  # instead of directly keying in with this function
   def []=(key,data)
     set_key = "@#{key}"
     self.instance_variable_set(set_key,data)
@@ -45,6 +58,7 @@ class BlueHydra::SQLModel
     return nil
   end
 
+  # delete the row
   def destroy!
      statement = "delete from #{self.table_name} where id = #{self.id} limit 1;"
      BlueHydra::DB.query(statement)
@@ -53,6 +67,7 @@ class BlueHydra::SQLModel
      return nil
   end
 
+  # convert sql row into object
   def load_row(id=nil)
     id = self.id if id.nil?
     return nil if id.nil?
@@ -60,9 +75,10 @@ class BlueHydra::SQLModel
     return nil
   end
 
+  # save subset of rows
   def save_subset(rows)
      return false unless self.valid?
-     updatestatement = self.model_to_sql_conversion(BlueHydra::DB.keys(self.table_name).select{|k,v| rows.include?(k)})
+     updatestatement = model_to_sql_conversion(BlueHydra::DB.keys(self.table_name).select{|k,v| rows.include?(k)})
      statement = "update #{self.table_name} set #{updatestatement} where id = #{self.id} limit 1;"
      BlueHydra::DB.query(statement)
      statement = nil
@@ -71,10 +87,11 @@ class BlueHydra::SQLModel
      return nil
   end
 
+  # save the model, if its not a new record it will only save the dirty attributes (properties/columns that have changed since loading)
   def save
      return false unless self.valid?
      # performance shortcut, only update what changes
-     # at a minimum this is updated at
+     # at a minimum this is updated at on the device model
      unless self.new_row
       return false if self.dirty_attributes.empty?
       self.save_subset(self.dirty_attributes)
@@ -88,6 +105,7 @@ class BlueHydra::SQLModel
      return nil
   end
 
+  # return hash based on schema of attributes for this model
   def attributes
     attrs = {}
     BlueHydra::DB.schema[self.table_name].each do |key,metadata|
@@ -96,34 +114,41 @@ class BlueHydra::SQLModel
     return attrs
   end
 
+  # puts attribute list for this model
   def self.attributes
     puts BlueHydra::DB.schema[self.table_name].keys
     return nil
   end
 
+  # returns boolean if id of this model exists
   def self.id_exist?(id)
     row_ids = BlueHydra::DB.query("select id from #{self::TABLE_NAME} where id = #{id} limit 1;")
     return false if row_ids.nil? || row_ids.first.nil?
     return true
   end
 
+  # return first row as object
   def self.first
     model = self.new
     return nil unless model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id asc limit 1;").map{|r| r.to_h}.first)
     return model
   end
 
+  # return n row as object
   def self.get(id)
     return nil unless self.id_exist?(id)
     return self.new(id)
   end
 
+  # return last row as object
   def self.last
     model = self.new
     return nil unless model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id desc limit 1;").map{|r| r.to_h}.first)
     return model
   end
 
+  # create a new row / object
+  # return the object
   def self.create_new
     newobj = self.new
     newobj.id = self.create_new_row
@@ -131,10 +156,12 @@ class BlueHydra::SQLModel
     return newobj
   end
 
+  # helper method for != queries
   def self.all_not(query={})
     self.all(query,true)
   end
 
+  # helper method for == queries
   def self.all(query={},negate=false)
     basequery = "select * from #{self::TABLE_NAME}"
     if negate
@@ -176,6 +203,7 @@ class BlueHydra::SQLModel
     records
   end
 
+  # helper creates new row in correct table based off of obj type/table_name const
   def self.create_new_row
     BlueHydra::DB.query("begin transaction;")
     BlueHydra::DB.query("insert into #{self::TABLE_NAME} default values;")
@@ -185,22 +213,8 @@ class BlueHydra::SQLModel
     return newid
   end
 
-  # for eventual lazy loading nightmare
-  #def load_row_subset(keys=[])
-  #  return nil if keys.empty?
-  #  statement = ""
-  #  keys.each do |k|
-  #    statement << "#{k}"
-  #    statement << "," unless k == keys.last
-  #  end
-  #  self.new_row = true
-  #  result = BlueHydra::DB.query("select #{statement} from #{self.table_name} where id = #{self.id} limit 1;").first
-  #  statement = nil
-  #  keys = nil
-  #  return result
-  #end
-
   THROWOUT = [nil,[],'',{},'[]','{}']
+  # handles data types and converting ruby obj to string for saving to disk using sqlite3
   def model_to_sql_conversion(rows=nil)
     rows = BlueHydra::DB.keys(self.table_name) unless rows
     statement = ""
@@ -248,6 +262,7 @@ class BlueHydra::SQLModel
     return statement
   end
 
+  # handles data types and converting sqlite into ruby object
   def sql_to_model_conversion(results={})
     return nil if THROWOUT.include?(results)
     BlueHydra::DB.keys(self.table_name).each do |key, type|
@@ -258,19 +273,14 @@ class BlueHydra::SQLModel
           # json fields are managed in the setter functions
           # this gives us a lazy, lazy loading since JSON encoding/decoding uses so many intermediate objects
           self.instance_variable_set(model_key,results.delete(key)) unless THROWOUT.include?(results[key])
-          next
       elsif type == :string
         self.instance_variable_set(model_key, results.delete(key).to_s) unless THROWOUT.include?(results[key])
-        next
       elsif type == :integer
         self.instance_variable_set(model_key, results.delete(key).to_i) unless THROWOUT.include?(results[key])
-        next
       elsif type == :boolean
         self.instance_variable_set(model_key,BlueHydra::SQLModel.string_to_boolean(results.delete(key))) unless THROWOUT.include?(results[key])
-        next
       elsif type == :datetime
         self.instance_variable_set(model_key, results.delete(key)) unless THROWOUT.include?(results[key])
-        next
       end
       model_key = nil
     end
@@ -290,6 +300,7 @@ class BlueHydra::SQLModel
     DateTime.now.to_s
   end
 
+  # parent class initializer with no params, call instead of super
   def setup
     self.dirty_attributes = []
   end
@@ -306,6 +317,7 @@ class BlueHydra::SQLModel
     return false
   end
 
+  # lookup to see if property/column data has changed on the object since its been loaded from disk
   def attribute_dirty?(col)
     self.dirty_attributes.include?(col)
   end
