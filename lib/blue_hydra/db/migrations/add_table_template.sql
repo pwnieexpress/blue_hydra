@@ -1,5 +1,0 @@
-CREATE TABLE "migrations" (
-"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-"time" VARCHAR(50),
-"complete" BOOLEAN DEAULT 'f'
-)

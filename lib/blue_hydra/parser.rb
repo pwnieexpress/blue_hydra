@@ -161,20 +161,7 @@ module BlueHydra
                company_tmp = company_tmp.split('(')
                company_tmp.delete_at(1)
                company_tmp = company_tmp.join('(')
-               if company_tmp.length > 49
-                 BlueHydra.logger.warn("Attempted to handle long company and still too long:")
-                 BlueHydra.logger.warn("company_tmp: #{company_tmp}")
-                 BlueHydra.logger.warn("Truncating company...")
-                 company_tmp = company_tmp[0,49]
-               end
              end
-             if company_tmp.length > 49
-               BlueHydra.logger.warn("Did not attempt to handle long company and still too long:")
-               BlueHydra.logger.warn("company_tmp: #{company_tmp}")
-               BlueHydra.logger.warn("Truncating company...")
-               company_tmp = company_tmp[0,49]
-             end
-
              set_attr(:company, company_tmp)
 
              company_type = nil

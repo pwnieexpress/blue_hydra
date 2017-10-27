@@ -1,6 +1,6 @@
 module BlueHydra::DB
   # master schema defines table names and the schema for each table
-  @sqlschema = "CREATE TABLE blue_hydra_devices (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, uuid VARCHAR(50), name VARCHAR(50), status VARCHAR(50), address VARCHAR(50), uap_lap VARCHAR(50), vendor TEXT, appearance VARCHAR(50), company VARCHAR(50), company_type VARCHAR(50), lmp_version VARCHAR(50), manufacturer VARCHAR(50), firmware VARCHAR(50), classic_mode BOOLEAN DEFAULT 'f', classic_service_uuids TEXT, classic_channels TEXT, classic_major_class VARCHAR(50), classic_minor_class VARCHAR(50), classic_class TEXT, classic_rssi TEXT, classic_tx_power TEXT, classic_features TEXT, classic_features_bitmap TEXT, le_mode BOOLEAN DEFAULT 'f', le_service_uuids TEXT, le_address_type VARCHAR(50), le_random_address_type VARCHAR(50), le_company_data VARCHAR(50), le_company_uuid VARCHAR(50), le_proximity_uuid VARCHAR(50), le_major_num VARCHAR(50), le_minor_num VARCHAR(50), le_flags TEXT, le_rssi TEXT, le_tx_power TEXT, le_features TEXT, le_features_bitmap TEXT, ibeacon_range VARCHAR(50), created_at TIMESTAMP, updated_at TIMESTAMP, last_seen INTEGER); CREATE TABLE blue_hydra_sync_versions (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, version VARCHAR(50));"
+  @sqlschema = "CREATE TABLE blue_hydra_devices (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, uuid VARCHAR(50), name VARCHAR(50), status VARCHAR(50), address VARCHAR(50), uap_lap VARCHAR(50), vendor TEXT, appearance VARCHAR(50), company VARCHAR(255), company_type VARCHAR(50), lmp_version VARCHAR(50), manufacturer VARCHAR(50), firmware VARCHAR(50), classic_mode BOOLEAN DEFAULT 'f', classic_service_uuids TEXT, classic_channels TEXT, classic_major_class VARCHAR(50), classic_minor_class VARCHAR(50), classic_class TEXT, classic_rssi TEXT, classic_tx_power TEXT, classic_features TEXT, classic_features_bitmap TEXT, le_mode BOOLEAN DEFAULT 'f', le_service_uuids TEXT, le_address_type VARCHAR(50), le_random_address_type VARCHAR(50), le_company_data VARCHAR(255), le_company_uuid VARCHAR(50), le_proximity_uuid VARCHAR(50), le_major_num VARCHAR(50), le_minor_num VARCHAR(50), le_flags TEXT, le_rssi TEXT, le_tx_power TEXT, le_features TEXT, le_features_bitmap TEXT, ibeacon_range VARCHAR(50), created_at TIMESTAMP, updated_at TIMESTAMP, last_seen INTEGER); CREATE TABLE blue_hydra_sync_versions (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, version VARCHAR(50));"
 
   SCHEMA  = { BlueHydra::Device::TABLE_NAME =>       BlueHydra::Device.schema,
               BlueHydra::SyncVersion::TABLE_NAME =>  BlueHydra::SyncVersion.schema }.freeze
@@ -30,32 +30,43 @@ module BlueHydra::DB
     return false
   end
 
-  def self.needs_type_change_migration?
+  def self.needs_boolean_migration?
     # le mode and classic mode had a default added
     return true unless current_disk_schema.include?("le_mode BOOLEAN DEFAULT 'f'") && current_disk_schema.include?("classic_mode BOOLEAN DEFAULT 'f'")
     return false
   end
 
-  def self.auto_migrate!
-    BlueHydra.logger.info("DB Auto Upgrade...")
-    unless self.db_exist?
-      BlueHydra.logger.info("No DB found. DB created...")
-      self.create_db
-      return true
-    end
-    migrated = false
-    # make tables whole
-    if self.needs_schema_update?
-      BlueHydra.logger.info("DB missing columns...")
-      self.diff_and_update
-      migrated = true
-    end
+  def self.needs_varchar_migration?
+    return true unless current_disk_schema.include?("company VARCHAR(255)") && current_disk_schema.include?("le_company_data VARCHAR(255)")
+    return false
+  end
+
+  def self.do_full_migrations
     # upgrade default values with new table migration
-    if self.needs_type_change_migration?
+    migrated = false
+    if self.needs_boolean_migration?
       BlueHydra.logger.info("DB MIGRATION: adding missing boolean default values...")
       do_migration("default_boolean_fix")
       migrated = true
     end
+    if self.needs_varchar_migration?
+      BlueHydra.logger.info("DB MIGRATION: fixing varchar values...")
+      do_migration("fix_varchar")
+      migrated = true
+    end
+    return migrated
+  end
+
+  def self.auto_migrate!
+    BlueHydra.logger.info("DB Auto Upgrade...")
+    migrated = false
+    # make tables whole
+    if self.needs_schema_update?
+      BlueHydra.logger.info("DB master schema different from disk schema...")
+      self.diff_and_update
+      migrated = true
+    end
+    migrated = true if self.do_full_migrations
     BlueHydra.logger.info("DB Upgrade Complete. Changes Made: #{migrated}")
     GC.start
     return migrated
