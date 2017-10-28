@@ -1,6 +1,10 @@
 #l this is the bluetooth Device model stored in the DB
 class BlueHydra::Device < BlueHydra::SQLModel
-# boilerplate model setup
+
+  #############################
+  # Model setup
+  #############################
+  BlueHydra::DB.subscribe_model(self)
   TABLE_NAME = 'blue_hydra_devices'.freeze
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i.freeze
   EXISTS = /^.+$/.freeze
@@ -52,14 +56,14 @@ class BlueHydra::Device < BlueHydra::SQLModel
               last_seen:                { type: :integer,   sqldef: INTEGER,     sync: true                      }
            }.freeze
 
-  # set up properties
-  SCHEMA.each do |property,metadata|
-    sql_model_attr_accessor property
-  end
-
   def self.schema
     SCHEMA
   end
+
+  SCHEMA.each do |property,metadata|
+    sql_model_attr_accessor property
+  end
+  attr_accessor :filthy_attributes
 
   SYNCABLE_ATTRIBUTES = SCHEMA.select{|p,h| h.keys.include?(:sync)}.keys
   SERIALIZED_ATTRIBUTES = SCHEMA.select{|p,h| h[:type] == :json}.keys
@@ -97,8 +101,9 @@ class BlueHydra::Device < BlueHydra::SQLModel
      super
      sync_to_pulse
   end
-
-# END boilerplate model setup
+  #############################
+  # END boilerplate model setup
+  #############################
 
   # mark hosts as 'offline' if we haven't seen for a while
   def self.mark_old_devices_offline(startup=false)

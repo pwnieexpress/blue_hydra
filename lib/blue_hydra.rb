@@ -241,10 +241,12 @@ module BlueHydra
 end
 
 # require the actual code
-require 'blue_hydra/models/sqlmodel'
-require 'blue_hydra/models/sync_version'
-require 'blue_hydra/models/device'
 require 'blue_hydra/db/db'
+require 'blue_hydra/models/sqlmodel'
+#order of models matters to schema
+require 'blue_hydra/models/device'
+require 'blue_hydra/models/sync_version'
+BlueHydra::DB.finalize_setup!
 require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/pulse'

@@ -1,44 +1,50 @@
 module BlueHydra::DB
-  # DB Helpers:
-  # current disk schema call BlueHydra::DB.current_disk_schema
-  # generated master sql schema call BlueHydra::DB.current_master_schema
-  # generated ruby obj schema call BlueHydra::DB.schema
+  #  NOTES:
+  # finalize_setup! builds master schema and sqlschema
+  # DOES NOT HANDLE RELATIONSHIPS
+  # handles automatically adding columns and tables for new models
+  # automatically generates sql schema based on model's schema constants
 
-  ####################################
-  # Master Model List
-  ####################################
-  MODELS = [ BlueHydra::Device,
-             #BlueHydra::NewModelHere,
-             BlueHydra::SyncVersion ]
-  tmp = {}
-  tmpstring = ""
-  MODELS.map do |model|
-   tmp[model::TABLE_NAME] = {model: model, schema: model.schema}
-   tmpstring << model.build_model_schema + " "
+  @models ||= []
+  @setup = false
+  def self.finalize_setup!
+    @schema ||= {}
+    @sqlschema = ""
+    @models.map do |model|
+     @schema[model::TABLE_NAME] = { model: model, schema: model.schema }
+     @sqlschema << model.build_model_schema + " "
+    end
+    @setup = true
+    @sqlschema.chomp!(" ")
+    return nil
   end
-  SCHEMA = tmp
-  SQLSCHEMA =  tmpstring.chomp(" ")
 
-  # SCHEMA = { "table_name" => {model: <SQLModel>, schema: <SQLModel>.schema},
+  # MASTER SCHEMA getter
+  # built by teh call to BlueHydra::DB.finalize_setup!
+  #  { "table_name" => {model: <SQLModel>, schema: <SQLModel>.schema},
   #   etc,
   #   etc }
   def self.schema
-    SCHEMA
-  end
-
-  # return model object by string table name
-  def self.model_by_table_name(name)
-    SCHEMA[name][:model]
-  end
-
-  # return schema by string table name
-  def self.schema_by_table_name(name)
-    SCHEMA[name][:schema]
+    @schema
   end
 
   # return schema based on string table name
   def self.keys(table)
-   SCHEMA[table][:schema]
+   @schema[table][:schema]
+  end
+
+  # adds model object to @models, used to build @schema and @sqlschema
+  # required call for models
+  def self.subscribe_model(model)
+    @models << model unless @setup
+  end
+
+  def self.model_by_table_name(name)
+    @schema[name][:model]
+  end
+
+  def self.schema_by_table_name(name)
+    @schema[name][:schema]
   end
 
   def self.db_exist?
@@ -87,9 +93,9 @@ module BlueHydra::DB
   ####################################
   # Migration Logic
   ####################################
-  # Handle migrations outside of what sqlite supports (i.e other than add col/table)
+
+  # Handle migrations outside of what sqlite supports (i.e type changes, adding defaults)
   def self.do_custom_migrations
-    # upgrade default values with new table migration
     migrated = false
     if self.needs_boolean_migration?
       BlueHydra.logger.info("DB MIGRATION: adding missing boolean default values...")
@@ -101,30 +107,45 @@ module BlueHydra::DB
       do_migration("fix_varchar")
       migrated = true
     end
-    ###########################################
-    # Additional migrations and checks should be defined here before return
-    ###########################################
+    # additional custom migrations and checks should be defined here before return
     return migrated
+  end
+
+  def self.get_master_schema_split
+    return @sqlschema.split("; ")
+  end
+
+  def self.whole_disk_schema
+    return (self.get_disk_schema_split.join("; ")+";")
+  end
+
+  def self.get_disk_schema_split
+    return nil unless self.db_exist?
+    tables = BlueHydra::DB.query("SELECT sql FROM sqlite_master ORDER BY tbl_name, type DESC, name").map{|h| h.values}.flatten
+    @tables ||= tables.select!{|t| self.schema.keys.include?(t.split(" ")[2])}
+    return @tables
   end
 
   # Cheap helper, disk schema should match master schema @sqlschema exactly
   def self.needs_schema_update?
-    return true if self.current_master_schema != self.current_disk_schema
+    return true if @sqlschema != self.whole_disk_schema
     return false
   end
 
   # le mode and classic mode had a default added
   def self.needs_boolean_migration?
-    return true unless current_disk_schema.include?("le_mode BOOLEAN DEFAULT 'f'") && current_disk_schema.include?("classic_mode BOOLEAN DEFAULT 'f'")
+    return true unless whole_disk_schema.include?("le_mode BOOLEAN DEFAULT 'f'") && whole_disk_schema.include?("classic_mode BOOLEAN DEFAULT 'f'")
     return false
   end
 
   # company and le_company_data varchar(50) to varchar(255) conversion
   def self.needs_varchar_migration?
-    return true unless current_disk_schema.include?("company VARCHAR(255)") && current_disk_schema.include?("le_company_data VARCHAR(255)")
+    return true unless whole_disk_schema.include?("company VARCHAR(255)") && whole_disk_schema.include?("le_company_data VARCHAR(255)")
     return false
   end
 
+  # handles migrations, adds missing columns based on schema on the model,
+  # adds missing tables based on model schemas and master schema (models must inherit and be sub'd)
   def self.auto_migrate!
     BlueHydra.logger.info("DB Auto Upgrade...")
     migrated = false
@@ -149,12 +170,12 @@ module BlueHydra::DB
     disk_columns = {}
     master_columns = {}
     # table name => column names on disk
-    get_disk_schema.each do |t|
+    get_disk_schema_split.each do |t|
                         disk_columns[t.split(" ")[2]] = t.split(", ").map{|r| r.split(" ")[0]}[1..-1]
                         disk_columns[t.split(" ")[2]] << "id"
                       end
-    # table name => column names as defined in @sqlschema
-    get_master_schema.each do |t|
+    # table name => column names as defined in @sqlschema (generated)
+    get_master_schema_split.each do |t|
                         master_columns[t.split(" ")[2]] = t.split(", ").map{|r| r.split(" ")[0]}[1..-1]
                         master_columns[t.split(" ")[2]] << "id"
                       end
@@ -175,7 +196,7 @@ module BlueHydra::DB
     GC.start
   end
 
-  # trigger migration file based on the missing column name
+  # trigger migration file based on the missing table name
   def self.add_missing_tables(tables)
     tables.each do |m|
      BlueHydra.logger.info("adding missing table #{m}")
@@ -195,38 +216,13 @@ module BlueHydra::DB
   end
 
   def self.do_automatic_migration(script)
-    `sqlite3 #{DATABASE_LOCATION} < '#{script}'`
+    `sqlite3 #{DATABASE_LOCATION} "#{script}"`
   end
 
-  # MIGRATION FILES NEED TO BE NAMED THE MISSING TABLE OR COLUMN NAME EXACTLY
   def self.do_migration(file_name)
     `sqlite3 #{DATABASE_LOCATION} < $(pwd)'/lib/blue_hydra/db/migrations/run/#{file_name}.sql'`
   end
-
-  # helper functions to parse sql schemas and build the same structured hash
-  # table name => columns
-  def self.get_master_schema
-    return self.current_master_schema.split("; ")
-  end
-
-  def self.current_master_schema
-    #@sqlschema
-    SQLSCHEMA
-  end
-
-  def self.current_disk_schema
-    return (self.get_disk_schema.join("; ")+";")
-  end
-
-  def self.get_disk_schema
-    return nil unless self.db_exist?
-    tables = BlueHydra::DB.query("SELECT sql FROM sqlite_master ORDER BY tbl_name, type DESC, name").map{|h| h.values}.flatten
-    @tables ||= tables.select!{|t| SCHEMA.keys.include?(t.split(" ")[2])}
-    return @tables
-  end
-  ########################################
   # End migration logic
   ########################################
-
 end
 

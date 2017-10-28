@@ -1,12 +1,14 @@
 # this is the bluetooth Device model stored in the DB
 class BlueHydra::SyncVersion < BlueHydra::SQLModel
+  BlueHydra::DB.subscribe_model(self)
   TABLE_NAME = 'blue_hydra_sync_versions'.freeze
   def table_name
     TABLE_NAME
   end
-  SCHEMA = { id:       {type: :integer, sqldef: ID},
-             version:  {type: :string, sqldef: VARCHAR50}
-            }.freeze
+  SCHEMA = { id:       { type: :integer, sqldef: ID        },
+             version:  { type: :string,  sqldef: VARCHAR50 }
+           }.freeze
+
   def self.schema
     SCHEMA
   end
@@ -29,9 +31,6 @@ class BlueHydra::SyncVersion < BlueHydra::SQLModel
     self.version = SecureRandom.uuid
   end
 
-  def self.count
-    self.table_count(TABLE_NAME)
-  end
 
 end
 
