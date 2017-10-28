@@ -1,18 +1,22 @@
 #l this is the bluetooth Device model stored in the DB
 class BlueHydra::Device < BlueHydra::SQLModel
-
   #############################
   # Model setup
   #############################
+  # Join master schema - required
   BlueHydra::DB.subscribe_model(self)
+  # Define table name - required
   TABLE_NAME = 'blue_hydra_devices'.freeze
-  MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i.freeze
-  EXISTS = /^.+$/.freeze
   def table_name
     TABLE_NAME
   end
+  # Define validations
+  MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i.freeze
+  EXISTS = /^.+$/.freeze
 
-  # ORDER OF THESE ATTRIBTUES MATTERS
+  # Model Properties - required
+  # { symbol name => {type: <:string|:integer|:json|:boolean>, sqldef: <see SQLMODEL class consts>, sync: <default false boolean>, validate: <regex validation default none>}
+  # ORDER OF ATTRIBTUES MATTERS
   SCHEMA =  { id:                       { type: :integer,   sqldef: ID                                           },
               uuid:                     { type: :string,    sqldef: VARCHAR50  },#sync:true                      },
               name:                     { type: :string,    sqldef: VARCHAR50,   sync: true                      },
@@ -55,42 +59,43 @@ class BlueHydra::Device < BlueHydra::SQLModel
               updated_at:               { type: :datetime,  sqldef: TIMESTAMP                                    },
               last_seen:                { type: :integer,   sqldef: INTEGER,     sync: true                      }
            }.freeze
-
   def self.schema
     SCHEMA
   end
+  # Build model validation map - required if validations desired and added in schema, otherwise optional
+  valid = {}
+  SCHEMA.select{|p,h| h.keys.include?(:validate)}.each{|p,h| valid[p] = h[:validate]}
+  VALIDATION_MAP = valid
+  def validation_map
+    VALIDATION_MAP
+  end
 
+  # Setup Properties - required
   SCHEMA.each do |property,metadata|
     sql_model_attr_accessor property
   end
   attr_accessor :filthy_attributes
 
-  SYNCABLE_ATTRIBUTES = SCHEMA.select{|p,h| h.keys.include?(:sync)}.keys
-  SERIALIZED_ATTRIBUTES = SCHEMA.select{|p,h| h[:type] == :json}.keys
+  # Processing logic constants - model specific code
   INTERNAL_ATTRIBUTES = [:id]
-  NORMAL_ATTRIBUTES = ((SCHEMA.keys - SERIALIZED_ATTRIBUTES) - INTERNAL_ATTRIBUTES)
-  valid = {}
-  SCHEMA.select{|p,h| h.keys.include?(:validate)}.each{|p,h| valid[p] = h[:validate]}
-  VALIDATION_MAP = valid
-
-  def validation_map
-    VALIDATION_MAP
-  end
-
+  SYNCABLE_ATTRIBUTES = SCHEMA.select{|p,h| h.keys.include?(:sync)}.keys
   def syncable_attributes
     SYNCABLE_ATTRIBUTES
   end
-
+  SERIALIZED_ATTRIBUTES = SCHEMA.select{|p,h| h[:type] == :json}.keys
   def is_serialized?(attr)
     SERIALIZED_ATTRIBUTES.include?(attr)
   end
+  NORMAL_ATTRIBUTES = ((SCHEMA.keys - SERIALIZED_ATTRIBUTES) - INTERNAL_ATTRIBUTES)
 
+  # Model Initializer - required for call to setup + load_row
   def initialize(id=nil)
      setup
      load_row(id) if id
      self
   end
 
+  # required for before / after hooks otherwise optional
   def save
      set_vendor
      set_uap_lap
@@ -98,67 +103,17 @@ class BlueHydra::Device < BlueHydra::SQLModel
      prepare_the_filth
      set_updated_at
      set_created_at if self.new_row
-     super
+     # before save hook ^
+     super#.save
+     # after save hook v
      sync_to_pulse
   end
-  #############################
-  # END boilerplate model setup
-  #############################
 
-  # mark hosts as 'offline' if we haven't seen for a while
-  def self.mark_old_devices_offline(startup=false)
-    GC.start(immedaiate_sweep:true,full_mark:true)
-    if startup
-      # efficiently kill old things with fire
-      if BlueHydra::DB.query("select uuid from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" limit 5000;").count == 5000
-        BlueHydra::DB.query("delete from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" ;")
-        BlueHydra::Pulse.hard_reset
-      end
-      # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
-      # OLD DBS)
-      BlueHydra::Device.all(
-        le_mode:       false,
-        classic_mode:  false,
-        status:        "online"
-      ).select{|x|
-        x.last_seen < (Time.now.to_i - (15*60))
-      }.each{|device|
-        device.status = 'offline'
-        device.save
-      }
-      GC.start(immedaiate_sweep:true,full_mark:true)
-      # Kill old things with fire
-      BlueHydra::Device.all(status:'online').each do |dev|
-        next if dev.updated_at.nil? || dev.updated_at.empty?
-        if DateTime.parse(dev.updated_at) <= DateTime.parse(Time.at(Time.now.to_i - 604800*2).to_s)
-          dev.status = 'offline'
-          dev.save
-          dev.sync_to_pulse(true)
-          BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
-          dev.destroy!
-        end
-      end
-      GC.start(immedaiate_sweep:true,full_mark:true)
-    end
-    # classic mode devices have 15 min timeout
-    BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-      x.last_seen < (Time.now.to_i - (15*60))
-    }.each{|device|
-      device.status = 'offline'
-      device.save
-    }
-    GC.start(immedaiate_sweep:true,full_mark:true)
-    # le mode devices have 3 min timeout
-    BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-      x.last_seen < (Time.now.to_i - (60*3))
-    }.each{|device|
-      device.status = 'offline'
-      device.save
-    }
-    GC.start(immedaiate_sweep:true,full_mark:true)
-  end
+  ######################################
+  # Result Processing Functions
+  ######################################
 
-  # this class method is take a result Hash and convert it into a new or update
+  # this class method takes a result Hash and convert it into a new record or updates
   # an existing record
   #
   # == Parameters :
@@ -230,53 +185,80 @@ class BlueHydra::Device < BlueHydra::SQLModel
     record
   end
 
-  # look up the vendor for the address in the Louis gem
-  # and set it
-  RANDOM_ADDRESS = "N/A - Random Address"
-  UNKNOWN = "Unknown"
-  RANDOM = "Random"
-  def set_vendor(force=false)
-    if self.le_address_type == RANDOM
-      self.vendor = RANDOM_ADDRESS unless self.vendor == RANDOM_ADDRESS
-    else
-      if self.vendor == nil || self.vendor == UNKNOWN || force
-        vendor = Louis.lookup(self.address)
-        new_v = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
-        self.vendor = new_v unless self.vendor == new_v
+  # mark hosts as 'offline' if we haven't seen for a while
+  def self.mark_old_devices_offline(startup=false)
+    GC.start(immedaiate_sweep:true,full_mark:true)
+    if startup
+      # efficiently kill old things with fire
+      if BlueHydra::DB.query("select uuid from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" limit 5000;").count == 5000
+        BlueHydra::DB.query("delete from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" ;")
+        BlueHydra::Pulse.hard_reset
       end
-    end
-  end
-
-  # set a sync id as a UUID
-  def set_uuid
-    unless self.uuid
-      new_uuid = SecureRandom.uuid
-
-      until BlueHydra::Device.all(uuid: new_uuid).count == 0
-        new_uuid = SecureRandom.uuid
+      # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
+      # OLD DBS)
+      BlueHydra::Device.all(
+        le_mode:       false,
+        classic_mode:  false,
+        status:        "online"
+      ).select{|x|
+        x.last_seen < (Time.now.to_i - (15*60))
+      }.each{|device|
+        device.status = 'offline'
+        device.save
+      }
+      GC.start(immedaiate_sweep:true,full_mark:true)
+      # Kill old things with fire
+      BlueHydra::Device.all(status:'online').each do |dev|
+        next if dev.updated_at.nil? || dev.updated_at.empty?
+        if DateTime.parse(dev.updated_at) <= DateTime.parse(Time.at(Time.now.to_i - 604800*2).to_s)
+          dev.status = 'offline'
+          dev.save
+          dev.sync_to_pulse(true)
+          BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
+          dev.destroy!
+        end
       end
-
-      self.uuid = new_uuid unless uuid == new_uuid
+      GC.start(immedaiate_sweep:true,full_mark:true)
     end
+    # classic mode devices have 15 min timeout
+    BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (15*60))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+    GC.start(immedaiate_sweep:true,full_mark:true)
+    # le mode devices have 3 min timeout
+    BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
+      x.last_seen < (Time.now.to_i - (60*3))
+    }.each{|device|
+      device.status = 'offline'
+      device.save
+    }
+    GC.start(immedaiate_sweep:true,full_mark:true)
   end
 
-  # set the last 4 octets of the mac as the uap_lap values
-  #
-  # These values are from mac addresses for bt devices as follows
-  #
-  # |NAP    |UAP |LAP
-  # DE : AD : BE : EF : CA : FE
-
-  ADDRESS_DELIM = ":"
-  def set_uap_lap
-    newd = self.address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
-    self[:uap_lap] = newd unless self[:uap_lap] == newd
-  end
+  ######################################
+  # Lookup Helper Functions
+  ######################################
 
   # lookup helper method for uap_lap
   def self.find_by_uap_lap(address)
     uap_lap = address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
     self.all(:uap_lap => uap_lap,:limit => 1).first
+  end
+
+  ######################################
+  # Pulse Helper Functions
+  ######################################
+
+  # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
+  def self.sync_all_to_pulse(since=Time.at(Time.now.to_i - 604800))
+    BlueHydra::Device.all.each do |dev|
+      dev.sync_to_pulse(true)
+    end
+    GC.start
+    return nil
   end
 
   # This is a helper method to track what attributes change because all
@@ -362,6 +344,52 @@ class BlueHydra::Device < BlueHydra::SQLModel
       self.dirty_attributes = []
     end
       return nil
+  end
+
+  ######################################
+  # Property Helper/Setter Functions
+  ######################################
+
+  # look up the vendor for the address in the Louis gem
+  # and set it
+  RANDOM_ADDRESS = "N/A - Random Address"
+  UNKNOWN = "Unknown"
+  RANDOM = "Random"
+  def set_vendor(force=false)
+    if self.le_address_type == RANDOM
+      self.vendor = RANDOM_ADDRESS unless self.vendor == RANDOM_ADDRESS
+    else
+      if self.vendor == nil || self.vendor == UNKNOWN || force
+        vendor = Louis.lookup(self.address)
+        new_v = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
+        self.vendor = new_v unless self.vendor == new_v
+      end
+    end
+  end
+
+  # set a sync id as a UUID
+  def set_uuid
+    unless self.uuid
+      new_uuid = SecureRandom.uuid
+
+      until BlueHydra::Device.all(uuid: new_uuid).count == 0
+        new_uuid = SecureRandom.uuid
+      end
+
+      self.uuid = new_uuid unless uuid == new_uuid
+    end
+  end
+
+  # set the last 4 octets of the mac as the uap_lap values
+  #
+  # These values are from mac addresses for bt devices as follows
+  #
+  # |NAP    |UAP |LAP
+  # DE : AD : BE : EF : CA : FE
+  ADDRESS_DELIM = ":"
+  def set_uap_lap
+    newd = self.address.split(ADDRESS_DELIM)[2,4].join(ADDRESS_DELIM)
+    self[:uap_lap] = newd unless self[:uap_lap] == newd
   end
 
   # set the :name attribute from the :short_name key only if name is not already
@@ -492,7 +520,6 @@ class BlueHydra::Device < BlueHydra::SQLModel
     return nil
   end
 
-
   # set the :classic_rss attribute by merging with previously seen values
   #
   # limit to last 100 rssis
@@ -589,14 +616,4 @@ class BlueHydra::Device < BlueHydra::SQLModel
     self[:classic_features_bitmap] = JSON.generate(current)
     return nil
   end
-
-  # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
-  def self.sync_all_to_pulse(since=Time.at(Time.now.to_i - 604800))
-    BlueHydra::Device.all.each do |dev|
-      dev.sync_to_pulse(true)
-    end
-    GC.start
-    return nil
-  end
-
 end

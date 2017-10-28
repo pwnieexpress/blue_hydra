@@ -32,10 +32,12 @@ class BlueHydra::SQLModel
 
   attr_accessor :dirty_attributes,:new_row
 
+  # generate create table stmt for this model
   def self.build_model_schema
     "CREATE TABLE #{self::TABLE_NAME} (#{self.build_column_schema});"
   end
 
+  # helper to build string of property type combos
   def self.build_column_schema
     columns = ""
     self::SCHEMA.each do |col,metadata|

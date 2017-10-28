@@ -150,11 +150,11 @@ module BlueHydra::DB
     BlueHydra.logger.info("DB Auto Upgrade...")
     migrated = false
     # handle auto adding columns and tables
+    # chaep check, if schema out of order diff is smart enough to handle but not this check
     if self.needs_schema_update?
-      BlueHydra.logger.info("DB master sql schema may differ from disk sql schema...doing diff")
+      BlueHydra.logger.info("DB master sql schema may differ from disk sql schema... doing diff")
       # make db complete before modiftying types below
-      self.diff_and_update
-      migrated = true
+      migrated = true if self.diff_and_update
     end
     # handle complex migrations like column type changes etc
     migrated = true if self.do_custom_migrations
@@ -167,40 +167,58 @@ module BlueHydra::DB
   # new tables and columns need to be places in lib/blue_hydra/db/migrations/run
   # file names need to match the table/column name exactly i.e le_company_data.sql
   def self.diff_and_update
+    # diff data setup
     disk_schema = {}
     master_schema = {}
     # table name => column names on disk
-    get_disk_schema_split.each do |t|
+    get_disk_schema_split.each do |table_create_stmt|
                         schema = {}
-                        t.split(", ").map{|r| r.split(" ")}[1..-1].each{|a| schema[a[0]] = a[1]}
-                        disk_schema[t.split(" ")[2]] = schema
+                        table_create_stmt.split(", ").map{|r| r.split(" ")}[1..-1].each{|a| schema[a[0]] = a[1]}
+                        disk_schema[table_create_stmt.split(" ")[2]] = schema
                       end
     # table name => column names as defined in @sqlschema (generated)
-    get_master_schema_split.each do |t|
+    get_master_schema_split.each do |table_create_stmt|
                         schema = {}
-                        t.split(", ").map{|r| r.split(" ")}[1..-1].each{|a| schema[a[0]] = a[1]}
-                        master_schema[t.split(" ")[2]] = schema
+                        table_create_stmt.split(", ").map{|r| r.split(" ")}[1..-1].each{|a| schema[a[0]] = a[1]}
+                        master_schema[table_create_stmt.split(" ")[2]] = schema
                       end
     disk_tables = disk_schema.keys
     master_tables = master_schema.keys
-    # diff and update tables
+    # diff data setup end
+
+    # diffs and updates
+    migrated = false
+    # MODEL / table diff & update
     if disk_tables.sort != master_tables.sort
-       self.add_missing_tables((master_tables - disk_tables))
+      missing_tables_on_disk = (master_tables - disk_tables)
+      if !missing_tables_on_disk.empty?
+        self.add_missing_tables(missing_tables_on_disk)
+        migrated = true
+      else
+#table/model name/def mismatch
+      end
     end
-    # diff and update columns
+
+    # PROPERTY / column diff & update
+    # compare types AND names
+    # iterates over tables
+    # t => columns{ name => type }
     master_schema.each do |table,columns|
-      # compare types and names
-      # iterates over tables t => columns{ name => type }
       if columns.sort != disk_schema[table].sort
-        # if columns.keys.sort - disk_schema[table].keys.sort == []
-        # typ mismatch
-        self.add_missing_columns(table,(columns.keys.sort - disk_schema[table].keys.sort))
+        missing_columns_on_disk = (columns.keys.sort - disk_schema[table].keys.sort)
+        if !missing_columns_on_disk.empty?
+          self.add_missing_columns(table,missing_columns_on_disk)
+          migrated = true
+        else
+#type mismatch
+        end
       end
     end
     GC.start
+    return migrated
   end
 
-  # trigger migration file based on the missing table name
+  # generate and trigger migration based on the missing table name
   def self.add_missing_tables(tables)
     tables.each do |m|
      BlueHydra.logger.info("adding missing table #{m}")
@@ -210,7 +228,7 @@ module BlueHydra::DB
     end
   end
 
-  # trigger migration file based on the missing column name
+  # generate and trigger migration based on the missing column name
   def self.add_missing_columns(table,columns)
     columns.each do |m|
      BlueHydra.logger.info("adding missing column #{m}")
@@ -219,14 +237,14 @@ module BlueHydra::DB
     end
   end
 
+  # helper to shell out and run custom migration sql command
   def self.do_automatic_migration(script)
     `sqlite3 #{DATABASE_LOCATION} "#{script}"`
   end
 
+  # helepr to shell out and run whole file migration /migration/run/<file_name>.sql
   def self.do_migration(file_name)
     `sqlite3 #{DATABASE_LOCATION} < $(pwd)'/lib/blue_hydra/db/migrations/run/#{file_name}.sql'`
   end
-  # End migration logic
-  ########################################
 end
 
