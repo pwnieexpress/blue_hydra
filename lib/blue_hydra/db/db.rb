@@ -10,7 +10,7 @@ module BlueHydra::DB
   def self.finalize_setup!
     @schema ||= {}
     @sqlschema = ""
-    @models.map do |model|
+    @models.sort_by{|m| m::TABLE_NAME}.map do |model|
      @schema[model::TABLE_NAME] = { model: model, schema: model.schema }
      @sqlschema << model.build_model_schema + " "
     end
@@ -164,8 +164,8 @@ module BlueHydra::DB
 
   def self.get_disk_schema_split
     return nil unless self.db_exist?
-    tables = BlueHydra::DB.query("SELECT sql FROM sqlite_master ORDER BY tbl_name, type DESC, name").map{|h| h.values}.flatten
-    @tables ||= tables.select!{|t| self.schema.keys.include?(t.split(" ")[2])}
+    @tables = BlueHydra::DB.query("SELECT sql FROM sqlite_master ORDER BY tbl_name, type DESC, name").map{|h| h.values}.flatten
+    @tables = @tables.select!{|t| self.schema.keys.include?(t.split(" ")[2])}
     return @tables
   end
 
@@ -216,7 +216,9 @@ module BlueHydra::DB
     # iterates over tables
     # t => columns{ name => type }
     master_schema.each do |table,columns|
-      if columns.sort != disk_schema[table].sort
+      disk_columns = disk_schema[table]
+      disk_columns.sort if disk_columns
+      if disk_columns && columns.sort != disk_columns
         missing_columns_on_disk = (columns.keys.sort - disk_schema[table].keys.sort)
         if !missing_columns_on_disk.empty?
           self.add_missing_columns(table,missing_columns_on_disk)
@@ -232,8 +234,8 @@ module BlueHydra::DB
 
   # generate and trigger migration based on the missing table name
   def self.add_missing_tables(tables)
-    tables.each do |m|
-     BlueHydra.logger.info("adding missing table #{m}")
+    tables.each do |table|
+     BlueHydra.logger.info("adding missing table #{table}")
      missing_table_model = self.model_by_table_name(table)
      create_stmt = missing_table_model.build_model_schema
      self.do_automatic_migration(create_stmt)
@@ -242,10 +244,10 @@ module BlueHydra::DB
 
   # generate and trigger migration based on the missing column name
   def self.add_missing_columns(table,columns)
-    columns.each do |m|
-     BlueHydra.logger.info("adding missing column #{m}")
-     missing_column_type = self.schema_by_table_name(table)[m.to_sym][:sqldef]
-     self.do_automatic_migration("ALTER TABLE #{table} ADD COLUMN #{m} #{missing_column_type};")
+    columns.each do |col|
+     BlueHydra.logger.info("adding missing column #{col}")
+     missing_column_type = self.schema_by_table_name(table)[col.to_sym][:sqldef]
+     self.do_automatic_migration("ALTER TABLE #{table} ADD COLUMN #{col} #{missing_column_type};")
     end
   end
 
