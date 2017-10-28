@@ -151,7 +151,7 @@ module BlueHydra::DB
     migrated = false
     # handle auto adding columns and tables
     if self.needs_schema_update?
-      BlueHydra.logger.info("DB master sql schema different from disk sql schema...")
+      BlueHydra.logger.info("DB master sql schema may differ from disk sql schema...doing diff")
       # make db complete before modiftying types below
       self.diff_and_update
       migrated = true
@@ -167,30 +167,34 @@ module BlueHydra::DB
   # new tables and columns need to be places in lib/blue_hydra/db/migrations/run
   # file names need to match the table/column name exactly i.e le_company_data.sql
   def self.diff_and_update
-    disk_columns = {}
-    master_columns = {}
+    disk_schema = {}
+    master_schema = {}
     # table name => column names on disk
     get_disk_schema_split.each do |t|
-                        disk_columns[t.split(" ")[2]] = t.split(", ").map{|r| r.split(" ")[0]}[1..-1]
-                        disk_columns[t.split(" ")[2]] << "id"
+                        schema = {}
+                        t.split(", ").map{|r| r.split(" ")}[1..-1].each{|a| schema[a[0]] = a[1]}
+                        disk_schema[t.split(" ")[2]] = schema
                       end
     # table name => column names as defined in @sqlschema (generated)
     get_master_schema_split.each do |t|
-                        master_columns[t.split(" ")[2]] = t.split(", ").map{|r| r.split(" ")[0]}[1..-1]
-                        master_columns[t.split(" ")[2]] << "id"
+                        schema = {}
+                        t.split(", ").map{|r| r.split(" ")}[1..-1].each{|a| schema[a[0]] = a[1]}
+                        master_schema[t.split(" ")[2]] = schema
                       end
-    disk_tables = disk_columns.keys
-    master_tables = master_columns.keys
+    disk_tables = disk_schema.keys
+    master_tables = master_schema.keys
     # diff and update tables
-    if disk_tables != master_tables
-       BlueHydra.logger.info("adding missing tables")
+    if disk_tables.sort != master_tables.sort
        self.add_missing_tables((master_tables - disk_tables))
     end
     # diff and update columns
-    master_columns.each do |t,c|
-      if c.sort != disk_columns[t].sort
-        BlueHydra.logger.info("adding missing columns")
-        self.add_missing_columns(t,(c.sort - disk_columns[t].sort))
+    master_schema.each do |table,columns|
+      # compare types and names
+      # iterates over tables t => columns{ name => type }
+      if columns.sort != disk_schema[table].sort
+        # if columns.keys.sort - disk_schema[table].keys.sort == []
+        # typ mismatch
+        self.add_missing_columns(table,(columns.keys.sort - disk_schema[table].keys.sort))
       end
     end
     GC.start
