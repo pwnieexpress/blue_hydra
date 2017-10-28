@@ -94,6 +94,24 @@ module BlueHydra::DB
   # Migration Logic
   ####################################
 
+  # handles migrations, adds missing columns based on schema on the model,
+  # adds missing tables based on model schemas and master schema (models must inherit and be sub'd)
+  def self.auto_migrate!
+    BlueHydra.logger.info("DB Auto Upgrade...")
+    migrated = false
+    # handle auto adding columns and tables
+    # chaep check, if schema out of order diff is smart enough to handle but not this check
+    if self.needs_schema_update?
+      # make db complete before modiftying types below
+      migrated = true if self.diff_and_update
+    end
+    # handle complex migrations like column type changes etc
+    migrated = true if self.do_custom_migrations
+    BlueHydra.logger.info("DB Auto Upgrade Complete. Changes Made: #{migrated}")
+    GC.start
+    return migrated
+  end
+
   # Handle migrations outside of what sqlite supports (i.e type changes, adding defaults)
   def self.do_custom_migrations
     migrated = false
@@ -108,8 +126,33 @@ module BlueHydra::DB
       migrated = true
     end
     # additional custom migrations and checks should be defined here before return
+    # if self.some_migration_needed?
+    #   Log
+    #   do_migration(<some_file_name>)
+    #   migrated = true
+    # end
     return migrated
   end
+
+  ####################################
+  # Custom Migration Checks
+  ####################################
+
+  # le mode and classic mode had a default added
+  def self.needs_boolean_migration?
+    return true unless whole_disk_schema.include?("le_mode BOOLEAN DEFAULT 'f'") && whole_disk_schema.include?("classic_mode BOOLEAN DEFAULT 'f'")
+    return false
+  end
+
+  # company and le_company_data varchar(50) to varchar(255) conversion
+  def self.needs_varchar_migration?
+    return true unless whole_disk_schema.include?("company VARCHAR(255)") && whole_disk_schema.include?("le_company_data VARCHAR(255)")
+    return false
+  end
+
+  ####################################
+  # Schema Helper Functions
+  ####################################
 
   def self.get_master_schema_split
     return @sqlschema.split("; ")
@@ -132,41 +175,11 @@ module BlueHydra::DB
     return false
   end
 
-  # le mode and classic mode had a default added
-  def self.needs_boolean_migration?
-    return true unless whole_disk_schema.include?("le_mode BOOLEAN DEFAULT 'f'") && whole_disk_schema.include?("classic_mode BOOLEAN DEFAULT 'f'")
-    return false
-  end
-
-  # company and le_company_data varchar(50) to varchar(255) conversion
-  def self.needs_varchar_migration?
-    return true unless whole_disk_schema.include?("company VARCHAR(255)") && whole_disk_schema.include?("le_company_data VARCHAR(255)")
-    return false
-  end
-
-  # handles migrations, adds missing columns based on schema on the model,
-  # adds missing tables based on model schemas and master schema (models must inherit and be sub'd)
-  def self.auto_migrate!
-    BlueHydra.logger.info("DB Auto Upgrade...")
-    migrated = false
-    # handle auto adding columns and tables
-    # chaep check, if schema out of order diff is smart enough to handle but not this check
-    if self.needs_schema_update?
-      BlueHydra.logger.info("DB master sql schema may differ from disk sql schema... doing diff")
-      # make db complete before modiftying types below
-      migrated = true if self.diff_and_update
-    end
-    # handle complex migrations like column type changes etc
-    migrated = true if self.do_custom_migrations
-    BlueHydra.logger.info("DB Upgrade Complete. Changes Made: #{migrated}")
-    GC.start
-    return migrated
-  end
-
   # automatically add new tables and columns
   # new tables and columns need to be places in lib/blue_hydra/db/migrations/run
   # file names need to match the table/column name exactly i.e le_company_data.sql
   def self.diff_and_update
+    BlueHydra.logger.info("DB master sql schema may differ from disk sql schema... doing diff")
     # diff data setup
     disk_schema = {}
     master_schema = {}
@@ -184,7 +197,6 @@ module BlueHydra::DB
                       end
     disk_tables = disk_schema.keys
     master_tables = master_schema.keys
-    # diff data setup end
 
     # diffs and updates
     migrated = false

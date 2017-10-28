@@ -15,11 +15,14 @@ class Class
 	end
 end
 
-# Abstract parent class for persistent data models in blue hydra,
+# Abstract base/parent class for persistent data models in blue hydra,
 # classes inherit from this to gain sqlite3 functionality and functions BH requires
 # on the object in order to hook into existing code
 # built to replace DataMapper
 class BlueHydra::SQLModel
+  ##############################
+  # SQL Types
+  ##############################
   VARCHAR50 = "VARCHAR(50)".freeze
   VARCHAR255 = "VARCHAR(255)".freeze
   TEXT = "TEXT".freeze
@@ -30,37 +33,21 @@ class BlueHydra::SQLModel
   TIMESTAMP = "TIMESTAMP".freeze
   ID = "INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT".freeze
 
+  ##############################
+  # Base
+  ##############################
   attr_accessor :dirty_attributes,:new_row
 
-  # generate create table stmt for this model
-  def self.build_model_schema
-    "CREATE TABLE #{self::TABLE_NAME} (#{self.build_column_schema});"
+  # parent class initializer with no params
+  def setup
+    self.dirty_attributes = []
   end
 
-  # helper to build string of property type combos
-  def self.build_column_schema
-    columns = ""
-    self::SCHEMA.each do |col,metadata|
-      columns << "#{col} #{metadata[:sqldef]}, "
-    end
-    return columns.chomp(", ")
-  end
-
-  def valid?
-    self.validation_map.each do |key,value|
-      val = self[key].to_s =~ value
-      return false unless val
-    end
-    return true
-  end
-
-  # child class overrides this to define validations per property/column
-  def validation_map
-    {}
-  end
-
-  def self.count
-    BlueHydra::DB.query("select id from #{self::TABLE_NAME};").count
+  def self.create_new
+    newobj = self.new
+    newobj.id = self.create_new_row
+    newobj.new_row = true
+    return newobj
   end
 
   def [](key)
@@ -79,6 +66,54 @@ class BlueHydra::SQLModel
     return nil
   end
 
+  def attribute_dirty?(col)
+    self.dirty_attributes.include?(col)
+  end
+
+  # child class overrides this to define validations per property/column
+  def validation_map
+    {}
+  end
+
+  def valid?
+    self.validation_map.each do |key,value|
+      val = self[key].to_s =~ value
+      return false unless val
+    end
+    return true
+  end
+
+  ##############################
+  # SQL Schema Helpers
+  ##############################
+
+  # generate create table stmt for this model
+  def self.build_model_schema
+    "CREATE TABLE #{self::TABLE_NAME} (#{self.build_column_schema});"
+  end
+
+  # helper to build string of property type combos
+  def self.build_column_schema
+    columns = ""
+    self::SCHEMA.each do |col,metadata|
+      columns << "#{col} #{metadata[:sqldef]}, "
+    end
+    return columns.chomp(", ")
+  end
+
+  ##############################
+  # SQL Helpers
+  ##############################
+
+  def self.create_new_row
+    BlueHydra::DB.query("begin transaction;")
+    BlueHydra::DB.query("insert into #{self::TABLE_NAME} default values;")
+    newid = BlueHydra::DB.db.last_insert_row_id
+    BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
+    BlueHydra.logger.debug("--DB new row id: #{newid}")
+    return newid
+  end
+
   def destroy!
      statement = "delete from #{self.table_name} where id = #{self.id} limit 1;"
      BlueHydra::DB.query(statement)
@@ -95,15 +130,16 @@ class BlueHydra::SQLModel
     return nil
   end
 
-  def save_subset(cols)
-     return false unless self.valid?
-     updatestatement = model_to_sql_conversion(BlueHydra::DB.keys(self.table_name).select{|k,v| cols.include?(k)})
-     statement = "update #{self.table_name} set #{updatestatement} where id = #{self.id} limit 1;"
-     BlueHydra::DB.query(statement)
-     statement = nil
-     updatestatement = nil
-     BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
-     return nil
+  def generate_datetime
+    DateTime.now.to_s
+  end
+
+  def set_created_at
+    self.created_at = generate_datetime
+  end
+
+  def set_updated_at
+    self.updated_at = generate_datetime
   end
 
   # save the model, if its not a new record it will only save the dirty attributes (properties/columns that have changed since loading)
@@ -124,6 +160,21 @@ class BlueHydra::SQLModel
      return nil
   end
 
+  def save_subset(cols)
+     return false unless self.valid?
+     updatestatement = model_to_sql_conversion(BlueHydra::DB.keys(self.table_name).select{|k,v| cols.include?(k)})
+     statement = "update #{self.table_name} set #{updatestatement} where id = #{self.id} limit 1;"
+     BlueHydra::DB.query(statement)
+     statement = nil
+     updatestatement = nil
+     BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
+     return nil
+  end
+
+  ##############################
+  # Model/Query Helpers
+  ##############################
+
   def attributes
     attrs = {}
     BlueHydra::DB.keys(self.table_name).each do |key,metadata|
@@ -143,6 +194,10 @@ class BlueHydra::SQLModel
     return true
   end
 
+  def self.count
+    BlueHydra::DB.query("select id from #{self::TABLE_NAME};").count
+  end
+
   def self.first
     model = self.new
     return nil unless model.sql_to_model_conversion(BlueHydra::DB.query("select * from #{self::TABLE_NAME} order by id asc limit 1;").map{|r| r.to_h}.first)
@@ -160,12 +215,6 @@ class BlueHydra::SQLModel
     return model
   end
 
-  def self.create_new
-    newobj = self.new
-    newobj.id = self.create_new_row
-    newobj.new_row = true
-    return newobj
-  end
 
   # helper method for != queries
   def self.all_not(query={})
@@ -214,14 +263,9 @@ class BlueHydra::SQLModel
     records
   end
 
-  def self.create_new_row
-    BlueHydra::DB.query("begin transaction;")
-    BlueHydra::DB.query("insert into #{self::TABLE_NAME} default values;")
-    newid = BlueHydra::DB.db.last_insert_row_id
-    BlueHydra::DB.db.commit if BlueHydra::DB.db.transaction_active?
-    BlueHydra.logger.debug("--DB new row id: #{newid}")
-    return newid
-  end
+  ##############################
+  # SQL/Model Conversion Helpers
+  ##############################
 
   # handles data types and converting ruby obj to string for saving to disk using sqlite3
   # handles all columns unless passed an array of string columns
@@ -300,23 +344,6 @@ class BlueHydra::SQLModel
     return true
   end
 
-  def set_created_at
-    self.created_at = generate_datetime
-  end
-
-  def set_updated_at
-    self.updated_at = generate_datetime
-  end
-
-  def generate_datetime
-    DateTime.now.to_s
-  end
-
-  # parent class initializer with no params
-  def setup
-    self.dirty_attributes = []
-  end
-
   TRUE_STRING = 'True'
   FALSE_STRING = 'False'
   def self.boolean_to_string(b)
@@ -328,9 +355,4 @@ class BlueHydra::SQLModel
     return true if s == TRUE_STRING
     return false
   end
-
-  def attribute_dirty?(col)
-    self.dirty_attributes.include?(col)
-  end
-
 end
