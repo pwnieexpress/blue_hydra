@@ -320,7 +320,7 @@ db_path = if ENV["BLUE_HYDRA"] == "test" || BlueHydra.no_db
 # create the db file
 DataMapper.setup(:default, db_path)
 
-def brains_to_floor(db_path)
+def brains_to_floor
   # in the case of an invalid / blank/ corrupt DB file we will back up the old
   # file and then create a new db to proceed.
   db_file = Dir.exist?('/opt/pwnix/data/blue_hydra/') ?  "/opt/pwnix/data/blue_hydra/blue_hydra.db" : "blue_hydra.db"
@@ -346,13 +346,13 @@ begin
     # Upgrade the db..
     DataMapper.auto_upgrade!
   rescue DataObjects::ConnectionError
-    brains_to_floor(db_path)
+    brains_to_floor
   end
 
   #okay, database doesn't appear corrupt at first glance, but let's try a little bit harder...
   we_cool = DataMapper.repository.adapter.select('PRAGMA integrity_check')
   unless we_cool == ["ok"]
-    brains_to_floor(db_path)
+    brains_to_floor
   end
 
   DataMapper.finalize
