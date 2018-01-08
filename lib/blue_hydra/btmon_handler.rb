@@ -137,6 +137,10 @@ module BlueHydra
           buffer.first =~ /^Bluetooth monitor ver/                                            ||
           buffer.first =~ /^= New Index:/                                                     ||
           buffer.first =~ /^= Delete Index:/                                                  ||
+          buffer.first =~ /^= Open Index:/                                                    ||
+          buffer.first =~ /^= Close Index:/                                                   ||
+          buffer.first =~ /^= Index Info:/                                                    ||
+          buffer.first =~ /^= Note:/                                                          ||
           (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ )  ||
 
           # l2ping against a host that is gone will result in a good connect

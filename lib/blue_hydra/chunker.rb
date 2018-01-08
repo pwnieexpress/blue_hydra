@@ -1,5 +1,4 @@
 module BlueHydra
-
   # this class take incoming and outgoing queues and batches messages coming
   # out of the btmon handler
   class Chunker
@@ -31,7 +30,25 @@ module BlueHydra
 
           # if we just got a new message shovel the working set into the
           # outgoing queue and reset it
-          @outgoing_q.push working_set
+          address_count = working_set.join("").scan(/^\s*.*ddress: ((?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})/).flatten.uniq.count
+          if address_count == 1
+            @outgoing_q.push working_set
+          elsif address_count < 1
+            if BlueHydra.config["chunker_debug"]
+              working_set.flatten.each{|msg| BlueHydra.chunk_logger.info(msg.chomp) }
+              BlueHydra.chunk_logger.info("-------------------------------------------------------------------------------")
+            else
+              BlueHydra.logger.warn("Got a chunk with no addresses, dazed and confused, discarding...")
+            end
+          else
+            if BlueHydra.config["chunker_debug"]
+              working_set.flatten.each{|msg| BlueHydra.chunk_logger.info(msg.chomp) }
+              BlueHydra.chunk_logger.info("-------------------------------------------------------------------------------")
+            else
+              BlueHydra.logger.warn("Got a chunk with multiple addresss, missing a start block. Discarding corrupted data...")
+            end
+          end
+          #always clear the working set
           working_set = []
         end
 
