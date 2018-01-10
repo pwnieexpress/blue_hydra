@@ -66,13 +66,13 @@ module BlueHydra
     def starting_chunk?(chunk=[])
 
       chunk_zero_strings =[
-        "Connect Complete",
-        "Role Change",
-        "Extended Inqu",
-        "Inquiry Result",
-        "Remote Name Req",
-        "Remote Host Supported",
-        "Connect Request"
+        "Connect Compl", #.. (0x03)
+        "Role Change", #(0x12)
+        "Extended Inq", #.. (0x2f)
+        "Inquiry Result", #(0x22)
+        "Remote Name Req", #(0x07)
+        "Remote Host Supported", #(0x3d)
+        "Connect Request" #(0x04)
       ]
 
       # if the first line of the message chunk matches one of these patterns
@@ -82,8 +82,8 @@ module BlueHydra
 
       # LE start chunks are identified by patterns in their first and second
       # lines
-      elsif chunk[0] =~ /LE Meta Event/ &&
-            chunk[1] =~ /LE Connection Complete|LE Advertising Report/
+      elsif chunk[0] =~ /LE Meta Event/ && #(0x3e)
+            chunk[1] =~ /LE Connection Complete|LE Advertising Report/ #(0x01|)
         true
 
       # otherwise this will get grouped with the current working set in the
