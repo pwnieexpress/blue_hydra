@@ -83,7 +83,7 @@ module BlueHydra
       # LE start chunks are identified by patterns in their first and second
       # lines
       elsif chunk[0] =~ /LE Meta Event/ && #(0x3e)
-            chunk[1] =~ /LE Connection Complete|LE Advertising Report/ #(0x01|)
+            chunk[1] =~ /LE Connection Complete|LE Advertising Report/ #(0x01|0x02)
         true
 
       # otherwise this will get grouped with the current working set in the
