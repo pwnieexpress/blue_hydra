@@ -142,7 +142,7 @@ module BlueHydra
           buffer.first =~ /^= Index Info:/                                                    ||
           buffer.first =~ /= bluetoothd: Unable to/                                           ||
           buffer.first =~ /^= Note:/                                                          ||
-          (buffer[0] =~ /^> HCI Event: Command Complete \(0x0e\)/ && buffer[1] !~ /Remote/ )  ||
+          (buffer[0] =~ /^> HCI Event: Command Compl.* \(0x0e\)/ && buffer[1] !~ /Remote/ )   ||
 
           # l2ping against a host that is gone will result in a good connect
           # complete message with a timed out status indicating the ping failed
@@ -155,10 +155,7 @@ module BlueHydra
           # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
           # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
           # "Connection Timeout"
-          (buffer[0] =~ /(Connect Complete|Remote Name Req)/ && buffer[1] !~ /Status: Success/ ) ||
-
-          # Has it seriously been till now that we scope out the local calls?  How is that even possible? This must be dropped somewhere else but I can't find it.
-          (buffer[0] =~ /Read Local/ || buffer[1] =~ /Read Local/ )
+          (buffer[0] =~ /(Connect Complete|Remote Name Req)/ && buffer[1] !~ /Status: Success/ )
         )
 
         # log used btmon output for review if we are in debug mode
