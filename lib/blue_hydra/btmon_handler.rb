@@ -128,21 +128,23 @@ module BlueHydra
       # will start with <
       # also discard anything prefixed with @ (local events)
       # drop command complete messages and similar messages that do not seem to be useful
+      #
+      # numbers from bluez monitor/packet.h static const struct event_data event_table
       unless(
-          buffer.first =~ /^</                                                                ||
-          buffer.first =~ /^@/                                                                ||
-          buffer.first =~ /^> HCI Event: Command Status \(0x0f\)/                             ||
-          buffer.first =~ /^> HCI Event: Number of Completed Pa.. \(0x13\)/                   ||
-          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/                                    ||
-          buffer.first =~ /^Bluetooth monitor ver/                                            ||
-          buffer.first =~ /^= New Index:/                                                     ||
-          buffer.first =~ /^= Delete Index:/                                                  ||
-          buffer.first =~ /^= Open Index:/                                                    ||
-          buffer.first =~ /^= Close Index:/                                                   ||
-          buffer.first =~ /^= Index Info:/                                                    ||
-          buffer.first =~ /^= bluetoothd: Unable to/                                          ||
-          buffer.first =~ /^= Note:/                                                          ||
-          (buffer[0] =~ /^> HCI Event: Command Compl.* \(0x0e\)/ && buffer[1] !~ /Remote/ )   ||
+          buffer.first =~ /^</                                                 ||
+          buffer.first =~ /^@/                                                 ||
+          buffer.first =~ /^> HCI Event: .* \(0x0f\)/                          || # "Command Status"
+          buffer.first =~ /^> HCI Event: .* \(0x13\)/                          || # "Number of Completed Packets"
+          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/                     ||
+          buffer.first =~ /^Bluetooth monitor ver/                             ||
+          buffer.first =~ /^= New Index:/                                      ||
+          buffer.first =~ /^= Delete Index:/                                   ||
+          buffer.first =~ /^= Open Index:/                                     ||
+          buffer.first =~ /^= Close Index:/                                    ||
+          buffer.first =~ /^= Index Info:/                                     ||
+          buffer.first =~ /^= bluetoothd: Unable to/                           ||
+          buffer.first =~ /^= Note:/                                           ||
+          (buffer[0] =~ /^> HCI Event: .* \(0x0e\)/ && buffer[1] !~ /Remote/ ) || # "Command Complete" this filters out local stuff
 
           # l2ping against a host that is gone will result in a good connect
           # complete message with a timed out status indicating the ping failed
@@ -155,7 +157,7 @@ module BlueHydra
           # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
           # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
           # "Connection Timeout"
-          (buffer[0] =~ /(Connect Complete|Remote Name Req)/ && buffer[1] !~ /Status: Success/ )
+          (buffer[0] =~ /^>HCI Event: .* \(0x(03|07)\)/ && buffer[1] !~ /^\sStatus: Success \(0x00\)/ ) # "Connect Complete|Remote Name Req Complete"
         )
 
         # log used btmon output for review if we are in debug mode
