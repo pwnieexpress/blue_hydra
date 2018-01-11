@@ -69,7 +69,7 @@ module BlueHydra
         "Connect Compl", #.. (0x03)
         "Role Change", #(0x12)
         "Extended Inq", #.. (0x2f)
-        "Inquiry Result", #(0x22)
+        "Inquiry Resul", #(0x22)
         "Remote Name Req", #(0x07)
         "Remote Host Supported", #(0x3d)
         "Connect Request" #(0x04)
