@@ -1,5 +1,4 @@
 module BlueHydra
-
   # this class take incoming and outgoing queues and batches messages coming
   # out of the btmon handler
   class Chunker
@@ -31,7 +30,39 @@ module BlueHydra
 
           # if we just got a new message shovel the working set into the
           # outgoing queue and reset it
-          @outgoing_q.push working_set
+          address_count = working_set.join("").scan(/^\s*.*ddress: ((?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})/).flatten.uniq.count
+          if address_count == 1
+            @outgoing_q.push working_set
+          elsif address_count < 1
+            if BlueHydra.config["chunker_debug"]
+              working_set.flatten.each{|msg| BlueHydra.chunk_logger.info(msg.chomp) }
+              BlueHydra.chunk_logger.info("-------------------------------------------------------------------------------")
+            else
+              BlueHydra.logger.warn("Got a chunk with no addresses, dazed and confused, discarding...")
+            end
+            BlueHydra::Pulse.send_event('blue_hydra',
+            {
+              key: 'bluehydra_chunk_0_address',
+              title: 'BlueHydra chunked a chunk with 0 addresses.',
+              message: 'BlueHydra chunked a chunk with 0 addresses',
+              severity: 'FATAL'
+            })
+          else
+            if BlueHydra.config["chunker_debug"]
+              working_set.flatten.each{|msg| BlueHydra.chunk_logger.info(msg.chomp) }
+              BlueHydra.chunk_logger.info("-------------------------------------------------------------------------------")
+            else
+              BlueHydra.logger.warn("Got a chunk with multiple addresss, missing a start block. Discarding corrupted data...")
+            end
+            BlueHydra::Pulse.send_event('blue_hydra',
+            {
+              key: 'bluehydra_chunk_2_address',
+              title: 'BlueHydra chunked a chunk with more than 1 uniq address.',
+              message: 'BlueHydra chunked a chunk with more than 1 uniq address.',
+              severity: 'FATAL'
+            })
+          end
+          #always clear the working set
           working_set = []
         end
 
@@ -49,13 +80,13 @@ module BlueHydra
     def starting_chunk?(chunk=[])
 
       chunk_zero_strings =[
-        "Connect Complete",
-        "Role Change",
-        "Extended Inqu",
-        "Inquiry Result",
-        "Remote Name Req",
-        "Remote Host Supported",
-        "Connect Request"
+        "Connect Compl", #.. (0x03)
+        "Role Change", #(0x12)
+        "Extended Inq", #.. (0x2f)
+        "Inquiry Resul", #(0x22)
+        "Remote Name Req", #(0x07)
+        "Remote Host Supported", #(0x3d)
+        "Connect Request" #(0x04)
       ]
 
       # if the first line of the message chunk matches one of these patterns
@@ -65,8 +96,8 @@ module BlueHydra
 
       # LE start chunks are identified by patterns in their first and second
       # lines
-      elsif chunk[0] =~ /LE Meta Event/ &&
-            chunk[1] =~ /LE Connection Complete|LE Advertising Report/
+      elsif chunk[0] =~ /LE Meta Event/ && #(0x3e)
+            chunk[1] =~ /LE Connection Complete|LE Advertising Report/ #(0x01|0x02)
         true
 
       # otherwise this will get grouped with the current working set in the

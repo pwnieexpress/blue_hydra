@@ -67,7 +67,8 @@ module BlueHydra
     "ui_filter_mode"     => :disabled,    # default ui filter mode to start in
     "ui_inc_filter_mac"  => [],           # inclusive ui filter by mac
     "ui_inc_filter_prox" => [],           # inclusive ui filter by prox uuid / major /minor
-    "signal_spitter"     => false         # make raw signal strength api available on localhost:1124
+    "signal_spitter"     => false,        # make raw signal strength api available on localhost:1124
+    "chunker_debug"      => false
   }
 
   if File.exists?(LEGACY_CONFIG_FILE)
@@ -165,6 +166,26 @@ module BlueHydra
   # lines to be
   @@rssi_logger.formatter = proc {|s,d,p,m| "#{m}\n"}
 
+  # the chunk log will only get used if the appropriate config value is set
+  #
+  # Logs will be written to /var/log/pwnix/blue_hydra_chunk.log on a sensor or
+  # in the local directory as blue_hydra_chunk.log if on a non-Pwnie system
+  CHUNK_LOGFILE = if Dir.exists?('/var/log/pwnix')
+              File.expand_path('/var/log/pwnix/blue_hydra_chunk.log', __FILE__)
+            else
+              File.expand_path('../../blue_hydra_chunk.log', __FILE__)
+            end
+
+  @@chunk_logger = if @@config["log_level"]
+                    Logger.new(CHUNK_LOGFILE)
+                  else
+                    NilLogger.new
+                  end
+  @@chunk_logger.level = Logger::INFO
+
+  # we dont want logger formatting here, the code defines what we want these
+  # lines to be
+  @@chunk_logger.formatter = proc {|s,d,p,m| "#{m}\n"}
 
   # expose the logger as a module function
   def logger
@@ -174,6 +195,11 @@ module BlueHydra
   # expose the logger as a module function
   def rssi_logger
     @@rssi_logger
+  end
+
+  # expose the logger as a module function
+  def chunk_logger
+    @@chunk_logger
   end
 
   # expose the config as  module function
@@ -238,7 +264,7 @@ module BlueHydra
   module_function :logger, :config, :daemon_mode, :daemon_mode=, :pulse,
                   :pulse=, :rssi_logger, :demo_mode, :demo_mode=,
                   :pulse_debug, :pulse_debug=, :no_db, :no_db=,
-                  :signal_spitter, :signal_spitter=
+                  :signal_spitter, :signal_spitter=, :chunk_logger
 end
 
 # require the actual code

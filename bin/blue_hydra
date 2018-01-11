@@ -93,7 +93,11 @@ end
 
 if BlueHydra.pulse
   $LOAD_PATH << '/opt/pwnix/lib'
-  require 'sensor_event'
+  begin
+    require 'sensor_event'
+  rescue LoadError
+    BlueHydra.logger.warn("Sensor_event is missing, pulse output is intended for Pwnie Express sensors.")
+  end
 end
 
 # This file is used by the service scan to kill the process and should be
