@@ -140,7 +140,7 @@ module BlueHydra
           buffer.first =~ /^= Open Index:/                                                    ||
           buffer.first =~ /^= Close Index:/                                                   ||
           buffer.first =~ /^= Index Info:/                                                    ||
-          buffer.first =~ /= bluetoothd: Unable to/                                           ||
+          buffer.first =~ /^= bluetoothd: Unable to/                                          ||
           buffer.first =~ /^= Note:/                                                          ||
           (buffer[0] =~ /^> HCI Event: Command Compl.* \(0x0e\)/ && buffer[1] !~ /Remote/ )   ||
 
