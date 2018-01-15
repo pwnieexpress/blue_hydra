@@ -129,7 +129,7 @@ module BlueHydra
       # also discard anything prefixed with @ (local events)
       # drop command complete messages and similar messages that do not seem to be useful
       #
-      # numbers from bluez monitor/packet.h static const struct event_data event_table
+      # numbers from bluez monitor/packet.c static const struct event_data event_table
       unless(
           buffer.first =~ /^</                                                 ||
           buffer.first =~ /^@/                                                 ||

@@ -79,7 +79,7 @@ module BlueHydra
     # test if the message indicates the start of a new message
     def starting_chunk?(chunk=[])
 
-      # numbers from bluez monitor/packet.h static const struct event_data event_table
+      # numbers from bluez monitor/packet.c static const struct event_data event_table
       chunk_zero_strings =[
         "03", # Connect Complete
         "12", # Role Change
@@ -87,12 +87,13 @@ module BlueHydra
         "22", # Inquiry Result with RSSI
         "07", # Remote Name Req Complete
         "3d", # Remote Host Supported Features
-        "04"  # Connect Request
+        "04", # Connect Request
+        "0e"  # Command Complete
       ]
 
       # if the first line of the message chunk matches one of these patterns
       # it indicates a start chunk
-      if chunk[0] =~ / \((0x#{chunk_zero_strings.join('|')})\)/
+      if chunk[0] =~ / \(0x(#{chunk_zero_strings.join('|')})\)/
         true
 
       # LE start chunks are identified by patterns in their first and second
