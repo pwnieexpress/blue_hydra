@@ -156,7 +156,8 @@ module BlueHydra
       # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
       # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
       # "Connection Timeout"
-      return if (buffer[0] =~ /^>HCI Event: .* \(0x(03|07)\)/ && buffer[1] !~ /^\sStatus: Success \(0x00\)/ ) # "Connect Complete|Remote Name Req Complete"
+      #                                                                        This breaks if it starts with ^, no clue what invisible character we are missing
+      return if (buffer[0] =~ /^>HCI Event: .* \(0x(03|07)\)/ && buffer[1] !~ /\sStatus: Success \(0x00\)/ ) # "Connect Complete|Remote Name Req Complete"
 
       # log used btmon output for review
       if BlueHydra.config["btmon_log"] && !BlueHydra.config["file"] && !BlueHydra.config["btmon_rawlog"]
