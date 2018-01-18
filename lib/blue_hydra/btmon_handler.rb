@@ -130,46 +130,43 @@ module BlueHydra
       # drop command complete messages and similar messages that do not seem to be useful
       #
       # numbers from bluez monitor/packet.c static const struct event_data event_table
-      unless(
-          buffer.first =~ /^</                                                 ||
-          buffer.first =~ /^@/                                                 ||
-          buffer.first =~ /^> HCI Event: .* \(0x0f\)/                          || # "Command Status"
-          buffer.first =~ /^> HCI Event: .* \(0x13\)/                          || # "Number of Completed Packets"
-          buffer.first =~ /^> HCI Event: Unknown \(0x00\)/                     ||
-          buffer.first =~ /^Bluetooth monitor ver/                             ||
-          buffer.first =~ /^= New Index:/                                      ||
-          buffer.first =~ /^= Delete Index:/                                   ||
-          buffer.first =~ /^= Open Index:/                                     ||
-          buffer.first =~ /^= Close Index:/                                    ||
-          buffer.first =~ /^= Index Info:/                                     ||
-          buffer.first =~ /^= bluetoothd: Unable to/                           ||
-          buffer.first =~ /^= Note:/                                           ||
-          (buffer[0] =~ /^> HCI Event: .* \(0x0e\)/ && buffer[1] !~ /Remote/ ) || # "Command Complete" this filters out local stuff
+      return if buffer.first =~ /^</
+      return if buffer.first =~ /^@/
+      return if buffer.first =~ /^> HCI Event: .* \(0x0f\)/ # "Command Status"
+      return if buffer.first =~ /^> HCI Event: .* \(0x13\)/ # "Number of Completed Packets"
+      return if buffer.first =~ /^> HCI Event: Unknown \(0x00\)/ 
+      return if buffer.first =~ /^Bluetooth monitor ver/
+      return if buffer.first =~ /^= New Index:/
+      return if buffer.first =~ /^= Delete Index:/
+      return if buffer.first =~ /^= Open Index:/
+      return if buffer.first =~ /^= Close Index:/
+      return if buffer.first =~ /^= Index Info:/
+      return if buffer.first =~ /^= bluetoothd: Unable to/
+      return if buffer.first =~ /^= Note:/
+      return if (buffer[0] =~ /^> HCI Event: .* \(0x0e\)/ && buffer[1] !~ /Remote/ ) # "Command Complete" this filters out local stuff
 
-          # l2ping against a host that is gone will result in a good connect
-          # complete message with a timed out status indicating the ping failed
-          # do not send this to the parser as it will 'online' the record
-          # when we actually want to let it time out.
-          #
-          # TODO add a positive feed back loop to indicate we have attempted
-          # and failed to ping a device, for now, throw out everything that isn't Success
-          # (l2pinging a down host results in "Page Timeout")
-          # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
-          # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
-          # "Connection Timeout"
-          (buffer[0] =~ /^>HCI Event: .* \(0x(03|07)\)/ && buffer[1] !~ /^\sStatus: Success \(0x00\)/ ) # "Connect Complete|Remote Name Req Complete"
-        )
+      # l2ping against a host that is gone will result in a good connect
+      # complete message with a timed out status indicating the ping failed
+      # do not send this to the parser as it will 'online' the record
+      # when we actually want to let it time out.
+      #
+      # TODO add a positive feed back loop to indicate we have attempted
+      # and failed to ping a device, for now, throw out everything that isn't Success
+      # (l2pinging a down host results in "Page Timeout")
+      # additional observed values include "ACL Connection Already Exists", "Command Disallowed"
+      # "LMP Response Timeout / LL Response Timeout", "Connection Accept Timeout Exceeded"
+      # "Connection Timeout"
+      return if (buffer[0] =~ /^>HCI Event: .* \(0x(03|07)\)/ && buffer[1] !~ /^\sStatus: Success \(0x00\)/ ) # "Connect Complete|Remote Name Req Complete"
 
-        # log used btmon output for review if we are in debug mode
-        if BlueHydra.config["btmon_log"] && !BlueHydra.config["file"] && !BlueHydra.config["btmon_rawlog"]
-          buffer.each do |line|
-            @log_writer.puts(line.chomp)
-          end
+      # log used btmon output for review
+      if BlueHydra.config["btmon_log"] && !BlueHydra.config["file"] && !BlueHydra.config["btmon_rawlog"]
+        buffer.each do |line|
+          @log_writer.puts(line.chomp)
         end
-
-        # unless this is a filtered message enqueue the buffer for realz.
-        @parse_queue.push(buffer)
       end
+
+      # unless this is a filtered message enqueue the buffer for realz.
+      @parse_queue.push(buffer)
     end
   end
 end
