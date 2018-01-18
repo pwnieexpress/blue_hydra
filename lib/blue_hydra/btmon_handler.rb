@@ -136,14 +136,14 @@ module BlueHydra
       return if buffer.first =~ /^> HCI Event: .* \(0x13\)/ # "Number of Completed Packets"
       return if buffer.first =~ /^> HCI Event: Unknown \(0x00\)/ 
       return if buffer.first =~ /^Bluetooth monitor ver/
+      return if (buffer[0] =~ /^> HCI Event: .* \(0x0e\)/ && buffer[1] !~ /Remote/ ) # "Command Complete" this filters out local stuff
+      return if buffer.first =~ /^= bluetoothd: Unable to/
       return if buffer.first =~ /^= New Index:/
       return if buffer.first =~ /^= Delete Index:/
       return if buffer.first =~ /^= Open Index:/
       return if buffer.first =~ /^= Close Index:/
       return if buffer.first =~ /^= Index Info:/
-      return if buffer.first =~ /^= bluetoothd: Unable to/
       return if buffer.first =~ /^= Note:/
-      return if (buffer[0] =~ /^> HCI Event: .* \(0x0e\)/ && buffer[1] !~ /Remote/ ) # "Command Complete" this filters out local stuff
 
       # l2ping against a host that is gone will result in a good connect
       # complete message with a timed out status indicating the ping failed
