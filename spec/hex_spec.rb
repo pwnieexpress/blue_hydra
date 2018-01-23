@@ -1,8 +1,9 @@
 `mkdir /usr/src/bluez`
 `chmod 777 /usr/src/bluez`
 `cd /usr/src/bluez; apt-get source bluez`
-MAIN_C = File.read('/usr/src/bluez/bluez-5.47/monitor/main.c').freeze
-PACKET_C = File.read('/usr/src/bluez/bluez-5.47/monitor/packet.c').freeze
+VERSION=`apt-cache policy bluez | grep Installed | awk '{print $2}' | awk -F'-' '{print $1}'`.chomp.freeze
+MAIN_C = File.read("/usr/src/bluez/bluez-#{VERSION}/monitor/main.c").freeze
+PACKET_C = File.read("/usr/src/bluez/bluez-#{VERSION}/monitor/packet.c").freeze
 MAIN_C_SCAN = [ 'Bluetooth monitor ver' ].freeze
 PACKET_C_SCAN_BTMON = [
   '{ 0x0f, "Command Status",',
