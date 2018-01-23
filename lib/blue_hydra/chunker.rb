@@ -79,25 +79,28 @@ module BlueHydra
     # test if the message indicates the start of a new message
     def starting_chunk?(chunk=[])
 
+      # numbers from bluez monitor/packet.c static const struct event_data event_table
       chunk_zero_strings =[
-        "Connect Compl", #.. (0x03)
-        "Role Change", #(0x12)
-        "Extended Inq", #.. (0x2f)
-        "Inquiry Resul", #(0x22)
-        "Remote Name Req", #(0x07)
-        "Remote Host Supported", #(0x3d)
-        "Connect Request" #(0x04)
+        "03", # Connect Complete
+        "12", # Role Change
+        "2f", # Extended Inquiry Result
+        "22", # Inquiry Result with RSSI
+        "07", # Remote Name Req Complete
+        "3d", # Remote Host Supported Features
+        "04", # Connect Request
+        "0e"  # Command Complete
       ]
 
       # if the first line of the message chunk matches one of these patterns
       # it indicates a start chunk
-      if chunk[0] =~ /#{chunk_zero_strings.join('|')}/
+      if chunk[0] =~ / \(0x(#{chunk_zero_strings.join('|')})\)/
         true
 
       # LE start chunks are identified by patterns in their first and second
       # lines
-      elsif chunk[0] =~ /LE Meta Event/ && #(0x3e)
-            chunk[1] =~ /LE Connection Complete|LE Advertising Report/ #(0x01|0x02)
+      elsif chunk[0] =~ / \(0x3e\)/ && # LE Meta Event
+        # Numbers from bluez monitor/packet.h static const struct subevent_data le_meta_event_table
+            chunk[1] =~ / \(0x0[12]\)/ # LE Connection Complete / LE Advertising Report
         true
 
       # otherwise this will get grouped with the current working set in the
