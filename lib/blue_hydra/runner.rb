@@ -1035,6 +1035,16 @@ module BlueHydra
 
             self.stunned = false
 
+            BlueHydra.logger.info("Pulse sync check...")
+            @last_flush_to_pulse ||= 0
+            if Time.now.to_i - @last_flush_to_pulse > 180
+              #sync eligible to pulse
+              BlueHydra.logger.info("Pulse sync starting...")
+              BlueHydra::Device.sync_dirty_hosts
+              @last_flush_to_pulse = Time.now.to_i
+              BlueHydra.logger.info("...Pulse sync complete")
+            end
+
             # only sleep if we still have nothing to do, seconds count
             sleep 1 if result_queue.empty?
           end

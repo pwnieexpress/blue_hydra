@@ -57,6 +57,8 @@ class BlueHydra::Device
   property :created_at,                    DateTime
   property :updated_at,                    DateTime
   property :last_seen,                     Integer
+  property :needs_sync,                    Boolean
+  property :filthy_attrs,                  Text
 
   # regex to validate macs
   MAC_REGEX    = /^((?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})$/i
@@ -70,14 +72,30 @@ class BlueHydra::Device
   before :save, :set_uuid
   before :save, :prepare_the_filth
 
-  # after saving send up to pulse
-  after  :save, :sync_to_pulse
-
   # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
   def self.sync_all_to_pulse(since=Time.at(Time.now.to_i - 604800))
-    BlueHydra::Device.all(:updated_at.gte => since).each do |dev|
-      dev.sync_to_pulse(true)
+    if BlueHydra::PULSE_TRACKER.allowed_to_ship_data?
+      BlueHydra.logger.info("Sync all starting")
+      BlueHydra::Device.all(:updated_at.gte => since).each do |dev|
+        dev.do_sync_to_pulse(true)
+      end
+      BlueHydra::PULSE_TRACKER.update_synced_at
+      BlueHydra.logger.info("Sync all complete")
+    else
+      BlueHydra.logger.info("Sync all throttled, dont spam the cloud")
     end
+  end
+
+  def self.sync_dirty_hosts
+    BlueHydra.logger.info("syncing dirty hosts...")
+    (d = BlueHydra::Device.all(needs_sync: true)).each do |dev|
+      BlueHydra.logger.info("#{dev.id} syncd")
+      dev.do_sync_to_pulse
+      dev.needs_sync = false
+      BlueHydra.logger.info("#{dev.id} flag off")
+      dev.save
+    end
+    BlueHydra.logger.info("#{d.count} host sync complete")
   end
 
   # mark hosts as 'offline' if we haven't seen for a while
@@ -106,7 +124,7 @@ class BlueHydra::Device
     # Kill old things with fire
     BlueHydra::Device.all(:updated_at.lte => Time.at(Time.now.to_i - 604800*2)).each do |dev|
       dev.status = 'offline'
-      dev.sync_to_pulse(true)
+      dev.do_sync_to_pulse(true)
       BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
       dev.destroy
     end
@@ -176,7 +194,7 @@ class BlueHydra::Device
     %w{
       address name manufacturer short_name lmp_version firmware
       classic_major_class classic_minor_class le_tx_power classic_tx_power
-      le_address_type company company_type appearance le_address_type
+      company appearance le_address_type
       le_random_address_type le_company_uuid le_company_data le_proximity_uuid
       le_major_num le_minor_num classic_mode le_mode
     }.map(&:to_sym).each do |attr|
@@ -188,9 +206,19 @@ class BlueHydra::Device
             "#{address} multiple values detected for #{attr}: #{result[attr].inspect}. Using first value..."
           )
         end
-        record.send("#{attr.to_s}=", result.delete(attr).uniq.first)
+        record.send("#{attr.to_s}=", result.delete(attr).uniq.sort.first)
       end
     end
+
+# update flappy company_type
+    if result[:company_type]
+      data = result.delete(:company_type).uniq.sort.first
+      if data =~ /Unknown/
+        data = "Unknown"
+        record.send("#{:company_type}=", data)
+      end
+    end
+
 
     # update array attributes
     %w{
@@ -212,6 +240,7 @@ class BlueHydra::Device
       record.errors.keys.each do |key|
         BlueHydra.logger.warn("#{key.to_s}: #{record.errors[key].inspect} (#{record[key]})")
       end
+      BlueHydra.logger.warn("#{address} save failed.")
     end
 
     record
@@ -292,16 +321,22 @@ class BlueHydra::Device
   # attributes lose their 'dirty' status after save and the sync method is an
   # after save so we need to keep a record of what changed to only sync relevant
   def prepare_the_filth
-    @filthy_attributes ||= []
+    fa ||= []
     syncable_attributes.each do |attr|
-      @filthy_attributes << attr if self.attribute_dirty?(attr)
+      fa << attr if self.attribute_dirty?(attr)
+    end
+    self.filthy_attrs = JSON.generate(fa)
+    if !fa.empty?
+      if BlueHydra.pulse || BlueHydra.pulse_debug
+        self.needs_sync = true
+        BlueHydra.logger.info("#{self.id} needs sync #{fa}")
+      end
     end
   end
 
   # sync record to pulse
-  def sync_to_pulse(sync_all=false)
+  def do_sync_to_pulse(sync_all=false)
     if BlueHydra.pulse || BlueHydra.pulse_debug
-
       send_data = {
         type:   "bluetooth",
         source: "blue-hydra",
@@ -346,11 +381,12 @@ class BlueHydra::Device
       # This was originally unintentional but it's really saving out bacon, don't change this for now
       send_data[:data][:address] = self.address
 
-      @filthy_attributes ||= []
+      attrs_to_ship ||= []
+      attrs_to_ship = JSON.parse(self.filthy_attrs) if self.filthy_attrs
 
       syncable_attributes.each do |attr|
         # ignore nil value attributes
-        if @filthy_attributes.include?(attr) || sync_all
+        if attrs_to_ship.include?(attr) || sync_all
           val = self.send(attr)
           unless [nil, "[]"].include?(val)
             if is_serialized?(attr)
@@ -366,6 +402,8 @@ class BlueHydra::Device
       json_msg = JSON.generate(send_data)
       # send the json
       BlueHydra::Pulse.do_send(json_msg)
+
+      #CLEANUP AFTER SYNC
     end
   end
 
@@ -537,7 +575,7 @@ class BlueHydra::Device
     type = type.split(' ')[0]
     if type =~ /Public/
       self[:le_address_type] = type
-      self[:le_random_address_type] = nil if le_address_type
+      self[:le_random_address_type] = nil if self.le_address_type
     elsif type =~ /Random/
       self[:le_address_type] = type
     end

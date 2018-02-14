@@ -145,6 +145,7 @@ module BlueHydra
   initialize_logger
   update_logger
 
+
   # the RSSI log will only get used if the appropriate config value is set
   #
   # Logs will be written to /var/log/pwnix/blue_hydra_rssi.log on a sensor or
@@ -271,6 +272,7 @@ end
 require 'blue_hydra/btmon_handler'
 require 'blue_hydra/parser'
 require 'blue_hydra/pulse'
+require 'blue_hydra/pulsetracker'
 require 'blue_hydra/chunker'
 require 'blue_hydra/runner'
 require 'blue_hydra/command'
@@ -308,6 +310,7 @@ rescue
     exit 1
   end
 end
+
 
 # set all String properties to have a default length of 255
 DataMapper::Property::String.length(255)
@@ -403,6 +406,12 @@ rescue => e
   })
   exit 1
 end
+
+if BlueHydra::PulseTracker.count == 0
+  BlueHydra::PulseTracker.new.init
+end
+BlueHydra::PULSE_TRACKER = BlueHydra::PulseTracker.first
+
 
 if BlueHydra::SyncVersion.count == 0
   BlueHydra::SyncVersion.new.save
