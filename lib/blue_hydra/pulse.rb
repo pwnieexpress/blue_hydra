@@ -22,8 +22,12 @@ module BlueHydra
           version: BlueHydra::VERSION,
           sync_version: BlueHydra::SYNC_VERSION,
         })
-
-        BlueHydra::Pulse.do_send(json_msg)
+        if BlueHydra::PULSE_TRACKER.allowed_to_ship_reset?
+          BlueHydra::Pulse.do_send(json_msg)
+          BlueHydra::PULSE_TRACKER.update_reset_at
+        else
+          BlueHydra.logger.warn("Reset throttled, dont spam the cloud")
+        end
       end
     end
 
@@ -39,7 +43,12 @@ module BlueHydra
           sync_version: "ANYTHINGBUTTHISVERSION",
         })
 
-        BlueHydra::Pulse.do_send(json_msg)
+        if BlueHydra::PULSE_TRACKER.allowed_to_ship_hard_reset?
+          BlueHydra::Pulse.do_send(json_msg)
+          BlueHydra::PULSE_TRACKER.update_hard_reset_at
+        else
+          BlueHydra.logger.warn("Hard reset throttled, dont spam the cloud")
+        end
       end
     end
 
