@@ -1037,7 +1037,7 @@ module BlueHydra
 
             BlueHydra.logger.info("Pulse sync check...")
             @last_flush_to_pulse ||= 0
-            if Time.now.to_i - @last_flush_to_pulse > 180
+            if Time.now.to_i - @last_flush_to_pulse > (170 + (rand(10))
               #sync eligible to pulse
               BlueHydra.logger.info("Pulse sync starting...")
               BlueHydra::Device.sync_dirty_hosts

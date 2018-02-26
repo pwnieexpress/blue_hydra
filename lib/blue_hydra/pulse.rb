@@ -26,7 +26,7 @@ module BlueHydra
           BlueHydra::Pulse.do_send(json_msg)
           BlueHydra::PULSE_TRACKER.update_reset_at
         else
-          BlueHydra.logger.info("Reset throttled, dont spam the cloud")
+          BlueHydra.logger.warn("Reset throttled, dont spam the cloud")
         end
       end
     end
@@ -47,7 +47,7 @@ module BlueHydra
           BlueHydra::Pulse.do_send(json_msg)
           BlueHydra::PULSE_TRACKER.update_hard_reset_at
         else
-          BlueHydra.logger.info("Hard reset throttled, dont spam the cloud")
+          BlueHydra.logger.warn("Hard reset throttled, dont spam the cloud")
         end
       end
     end

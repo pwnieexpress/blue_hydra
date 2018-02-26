@@ -82,17 +82,17 @@ class BlueHydra::Device
       BlueHydra::PULSE_TRACKER.update_synced_at
       BlueHydra.logger.info("Sync all complete")
     else
-      BlueHydra.logger.info("Sync all throttled, dont spam the cloud")
+      BlueHydra.logger.warn("Sync all throttled, dont spam the cloud")
     end
   end
 
   def self.sync_dirty_hosts
-    BlueHydra.logger.info("syncing dirty hosts...")
+    BlueHydra.logger.info("Syncing dirty hosts...")
     (d = BlueHydra::Device.all(needs_sync: true)).each do |dev|
       BlueHydra.logger.info("#{dev.id} syncd")
       dev.do_sync_to_pulse
       dev.needs_sync = false
-      BlueHydra.logger.info("#{dev.id} flag off")
+      BlueHydra.logger.debug("#{dev.id} flag off")
       dev.save
     end
     BlueHydra.logger.info("#{d.count} host sync complete")
@@ -329,7 +329,13 @@ class BlueHydra::Device
     if !fa.empty?
       if BlueHydra.pulse || BlueHydra.pulse_debug
         self.needs_sync = true
-        BlueHydra.logger.info("#{self.id} needs sync #{fa}")
+#changelogs
+ #       s=""
+ #       fa.each do |a|
+ #        s << "#{a} - #{self[a]}"
+ #       end
+ #       BlueHydra.logger.info("#{self.id} needs sync #{s}")
+#changelogs
       end
     end
   end
