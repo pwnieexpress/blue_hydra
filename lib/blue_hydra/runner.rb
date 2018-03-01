@@ -1035,7 +1035,7 @@ module BlueHydra
 
             self.stunned = false
 
-            BlueHydra.logger.info("Pulse sync check...")
+            BlueHydra.logger.debug("Pulse sync check...")
             @last_flush_to_pulse ||= 0
             if( (Time.now.to_i - @last_flush_to_pulse) > (170 + rand(10)) )
               #sync eligible to pulse
