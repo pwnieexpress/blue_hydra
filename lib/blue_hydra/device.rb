@@ -87,9 +87,9 @@ class BlueHydra::Device
   end
 
   def self.sync_dirty_hosts
-    BlueHydra.logger.info("Syncing dirty hosts...")
+    BlueHydra.logger.debug("Syncing dirty hosts...")
     (d = BlueHydra::Device.all(needs_sync: true)).each do |dev|
-      BlueHydra.logger.info("#{dev.id} syncd")
+      BlueHydra.logger.debug("#{dev.id} syncd")
       dev.do_sync_to_pulse
       dev.needs_sync = false
       BlueHydra.logger.debug("#{dev.id} flag off")
