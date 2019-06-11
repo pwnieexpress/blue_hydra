@@ -71,6 +71,7 @@ class BlueHydra::Device
   before :save, :set_uap_lap
   before :save, :set_uuid
   before :save, :prepare_the_filth
+  after :save, :delete_unnecessary_assets
 
   # 1 week in seconds == 7 * 24 * 60 * 60 == 604800
   def self.sync_all_to_pulse(since=Time.at(Time.now.to_i - 604800))
@@ -248,6 +249,12 @@ class BlueHydra::Device
 
   # look up the vendor for the address in the Louis gem
   # and set it
+  def delete_unnecessary_assets
+    if self.vendor == 'Locally assigned'
+      self.destroy!
+    end
+  end
+
   def set_vendor(force=false)
     if self.le_address_type == "Random"
       self.vendor = "N/A - Random Address"
