@@ -250,7 +250,7 @@ class BlueHydra::Device
   # look up the vendor for the address in the Louis gem
   # and set it
   def delete_unnecessary_assets
-    if self.vendor == 'Locally assigned'
+    if self.vendor == "N/A - Random Address"
       self.destroy!
     end
   end
