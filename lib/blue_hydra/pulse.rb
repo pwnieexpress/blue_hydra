@@ -58,6 +58,7 @@ module BlueHydra
       begin
         # write json data to result socket
         TCPSocket.open('127.0.0.1', 8244) do |sock|
+          BlueHydra.logger.info json.inspect
           sock.write(json)
           sock.write("\n")
           sock.flush
