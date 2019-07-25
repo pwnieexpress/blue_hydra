@@ -92,7 +92,6 @@ class BlueHydra::Device
     (d = BlueHydra::Device.all(needs_sync: true)).each do |dev|
       BlueHydra.logger.debug("#{dev.id} syncd")
       dev.do_sync_to_pulse
-      dev.needs_sync = false
       BlueHydra.logger.debug("#{dev.id} flag off")
       dev.save
     end
@@ -323,7 +322,6 @@ class BlueHydra::Device
     ].include?(attr)
   end
 
-
   # This is a helper method to track what attributes change because all
   # attributes lose their 'dirty' status after save and the sync method is an
   # after save so we need to keep a record of what changed to only sync relevant
@@ -336,13 +334,6 @@ class BlueHydra::Device
     if !fa.empty?
       if BlueHydra.pulse || BlueHydra.pulse_debug
         self.needs_sync = true
-#changelogs
- #       s=""
- #       fa.each do |a|
- #        s << "#{a} - #{self[a]}"
- #       end
- #       BlueHydra.logger.info("#{self.id} needs sync #{s}")
-#changelogs
       end
     end
   end
@@ -381,7 +372,6 @@ class BlueHydra::Device
         send_data[:data][:company] = self.company
       end
 
-
       # TODO once pulse is using uuid to lookup records we can move
       # address into the syncable_attributes list and only include it if
       # changes, unless of course we want to handle the case where the db gets
@@ -413,7 +403,8 @@ class BlueHydra::Device
 
       # create the json
       json_msg = JSON.generate(send_data)
-      # send the json
+	  # reset pulse db and then send the json
+	  BlueHydra::Pulse.hard_reset
       BlueHydra::Pulse.do_send(json_msg)
 
       #CLEANUP AFTER SYNC
