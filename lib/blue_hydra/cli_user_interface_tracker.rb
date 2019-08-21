@@ -156,7 +156,8 @@ module BlueHydra
       # few conditions, we are overloading this field so its populated
       if [nil, "Unknown"].include?(cui_status[@uuid][:manuf])
         if bt_mode == "classic" || (attrs[:le_address_type] && attrs[:le_address_type].first =~ /public/i)
-            vendor = Louis.lookup(address)
+            # vendor = Louis.lookup(address)
+            vendor = "Not set"
 
             cui_status[@uuid][:manuf] = if vendor["short_vendor"]
                                             vendor["short_vendor"]
