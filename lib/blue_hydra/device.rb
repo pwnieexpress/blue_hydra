@@ -260,8 +260,7 @@ class BlueHydra::Device
       self.vendor = "N/A - Random Address"
     else
       if self.vendor == nil || self.vendor == "Unknown" || force
-        vendor = "Not set"
-        self.vendor = vendor["long_vendor"] ? vendor["long_vendor"] : vendor["short_vendor"]
+        self.vendor =  "Not set"
       end
     end
   end
