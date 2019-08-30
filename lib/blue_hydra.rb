@@ -13,7 +13,6 @@ require 'socket'
 require 'dm-migrations'
 require 'dm-timestamps'
 require 'dm-validations'
-require 'louis'
 
 # Add to Load Path
 $:.unshift(File.dirname(__FILE__))
