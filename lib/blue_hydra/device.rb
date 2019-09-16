@@ -106,44 +106,18 @@ class BlueHydra::Device
         DataMapper.repository.adapter.select("delete from blue_hydra_devices where updated_at between \"1970-01-01\" AND \"#{Time.at(Time.now.to_i-1209600).to_s.split(" ")[0]}\" ;")
         BlueHydra::Pulse.hard_reset
       end
-
-      # unknown mode devices have 15 min timeout (SHOULD NOT EXIST, BUT WILL CLEAN
-      # OLD DBS)
-      BlueHydra::Device.all(
-        le_mode:       false,
-        classic_mode:  false,
-        status:        "online"
-      ).select{|x|
-        x.last_seen < (Time.now.to_i - (15*60))
-      }.each{|device|
-        device.status = 'offline'
-        device.save
+	  # Set everything offline that was not seen 15 minutes ago or for le mode 3 minutes ago
+      BlueHydra::Device.all.each{|device|
+        minutes = device.le_mode ? 3 : 15
+        if device.last_seen < (Time.now.to_i - (minutes*60))
+          BlueHydra.logger.debug("This device with is going offline...")
+          BlueHydra.logger.debug(device.inspect)
+          device.status = 'offline'
+          device.do_sync_to_pulse(true)
+          device.destroy
+        end
       }
     end
-
-    # Kill old things with fire
-    BlueHydra::Device.all(:updated_at.lte => Time.at(Time.now.to_i - 604800*2)).each do |dev|
-      dev.status = 'offline'
-      dev.do_sync_to_pulse(true)
-      BlueHydra.logger.debug("Destroying #{dev.address} #{dev.uuid}")
-      dev.destroy
-    end
-
-    # classic mode devices have 15 min timeout
-    BlueHydra::Device.all(classic_mode: true, status: "online").select{|x|
-      x.last_seen < (Time.now.to_i - (15*60))
-    }.each{|device|
-      device.status = 'offline'
-      device.save
-    }
-
-    # le mode devices have 3 min timeout
-    BlueHydra::Device.all(le_mode: true, status: "online").select{|x|
-      x.last_seen < (Time.now.to_i - (60*3))
-    }.each{|device|
-      device.status = 'offline'
-      device.save
-    }
   end
 
   # this class method is take a result Hash and convert it into a new or update
